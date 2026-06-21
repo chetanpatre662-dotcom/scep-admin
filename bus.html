@@ -1,0 +1,1703 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <title>SCEP BUS ADMIN</title>
+
+    <!-- BOOTSTRAP -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- ICONS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+
+    <!-- FONT -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
+
+    <!-- CHART -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- GOOGLE MAP -->
+    <script>
+        window.initMapCallback = function() { if (typeof initMap === "function") initMap(); else document.addEventListener("DOMContentLoaded", () => { if (typeof initMap === "function") initMap(); }); };
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDdx_xK0a-HjRxXMnqV3quDpAAT90OOe8M&callback=initMapCallback">
+    </script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Poppins", sans-serif;
+        }
+
+        body {
+            background: #f1f5f9;
+            overflow-x: hidden;
+        }
+
+        /* =========================
+           SIDEBAR
+        ========================= */
+
+        .sidebar {
+            width: 270px;
+            height: 100vh;
+            position: fixed;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+            overflow-y: auto;
+            transition: 0.3s ease;
+            left: 0;
+        }
+
+        /* MOBILE ONLY */
+        @media (max-width: 991px) {
+
+            .sidebar {
+                left: -270px;
+                z-index: 1000;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+        }
+
+        .sidebar a {
+            text-decoration: none;
+            color: white;
+        }
+
+        .sidebar h2 {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 35px;
+        }
+
+        .menu-item {
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            transition: 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: #cbd5e1;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        .menu-item:hover,
+        .menu-item.active {
+            background: #2563eb;
+            color: white;
+        }
+
+
+        /* =========================
+           MAIN
+        ========================= */
+
+        .main-content {
+            margin-left: 280px;
+            padding: 28px;
+        }
+
+        .topbar {
+            background: #fff;
+            border-radius: 24px;
+            padding: 24px 28px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, .06);
+        }
+
+        .topbar h2 {
+            font-size: 30px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .topbar p {
+            margin: 0;
+            color: #64748b;
+        }
+
+        .admin-box {
+            background: #eff6ff;
+            color: #2563eb;
+            padding: 14px 20px;
+            border-radius: 16px;
+            font-weight: 600;
+        }
+
+        /* =========================
+           STATS
+        ========================= */
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 22px;
+            margin-bottom: 25px;
+        }
+
+        .stat-card {
+            background: #fff;
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, .06);
+            /* center all content */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+        }
+
+        .stat-card h2 {
+            font-size: clamp(22px, 5vw, 34px);
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            margin: 0;
+            color: #64748b;
+            font-size: 16px;
+        }
+
+        .stat-icon {
+            width: 62px;
+            height: 62px;
+            border-radius: 18px;
+            background: #eff6ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            font-size: 28px;
+            margin-bottom: 18px;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+            margin-bottom: 25px;
+        }
+
+        .content-card {
+            background: #fff;
+            border-radius: 28px;
+
+            height: fit-content;
+            padding: 28px;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, .06);
+        }
+
+        .content-card-1 {
+            background: #fff;
+            border-radius: 28px;
+            height: 1060px;
+            overflow: hidden;
+            padding: 28px;
+            box-shadow: 0 8px 30px rgba(15, 23, 42, .06);
+        }
+
+        .section-title {
+            font-size: 22px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #0f172a;
+        }
+
+        /* =========================
+           BUS CARD
+        ========================= */
+
+        .bus-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 26px;
+            padding: 24px;
+            margin-bottom: 24px;
+        }
+
+        .bus-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 22px;
+        }
+
+        .bus-title {
+            font-size: 22px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .status-badge {
+            background: orange;
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 40px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .bus-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 16px;
+        }
+
+        .bus-box {
+            background: #f8fafc;
+            border-radius: 18px;
+            padding: 18px;
+        }
+
+        .bus-box span {
+            display: block;
+            color: #64748b;
+            font-size: 15px;
+            margin-bottom: 6px;
+        }
+
+        .bus-box h4 {
+            font-size: 17px;
+            font-weight: 700;
+            margin: 0;
+            color: #0f172a;
+        }
+
+        /* =========================
+           ACTIVITY
+        ========================= */
+
+        .activity-item {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .activity-icon {
+            width: 52px;
+            height: 52px;
+            background: #eef2ff;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #2563eb;
+            font-size: 20px;
+        }
+
+        .activity-text h5 {
+            margin: 0;
+            font-size: 17px;
+            color: #0f172a;
+        }
+
+        .activity-text p {
+            margin: 0;
+            color: #64748b;
+            font-size: 15px;
+        }
+
+        /* =========================
+           MAP
+        ========================= */
+
+        #map {
+            width: 100%;
+            height: 520px;
+            border-radius: 24px;
+            margin-top: 20px;
+        }
+
+        /* =========================
+           CHART
+        ========================= */
+
+        .chart-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .chart-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .chart-btn {
+            border: none;
+            padding: 12px 20px;
+            border-radius: 14px;
+            background: #e2e8f0;
+            font-weight: 600;
+            transition: .3s;
+        }
+
+        .chart-btn.active {
+            background: #2563eb;
+            color: #fff;
+        }
+
+        .chart-container {
+            height: 400px;
+        }
+
+        /* =========================
+   BUS MAP BUTTONS
+========================= */
+
+        .map-bus-btn {
+
+            border: none;
+            background: #2563eb;
+            color: #fff;
+            padding: 10px 18px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: .3s;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, .2);
+
+        }
+
+        .map-bus-btn:hover {
+
+            transform: translateY(-2px);
+            background: #1d4ed8;
+
+        }
+
+        .map-bus-btn.active {
+
+            background: #0f172a;
+
+        }
+
+        /* =========================
+           RESPONSIVE
+        ========================= */
+
+        @media(max-width:1200px) {
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media(max-width:768px) {
+
+            .sidebar {
+                width: 100%;
+                height: auto;
+                position: relative;
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bus-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* =========================
+   MOBILE SIDEBAR BACKDROP
+========================= */
+
+        .backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.4);
+            display: none;
+            z-index: 999;
+        }
+
+        .backdrop.active {
+            display: block;
+        }
+
+        /* FIX TOPBAR ON MOBILE */
+        @media(max-width:991px) {
+            .topbar {
+                position: sticky;
+                top: 0;
+                z-index: 1000;
+            }
+
+            .main-content {
+                padding-top: 20px;
+            }
+        }
+
+        /* PREVENT BODY SCROLL WHEN SIDEBAR OPEN */
+        body.sidebar-open {
+            overflow: hidden;
+        }
+
+        /* =========================
+   EXTRA LARGE SCREENS (1400px+)
+========================= */
+
+        @media (min-width: 1400px) {
+            .main-content {
+                max-width: 1400px;
+                margin-left: 300px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+
+            .main-grid {
+                grid-template-columns: 2.5fr 1fr;
+            }
+
+            #map {
+                height: 600px;
+            }
+        }
+
+        /* =========================
+   LARGE LAPTOP (1200px - 1399px)
+========================= */
+
+        @media (max-width: 1399px) {
+            .stats-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+
+        /* =========================
+   TABLET (768px - 1199px)
+========================= */
+
+        @media (max-width: 1199px) {
+
+            .main-content {
+                margin-left: 0;
+                padding: 20px;
+            }
+
+            .stats-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bus-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .topbar h2 {
+                font-size: 24px;
+            }
+
+            #map {
+                height: 450px;
+            }
+        }
+
+        /* =========================
+   MOBILE (<= 768px)
+========================= */
+
+        @media (max-width: 768px) {
+
+            .sidebar {
+                position: fixed;
+                left: -270px;
+                top: 0;
+                height: 100vh;
+                z-index: 9999;
+                transition: 0.3s ease;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .topbar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+                position: sticky;
+                top: 0;
+                z-index: 999;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .bus-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chart-buttons {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
+            }
+
+            #map {
+                height: 380px;
+            }
+
+            .map-bus-btn {
+                font-size: 13px;
+                padding: 8px 12px;
+            }
+        }
+
+        /* =========================
+   SMALL MOBILE (<= 480px)
+========================= */
+
+        @media (max-width: 480px) {
+
+            .main-content {
+                padding: 12px;
+            }
+
+            .topbar h2 {
+                font-size: 20px;
+            }
+
+            .stat-card h2 {
+                font-size: 26px;
+            }
+
+            .stat-icon {
+                width: 50px;
+                height: 50px;
+                font-size: 22px;
+            }
+
+            .bus-title {
+                font-size: 18px;
+            }
+
+            .section-title {
+                font-size: 18px;
+            }
+
+            #map {
+                height: 320px;
+            }
+        }
+
+        /* =========================
+   OFFCANVAS FIX (FINAL MOBILE SIDEBAR)
+========================= */
+
+        @media (max-width: 991px) {
+
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -280px;
+                width: 280px;
+                height: 100vh;
+                z-index: 10000;
+                transition: 0.3s ease;
+                box-shadow: 5px 0 25px rgba(0, 0, 0, 0.3);
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+        }
+
+        /* hamburger button better */
+        .btn.d-lg-none {
+            border: none;
+            background: transparent;
+        }
+
+        body.sidebar-open {
+            overflow: hidden;
+        }
+             .manu {
+            display: none;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            width: 270px;
+            height: 100vh;
+            background: #0f172a;
+            position: fixed;
+            left: 0;
+            top: 0;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: 0.3s ease;
+        }
+
+        /* BACKDROP */
+        .sidebar-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 999;
+            display: none;
+        }
+
+        .sidebar-backdrop.active {
+            display: block;
+        }
+
+        /* MENU BUTTON */
+        .menu-bar {
+            font-size: 28px;
+            display: none;
+        }
+
+        /* MOBILE */
+        @media(max-width: 991px) {
+
+            .manu {
+                display: block !important;
+            }
+
+            .menu-bar {
+                display: block;
+            }
+
+            .sidebar {
+                left: -270px;
+            }
+
+            .sidebar.active {
+                left: 0;
+            }
+
+            .main-content {
+                margin-left: 0;
+                padding: 12px; /* prevent content touching screen edges */
+            }
+
+            .topbar {
+                position: sticky;
+                top: 0;
+                z-index: 100;
+                display: flex;
+                justify-content: space-between;
+                flex-direction: row;
+                gap: 10px;
+            }
+
+            .admin-box {
+                display: none;
+            }
+
+            .filter-box,
+            .table-box,
+            .custom-tabs,
+            .row.g-4 {
+                margin-left: 0;
+                margin-right: 0;
+            }
+        }
+    </style>
+
+</head>
+
+<body>
+    <div class="backdrop" id="backdrop" onclick="toggleSidebar()"></div>
+    <!-- =========================
+         SIDEBAR
+    ========================= -->
+
+   <div class="sidebar" id="sidebar">
+
+        <h2>
+            <i class="bi bi-bus-front"></i>
+            SCEP Admin
+        </h2>
+
+       <a href="./dashboard.html">
+            <div class="menu-item ">
+                <i class="bi bi-grid"></i>
+                Dashboard
+            </div>
+        </a>
+
+        <a href="./user.html">
+            <div class="menu-item ">
+                <i class="bi bi-people"></i>
+                Users
+            </div>
+        </a>
+
+        <a href="./bus.html">
+            <div class="menu-item active">
+                <i class="bi bi-bus-front"></i>
+                Bus Monitoring
+            </div>
+        </a>
+
+        <a href="./attendance.html">
+            <div class="menu-item">
+                <i class="bi bi-check2-square"></i>
+                Attendance
+            </div>
+        </a>
+
+        <a href="./notification.html">
+            <div class="menu-item ">
+                <i class="bi bi-check2-square"></i>
+               Notification & Complaiants
+            </div>
+        </a>
+             <a href="./route.html">
+            <div class="menu-item">
+                <i class="bi bi-bell"></i>
+                Route
+            </div>
+        </a>
+
+        <a href="./report.html">
+            <div class="menu-item ">
+                <i class="bi bi-check2-square"></i>
+                Report & Analysis
+            </div>
+        </a>
+       
+       
+
+      
+
+    </div>
+    <!-- =========================
+         MAIN
+    ========================= -->
+
+    <div class="main-content">
+
+        <!-- TOPBAR -->
+
+         <div class="topbar">
+
+            <div class="manu">
+                <button class="menu-bar border-0 bg-white" onclick="toggleSidebar()">
+                    <i class="bi bi-list fs-4"></i>
+                </button>
+            </div>
+
+            <div>
+                <h3>Bus Management</h3>
+                <small class="text-muted">
+                    Manage Students, Parents & Faculty
+                </small>
+            </div>
+
+            <div class="admin-box">
+                <i class="bi bi-person-circle"></i>
+                Admin Panel
+            </div>
+
+        </div>
+
+        <!-- STATS -->
+
+        <div class="row g-4 text-center">
+
+            <div class="stat-card col-xl-3 col-md-6 col-sm-6 col-12">
+                <div class="stat-icon">
+                    <i class="bi bi-people"></i>
+                </div>
+                <h2 id="totalUsers">0</h2>
+                <p>Total Users</p>
+            </div>
+
+            <div class="stat-card col-xl-3 col-md-6 col-sm-6 col-12">
+                <div class="stat-icon">
+                    <i class="bi bi-bus-front"></i>
+                </div>
+                <h2 id="activeBuses">0</h2>
+                <p>Active Buses</p>
+            </div>
+
+            <div class="stat-card col-xl-3 col-md-6 col-sm-6 col-12">
+                <div class="stat-icon">
+                    <i class="bi bi-person-check"></i>
+                </div>
+                <h2 id="traveling">0</h2>
+                <p>Students Traveling</p>
+            </div>
+
+            <div class="stat-card col-xl-3 col-md-6 col-sm-6 col-12">
+                <div class="stat-icon">
+                    <i class="bi bi-building"></i>
+                </div>
+                <h2 id="presentToday">0</h2>
+                <p>Reached College Today</p>
+            </div>
+
+        </div>
+
+        <!-- =========================
+     MAP
+========================= -->
+
+        <div class="content-card">
+
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
+
+                <div>
+
+                    <h3 class="section-title mb-1">
+                        Live Bus Monitoring
+                    </h3>
+
+                    <small class="text-muted">
+                        Click bus button to focus live location
+                    </small>
+
+                </div>
+
+                <!-- BUS BUTTONS -->
+                <div id="busButtons" style="
+                display:flex;
+                gap:10px;
+                flex-wrap:wrap;
+            ">
+                </div>
+
+            </div>
+
+            <div id="map"></div>
+
+        </div>
+
+        <!-- CHART -->
+
+        <div class="content-card mt-4">
+
+            <div class="chart-top">
+
+                <div>
+
+                    <h3 class="section-title mb-1">
+                        Transport Analytics
+                    </h3>
+
+                    <small class="text-muted">
+                        Bus Wise Reports
+                    </small>
+
+                </div>
+
+                <div class="chart-buttons">
+
+                    <button class="chart-btn active" id="usersBtn">
+                        Total Enrolled Users
+                    </button>
+
+                    <button class="chart-btn" id="attendanceBtn">
+                        Today Attendance
+                    </button>
+
+                </div>
+
+            </div>
+
+            <div class="chart-container">
+                <canvas id="busChart"></canvas>
+            </div>
+
+        </div>
+
+        <!-- MAIN GRID -->
+
+        <div class="main-grid mt-4">
+
+            <!-- LEFT -->
+
+            <div class="content-card">
+
+                <h3 class="section-title">
+                    Live Bus Tracking
+                </h3>
+
+                <div id="busContainer"></div>
+
+            </div>
+
+            <!-- RIGHT -->
+
+            <div class="content-card-1">
+
+                <h3 class="section-title">
+                    Recent Activity
+                </h3>
+
+                <div id="activityContainer"></div>
+
+            </div>
+
+        </div>
+
+
+
+    </div>
+
+    <script>
+
+        const API_URL = "http://162.245.191.109:3000/admin/dashboard";
+
+        let dashboardData = null;
+        let chart;
+        let map;
+        let markers = [];
+        let mapReady = false; // tracks whether Google Maps has initialised
+        let boundsFitDone = false; // ensures bounds fit only happens once on first load
+
+        /* =========================
+           TRAIL TRACKING — stores last 5 GPS points per bus
+        ========================= */
+        let busTrails = {}; // busId → { points: [], polyline }
+        const MAX_TRAIL_POINTS = 5;
+
+        function updateBusTrail(busId, lat, lng) {
+            if (!busTrails[busId]) {
+                busTrails[busId] = { points: [], polyline: null };
+            }
+
+            const point = { lat: Number(lat), lng: Number(lng) };
+            busTrails[busId].points.push(point);
+
+            // Keep only last 5 points
+            if (busTrails[busId].points.length > MAX_TRAIL_POINTS) {
+                busTrails[busId].points.shift();
+            }
+
+            // Update or create polyline
+            if (busTrails[busId].polyline) {
+                busTrails[busId].polyline.setPath(busTrails[busId].points);
+            } else if (busTrails[busId].points.length > 1) {
+                busTrails[busId].polyline = new google.maps.Polyline({
+                    path: busTrails[busId].points,
+                    geodesic: true,
+                    strokeColor: "#2563eb",
+                    strokeOpacity: 0.6,
+                    strokeWeight: 2,
+                    map: map
+                });
+            }
+        }
+
+        /* Remove trail when bus goes offline */
+        function removeBusTrail(busId) {
+            if (busTrails[busId] && busTrails[busId].polyline) {
+                busTrails[busId].polyline.setMap(null);
+            }
+            delete busTrails[busId];
+        }
+
+        /* =========================
+           INIT
+        ========================= */
+
+        async function init() {
+            try {
+                const res = await fetch(API_URL);
+                dashboardData = await res.json();
+
+                loadStats();
+                loadBusCards();
+                loadActivities();
+                renderChart("users");
+
+                // Initialise map only once; subsequent refreshes call updateMarkers
+                if (!mapReady && typeof google !== "undefined" && google.maps) {
+                    initMap();
+                    mapReady = true;
+                } else if (mapReady) {
+                    renderBusButtons(dashboardData.buses);
+                    updateMarkers(dashboardData.buses);
+                }
+            } catch (e) {
+                console.error("Init error:", e);
+            }
+        }
+
+        init();
+
+        // Refresh stats, cards and activities every 30s (WebSocket handles live bus data)
+        setInterval(init, 30000);
+
+        /* =========================
+           WEBSOCKET — same pattern as dashboard.html
+           Receives live bus updates without resetting selected bus state.
+        ========================= */
+        const ws = new WebSocket("ws://162.245.191.109:8080");
+
+        ws.onmessage = (event) => {
+            try {
+                const res = JSON.parse(event.data);
+                if (res.type === "update" || res.type === "init") {
+                    const buses = res.data;
+
+                    // Update markers (preserves activeBusId color)
+                    if (mapReady) updateMarkers(buses);
+
+                    // Only rebuild buttons if count changed to avoid losing active state
+                    const prevCount = document.querySelectorAll("#busButtons button").length;
+                    if (mapReady && prevCount !== buses.length + 1) {
+                        renderBusButtons(buses);
+                    } else if (mapReady) {
+                        // Just re-apply active style without rebuilding
+                        document.querySelectorAll("#busButtons button").forEach(b => {
+                            if (b.id !== "btn-ALL") {
+                                b.classList.toggle("active", b.id === `btn-${activeBusId}`);
+                            }
+                        });
+                    }
+                }
+            } catch (e) { /* ignore parse errors */ }
+        };
+
+        ws.onerror = () => {};  // silent — polling covers it
+
+        /* =========================
+           STATS
+        ========================= */
+
+        function loadStats() {
+            document.getElementById("totalUsers").innerText  = dashboardData.totalUsers  || 0;
+            document.getElementById("activeBuses").innerText = dashboardData.activeBuses || 0;
+            // Students Traveling = currently onboarded (boarded but not yet at college)
+            document.getElementById("traveling").innerText   = dashboardData.onboarded   || 0;
+            // Reached College = today's attendance count (resets daily, NOT cumulative liveStatus)
+            document.getElementById("presentToday").innerText = dashboardData.presentToday || 0;
+        }
+
+        function loadBusCards() {
+            const wrap = document.getElementById("busContainer");
+            wrap.innerHTML = "";
+
+            (dashboardData.buses || []).forEach((bus, index) => {
+                // Today's actual traveler count from attendance data
+                const todayCount = (dashboardData.busWiseAttendance || {})[bus.busId] || 0;
+
+                wrap.innerHTML += `
+        <div class="bus-card">
+            <div class="bus-top" onclick="toggleBus(${index})" style="cursor:pointer">
+                <div class="d-flex align-items-center gap-3 flex-wrap">
+                    <div class="bus-title">${bus.busId}</div>
+                    <div class="status-badge">${bus.status || "Unknown"}</div>
+                </div>
+                <i class="bi bi-chevron-down" id="arrow-${index}" style="font-size:22px;transition:.3s;flex-shrink:0"></i>
+            </div>
+
+            <div id="bus-content-${index}" style="display:none;margin-top:20px">
+                <div class="bus-grid">
+                    <div class="bus-box">
+                        <span>Driver</span>
+                        <h4>${bus.driver || "N/A"}</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Driver Mobile</span>
+                        <h4>${bus.driverMobile || "N/A"}</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Route</span>
+                        <h4>${bus.route || "N/A"}</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Speed</span>
+                        <h4>${Math.round(bus.speed || 0)} KM/H</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Today's Travelers</span>
+                        <h4>${todayCount}</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Today KM</span>
+                        <h4>${bus.todayKm || "0"} KM</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Campus Arrival</span>
+                        <h4>${bus.collegeArrivalTime ? new Date(bus.collegeArrivalTime).toLocaleTimeString() : "Not Reached"}</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Bus Start Time</span>
+                        <h4>${bus.startTime ? new Date(bus.startTime).toLocaleTimeString() : "N/A"}</h4>
+                    </div>
+                    <div class="bus-box">
+                        <span>Last Update</span>
+                        <h4>${bus.timestamp ? new Date(bus.timestamp).toLocaleTimeString() : "N/A"}</h4>
+                    </div>
+                </div>
+                <div style="margin-top:14px;text-align:right">
+                    <button class="btn-bus-edit"
+                        onclick="openBusEdit('${bus.busId}','${bus.driver || ""}','${bus.driverMobile || ""}','${bus.route || ""}')">
+                        <i class="bi bi-pencil-square"></i> Edit Driver / Route
+                    </button>
+                </div>
+            </div>
+        </div>`;
+            });
+        }
+
+        /* =========================
+           ACTIVITY
+        ========================= */
+
+        function loadActivities() {
+
+            const wrap =
+                document.getElementById("activityContainer");
+
+            wrap.innerHTML = "";
+
+            (dashboardData.activities || []).forEach(a => {
+
+                wrap.innerHTML += `
+
+                <div class="activity-item">
+
+                    <div class="activity-icon">
+                        <i class="bi bi-activity"></i>
+                    </div>
+
+                    <div class="activity-text">
+
+                        <h5>${a.message}</h5>
+
+                        <p>
+                            ${new Date(a.time)
+                        .toLocaleString()}
+                        </p>
+
+                    </div>
+
+                </div>
+
+                `;
+
+            });
+
+        }
+
+        /* =========================
+           MAP — Google Maps implementation
+           Includes trail tracking with polylines
+           activeBusId persists across WS updates
+        ========================= */
+        let markerMap   = {};   // busId → { marker, info }
+        let activeBusId = null; // currently selected bus
+
+        function redIcon()  {
+            return "https://maps.google.com/mapfiles/ms/icons/red-dot.png";
+        }
+        function blueIcon() {
+            return "https://maps.google.com/mapfiles/ms/icons/blue-dot.png";
+        }
+
+        function initMap() {
+            if (mapReady) return; // singleton — only init once
+            map = new google.maps.Map(document.getElementById("map"), {
+                center: { lat: 21.8253, lng: 80.1513 },
+                zoom: 12,
+            });
+            mapReady = true;
+            // If data was already fetched, render immediately
+            if (dashboardData) {
+                renderBusButtons(dashboardData.buses);
+                updateMarkers(dashboardData.buses);
+                // Fit bounds to all buses on first load
+                if (!boundsFitDone && dashboardData.buses && dashboardData.buses.length > 0) {
+                    fitBoundsToAllBuses(dashboardData.buses);
+                    boundsFitDone = true;
+                }
+            }
+        }
+        // Google Maps API calls this when ready (set in script src callback param)
+        window.initMapCallback = initMap;
+
+        /* Auto-fit map to show all buses on first load */
+        function fitBoundsToAllBuses(buses) {
+            if (buses.length === 0) return;
+            const bounds = new google.maps.LatLngBounds();
+            buses.forEach(b => {
+                bounds.extend({ lat: Number(b.lat), lng: Number(b.lng) });
+            });
+            map.fitBounds(bounds);
+        }
+
+        /* Render bus selection buttons — preserves activeBusId highlight */
+        function renderBusButtons(buses) {
+            const wrap = document.getElementById("busButtons");
+            wrap.innerHTML = "";
+
+            // ALL button
+            const allBtn = document.createElement("button");
+            allBtn.className = "map-bus-btn";
+            allBtn.innerText = "All";
+            allBtn.id = "btn-ALL";
+            allBtn.onclick = () => {
+                activeBusId = null;
+                wrap.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+                Object.values(markerMap).forEach(({ marker }) => marker.setIcon(redIcon()));
+                const bounds = new google.maps.LatLngBounds();
+                buses.forEach(b => bounds.extend({ lat: Number(b.lat), lng: Number(b.lng) }));
+                if (buses.length) map.fitBounds(bounds);
+            };
+            wrap.appendChild(allBtn);
+
+            buses.forEach(bus => {
+                const btn = document.createElement("button");
+                btn.className = "map-bus-btn" + (bus.busId === activeBusId ? " active" : "");
+                btn.id = `btn-${bus.busId}`;
+                btn.innerText = bus.busId;
+                btn.onclick = () => focusBus(bus.busId);
+                wrap.appendChild(btn);
+            });
+        }
+
+        /* Update or create markers; preserve selected color; update trails */
+        function updateMarkers(buses) {
+            const liveIds = new Set(buses.map(b => b.busId));
+
+            buses.forEach(bus => {
+                const pos  = { lat: Number(bus.lat), lng: Number(bus.lng) };
+                const icon = (bus.busId === activeBusId) ? blueIcon() : redIcon();
+                
+                // Update trail with new GPS point
+                updateBusTrail(bus.busId, bus.lat, bus.lng);
+
+                const infoHtml = `
+                    <div style="padding:10px;font-family:Poppins,sans-serif">
+                        <h5 style="margin:0 0 6px">${bus.busId}</h5>
+                        <p style="margin:2px 0"><b>Driver:</b> ${bus.driver || "N/A"}</p>
+                        <p style="margin:2px 0"><b>Route:</b>  ${bus.route  || "N/A"}</p>
+                        <p style="margin:2px 0"><b>Status:</b> ${bus.status || "N/A"}</p>
+                        <p style="margin:2px 0"><b>Speed:</b>  ${Math.round(bus.speed || 0)} km/h</p>
+                    </div>`;
+
+                if (markerMap[bus.busId]) {
+                    markerMap[bus.busId].marker.setPosition(pos);
+                    markerMap[bus.busId].marker.setIcon(icon);
+                    markerMap[bus.busId].info.setContent(infoHtml);
+                } else {
+                    const marker = new google.maps.Marker({
+                        position: pos, map,
+                        title: bus.busId, icon
+                    });
+                    const info = new google.maps.InfoWindow({ content: infoHtml });
+                    marker.addListener("click", () => {
+                        info.open(map, marker);
+                        focusBus(bus.busId);
+                    });
+                    markerMap[bus.busId] = { marker, info };
+                }
+            });
+
+            // Remove stale markers and trails
+            Object.keys(markerMap).forEach(id => {
+                if (!liveIds.has(id)) {
+                    markerMap[id].marker.setMap(null);
+                    removeBusTrail(id);
+                    delete markerMap[id];
+                }
+            });
+        }
+
+        /* Focus a bus: blue marker + active button + pan map */
+        function focusBus(busId) {
+            const prev = activeBusId;
+            activeBusId = busId;
+
+            // Reset previous marker
+            if (prev && markerMap[prev]) markerMap[prev].marker.setIcon(redIcon());
+            // Highlight new marker
+            if (markerMap[busId])        markerMap[busId].marker.setIcon(blueIcon());
+
+            // Update button styles
+            document.querySelectorAll("#busButtons button").forEach(b => {
+                b.classList.toggle("active", b.id === `btn-${busId}`);
+            });
+
+            // Pan map
+            if (markerMap[busId]) {
+                map.panTo(markerMap[busId].marker.getPosition());
+                map.setZoom(15);
+                markerMap[busId].info.open(map, markerMap[busId].marker);
+            }
+        }
+
+        function toggleBus(index) {
+
+            const allCards = document.querySelectorAll("[id^='bus-content-']");
+            const allArrows = document.querySelectorAll("[id^='arrow-']");
+
+            const current = document.getElementById(`bus-content-${index}`);
+            const arrow = document.getElementById(`arrow-${index}`);
+
+            const isOpen = current.style.display === "block";
+
+            // close all first
+            allCards.forEach(el => el.style.display = "none");
+            allArrows.forEach(el => el.style.transform = "rotate(0deg)");
+
+            // open only selected
+            if (!isOpen) {
+                current.style.display = "block";
+                arrow.style.transform = "rotate(180deg)";
+            }
+        }
+        /* =========================
+           CHART
+        ========================= */
+
+        function renderChart(type) {
+
+            const ctx =
+                document.getElementById("busChart");
+
+            if (chart) {
+                chart.destroy();
+            }
+
+            let labels = [];
+            let values = [];
+
+            if (type === "users") {
+
+                labels =
+                    Object.keys(
+                        dashboardData.busWiseUsers
+                    );
+
+                values =
+                    Object.values(
+                        dashboardData.busWiseUsers
+                    );
+
+            } else {
+
+                labels =
+                    Object.keys(
+                        dashboardData.busWiseAttendance
+                    );
+
+                values =
+                    Object.values(
+                        dashboardData.busWiseAttendance
+                    );
+
+            }
+
+            chart =
+                new Chart(ctx, {
+
+                    type: "bar",
+
+                    data: {
+
+                        labels,
+
+                        datasets: [{
+
+                            label:
+                                type === "users"
+                                    ? "Total Users"
+                                    : "Attendance",
+
+                            data: values,
+
+                            borderRadius: 12,
+
+                        }]
+
+                    },
+
+                    options: {
+
+                        responsive: true,
+
+                        maintainAspectRatio: false,
+
+                        scales: {
+
+                            y: {
+
+                                beginAtZero: true,
+
+                                ticks: {
+
+                                    precision: 0,
+
+                                    stepSize: 1
+
+                                }
+
+                            }
+
+                        }
+
+                    }
+
+                });
+
+        }
+
+        /* =========================
+           UTILITY FUNCTIONS
+        ========================= */
+        function toggleSidebar() {
+            const sidebar = document.getElementById("sidebar");
+            const backdrop = document.getElementById("backdrop");
+
+            sidebar.classList.toggle("active");
+            backdrop.classList.toggle("active");
+
+            document.body.classList.toggle("sidebar-open");
+        }
+
+        function getBusColor(index) {
+            const colors = [
+                "#ef4444", "#3b82f6", "#22c55e",
+                "#f59e0b", "#a855f7", "#06b6d4",
+                "#f97316", "#84cc16"
+            ];
+            return colors[index % colors.length];
+        }
+
+        document.querySelectorAll(".menu-item").forEach(item => {
+            item.addEventListener("click", () => {
+                if (window.innerWidth < 992) {
+                    document.getElementById("sidebar").classList.remove("active");
+                    document.getElementById("backdrop").classList.remove("active");
+                    document.body.classList.remove("sidebar-open");
+                }
+            });
+        });
+
+        document.querySelectorAll(".menu-item").forEach(item => {
+            item.addEventListener("click", () => {
+                if (window.innerWidth < 992) {
+                    document.getElementById("sidebar").classList.remove("active");
+                    document.getElementById("backdrop").classList.remove("active");
+                }
+            });
+        });
+
+        /* =========================
+           BUTTONS
+        ========================= */
+
+        document
+            .getElementById("usersBtn")
+            .addEventListener("click", () => {
+
+                renderChart("users");
+
+                document
+                    .getElementById("usersBtn")
+                    .classList.add("active");
+
+                document
+                    .getElementById("attendanceBtn")
+                    .classList.remove("active");
+
+            });
+
+        document
+            .getElementById("attendanceBtn")
+            .addEventListener("click", () => {
+
+                renderChart("attendance");
+
+                document
+                    .getElementById("attendanceBtn")
+                    .classList.add("active");
+
+                document
+                    .getElementById("usersBtn")
+                    .classList.remove("active");
+
+            });
+
+    </script>
+
+    <!-- ── Bus edit modal ──────────────────────────────────────────────── -->
+    <div id="busEditModal" style="
+        display:none;position:fixed;inset:0;z-index:9000;
+        background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+      <div style="
+          background:#fff;border-radius:20px;padding:28px 24px;
+          width:100%;max-width:440px;margin:16px;
+          box-shadow:0 12px 40px rgba(0,0,0,.18);font-family:Poppins,sans-serif">
+
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+          <h5 style="margin:0;font-weight:700;color:#0f172a">
+            Edit Bus — <span id="editModalBusId"></span>
+          </h5>
+          <button onclick="closeBusEdit()" style="
+              border:none;background:#f1f5f9;border-radius:8px;
+              width:32px;height:32px;font-size:18px;cursor:pointer;
+              display:flex;align-items:center;justify-content:center">×</button>
+        </div>
+
+        <label style="font-size:13px;font-weight:600;color:#64748b">Driver Name</label>
+        <input id="editDriverName" type="text" placeholder="e.g. Rahul Sharma"
+          style="width:100%;margin:6px 0 14px;padding:11px 14px;border:1px solid #e2e8f0;
+                 border-radius:10px;font-size:14px;outline:none;box-sizing:border-box">
+
+        <label style="font-size:13px;font-weight:600;color:#64748b">Driver Mobile</label>
+        <input id="editDriverMobile" type="tel" placeholder="10-digit number"
+          style="width:100%;margin:6px 0 14px;padding:11px 14px;border:1px solid #e2e8f0;
+                 border-radius:10px;font-size:14px;outline:none;box-sizing:border-box">
+
+        <label style="font-size:13px;font-weight:600;color:#64748b">Route</label>
+        <input id="editRoute" type="text" placeholder="e.g. Balaghat Morning Route"
+          style="width:100%;margin:6px 0 20px;padding:11px 14px;border:1px solid #e2e8f0;
+                 border-radius:10px;font-size:14px;outline:none;box-sizing:border-box">
+
+        <div id="editSaveMsg" style="font-size:13px;margin-bottom:10px;min-height:18px"></div>
+
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button onclick="closeBusEdit()" style="
+              padding:10px 20px;border:1px solid #e2e8f0;border-radius:10px;
+              background:#f8fafc;font-size:14px;font-weight:600;cursor:pointer">
+            Cancel
+          </button>
+          <button id="editSaveBtn" onclick="saveBusEdit()" style="
+              padding:10px 24px;border:none;border-radius:10px;
+              background:#2563eb;color:#fff;font-size:14px;
+              font-weight:600;cursor:pointer">
+            Save
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <style>
+      .btn-bus-edit {
+        padding: 7px 16px;
+        border: none;
+        border-radius: 10px;
+        background: #eff6ff;
+        color: #2563eb;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        transition: background .15s;
+      }
+      .btn-bus-edit:hover { background: #dbeafe; }
+    </style>
+
+    <script>
+      /* ── Bus edit modal helpers ─────────────────────────────────── */
+      let _editBusId = null;
+
+      function openBusEdit(busId, driver, mobile, route) {
+        _editBusId = busId;
+        document.getElementById("editModalBusId").textContent  = busId;
+        document.getElementById("editDriverName").value        = driver  || "";
+        document.getElementById("editDriverMobile").value      = mobile  || "";
+        document.getElementById("editRoute").value             = route   || "";
+        document.getElementById("editSaveMsg").textContent     = "";
+        document.getElementById("editSaveBtn").disabled        = false;
+        document.getElementById("busEditModal").style.display  = "flex";
+      }
+
+      function closeBusEdit() {
+        document.getElementById("busEditModal").style.display = "none";
+        _editBusId = null;
+      }
+
+      async function saveBusEdit() {
+        if (!_editBusId) return;
+
+        const driverName   = document.getElementById("editDriverName").value.trim();
+        const driverMobile = document.getElementById("editDriverMobile").value.trim();
+        const route        = document.getElementById("editRoute").value.trim();
+
+        const msg = document.getElementById("editSaveMsg");
+        const btn = document.getElementById("editSaveBtn");
+
+        btn.disabled = true;
+        msg.style.color = "#64748b";
+        msg.textContent = "Saving…";
+
+        try {
+          const res = await fetch(
+            `http://162.245.191.109:3000/admin/bus/${encodeURIComponent(_editBusId)}`,
+            {
+              method:  "PUT",
+              headers: { "Content-Type": "application/json" },
+              body:    JSON.stringify({ driverName, driverMobile, route }),
+            }
+          );
+
+          const data = await res.json();
+
+          if (data.success) {
+            msg.style.color   = "#16a34a";
+            msg.textContent   = "✅ Saved successfully";
+            setTimeout(closeBusEdit, 1000);
+          } else {
+            msg.style.color   = "#dc2626";
+            msg.textContent   = "❌ " + (data.error || "Save failed");
+            btn.disabled      = false;
+          }
+        } catch (e) {
+          msg.style.color   = "#dc2626";
+          msg.textContent   = "❌ Network error";
+          btn.disabled      = false;
+        }
+      }
+
+      // Close modal when clicking the backdrop
+      document.getElementById("busEditModal").addEventListener("click", function(e) {
+        if (e.target === this) closeBusEdit();
+      });
+    </script>
+
+</body>
+
+</html>

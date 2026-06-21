@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCEP Bus Admin Login</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body { background: linear-gradient(135deg, #eef2ff, #f8fafc); }
+  .glass { background: rgba(255,255,255,0.72); backdrop-filter: blur(14px); box-shadow: 0 10px 40px rgba(0,0,0,0.08); }
+  .fade { animation: fadeIn 0.8s ease; }
+  @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+  .glow-text { background: linear-gradient(90deg, #2563eb, #60a5fa, #22c55e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: glowMove 3s infinite linear; background-size: 200% 100%; }
+  @keyframes glowMove { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+</style>
+</head>
+<body class="flex items-center justify-center min-h-screen px-4">
+  <div class="w-full max-w-md glass rounded-2xl p-6 sm:p-8 fade">
+    <div class="text-center mb-5">
+      <h1 class="text-3xl sm:text-4xl font-extrabold glow-text">SCEP BUS ADMIN</h1>
+      <p class="text-gray-600 text-sm mt-1">Bus Management Control Panel</p>
+    </div>
+    <div class="space-y-4">
+      <input id="username" type="text" placeholder="Username" class="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input id="password" type="password" placeholder="Password" class="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <button onclick="login()" class="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold hover:bg-blue-600 transition">Login</button>
+      <p id="msg" class="text-center text-sm text-red-500"></p>
+    </div>
+    <p class="text-center text-xs text-gray-400 mt-6">© SCEP Bus Tracking System</p>
+  </div>
+<script>
+async function login() {
+  const username = document.getElementById("username").value;
+  const password = document.getElementById("password").value;
+  const msg = document.getElementById("msg");
+  msg.style.color = "gray"; msg.innerText = "Checking...";
+  try {
+    const res = await fetch("http://162.245.191.109:3000/admin/login", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Clear any stale session data
+      localStorage.removeItem("token");
+      localStorage.removeItem("institution");
+      localStorage.removeItem("role");
+
+      // Store fresh session
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("institution", data.institution);
+      localStorage.setItem("role", data.role || "admin");
+
+      msg.style.color = "green"; msg.innerText = "Login successful...";
+
+      // Determine redirect path based on role/institution
+      let path;
+      if (data.role === "superadmin" || data.institution === "all") {
+        path = "app/dashboard.html";
+      } else if (data.institution === "school") {
+        path = "school/dashboard.html";
+      } else {
+        path = "college/dashboard.html";
+      }
+      console.log("ROLE:", data.role, "INSTITUTION:", data.institution, "REDIRECT:", path);
+      setTimeout(() => { window.location.href = path; }, 600);
+    } else { msg.style.color = "red"; msg.innerText = "Invalid username or password"; }
+  } catch (err) { msg.style.color = "red"; msg.innerText = "Server not reachable"; }
+}
+
+// Auto-redirect if already logged in
+const t = localStorage.getItem("token");
+const i = localStorage.getItem("institution");
+if (t && i) {
+  let path;
+  if (i === "all") { path = "app/dashboard.html"; }
+  else if (i === "school") { path = "school/dashboard.html"; }
+  else { path = "college/dashboard.html"; }
+  console.log("AUTO-REDIRECT: institution=" + i + " → " + path);
+  window.location.href = path;
+}
+</script>
+</body>
+</html>

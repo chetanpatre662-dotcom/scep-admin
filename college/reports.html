@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>College Admin - Reports</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../shared/admin-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>/* college uses CSS defaults */</style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <h4><i class="bi bi-mortarboard me-2"></i>College Admin</h4>
+        <a href="dashboard.html"><div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div></a>
+        <a href="users.html"><div class="nav-item"><i class="bi bi-people"></i>Users</div></a>
+        <a href="attendance.html"><div class="nav-item"><i class="bi bi-check2-square"></i>Attendance</div></a>
+        <a href="bus.html"><div class="nav-item"><i class="bi bi-bus-front"></i>Bus Monitoring</div></a>
+        <a href="routes.html"><div class="nav-item"><i class="bi bi-signpost-split"></i>Routes</div></a>
+        <a href="notifications.html"><div class="nav-item"><i class="bi bi-bell"></i>Notifications</div></a>
+        <a href="complaints.html"><div class="nav-item"><i class="bi bi-chat-dots"></i>Complaints</div></a>
+        <a href="reports.html"><div class="nav-item active"><i class="bi bi-bar-chart"></i>Reports</div></a>
+        <div class="nav-item mt-4" onclick="logout()" style="color:#f87171;cursor:pointer"><i class="bi bi-box-arrow-left"></i>Logout</div>
+    </div>
+    <div class="main">
+        <div class="topbar">
+            <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
+            <h5 class="fw-bold mb-0">Reports & Analytics</h5>
+            <div class="d-flex gap-2">
+                <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-filetype-csv me-1"></i>CSV</button>
+                <button class="btn btn-outline-secondary btn-sm" onclick="alert('PDF export coming soon')"><i class="bi bi-filetype-pdf me-1"></i>PDF</button>
+            </div>
+        </div>
+
+        <!-- Date Range -->
+        <div class="section-box">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-3"><label class="form-label small">From</label><input type="date" id="dateFrom" class="form-control form-control-sm"></div>
+                <div class="col-md-3"><label class="form-label small">To</label><input type="date" id="dateTo" class="form-control form-control-sm"></div>
+                <div class="col-md-2"><button class="btn btn-primary btn-sm w-100" onclick="loadReports()"><i class="bi bi-search me-1"></i>Apply</button></div>
+            </div>
+        </div>
+
+        <!-- Charts -->
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="section-box">
+                    <h6 class="fw-bold mb-3">User Distribution</h6>
+                    <canvas id="userChart" height="200"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="section-box">
+                    <h6 class="fw-bold mb-3">Today's Attendance</h6>
+                    <canvas id="attChart" height="200"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="section-box">
+            <h6 class="fw-bold mb-3">Attendance Summary</h6>
+            <div class="row g-3" id="summaryCards"></div>
+        </div>
+    </div>
+
+    <script src="../shared/admin-common.js"></script>
+    <script>
+        if (!verifyInstitution("college")) throw "unauthorized";
+        document.getElementById("dateFrom").value = new Date().toISOString().split("T")[0];
+        document.getElementById("dateTo").value = new Date().toISOString().split("T")[0];
+
+        let userChartInst, attChartInst;
+        async function loadReports() {
+            try {
+                const [usersRes, attRes] = await Promise.all([
+                    fetchWithCache(`${API}/admin/users-by-institution?institution=college`, "rpt_users_college"),
+                    fetchWithCache(`${API}/admin/attendance-by-institution?institution=college&date=${document.getElementById("dateFrom").value}`, "rpt_att_college")
+                ]);
+
+                if (usersRes.success) {
+                    const ctx = document.getElementById("userChart").getContext("2d");
+                    if (userChartInst) userChartInst.destroy();
+                    userChartInst = new Chart(ctx, {
+                        type: "doughnut",
+                        data: { labels: ["Students","Faculty","Parents"], datasets: [{ data: [usersRes.counts.students, usersRes.counts.faculty, usersRes.counts.parents], backgroundColor: ["#2563eb","#16a34a","#f59e0b"] }] },
+                        options: { responsive: true, plugins: { legend: { position: "bottom" } } }
+                    });
+                }
+                if (attRes.success) {
+                    const ctx2 = document.getElementById("attChart").getContext("2d");
+                    if (attChartInst) attChartInst.destroy();
+                    attChartInst = new Chart(ctx2, {
+                        type: "bar",
+                        data: { labels: ["Total","Boarded","Present","Exited"], datasets: [{ data: [attRes.totalStudents, attRes.boarded, attRes.present, attRes.exited], backgroundColor: ["#64748b","#2563eb","#16a34a","#dc2626"], borderRadius: 6 }] },
+                        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+                    });
+                    const pct = attRes.totalStudents > 0 ? Math.round((attRes.present/attRes.totalStudents)*100) : 0;
+                    document.getElementById("summaryCards").innerHTML = `
+                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value">${attRes.totalStudents}</div><div class="stat-label">Total Students</div></div></div>
+                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value text-primary">${attRes.boarded}</div><div class="stat-label">Boarded</div></div></div>
+                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value text-success">${pct}%</div><div class="stat-label">Attendance Rate</div></div></div>
+                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value text-danger">${attRes.exited}</div><div class="stat-label">Exited</div></div></div>
+                    `;
+                }
+            } catch (e) { console.error("Report error:", e); }
+        }
+
+        function exportCSV() {
+            // Simple CSV export of current attendance data
+            showToast("Generating CSV...", "info");
+            fetchWithCache(`${API}/admin/attendance-by-institution?institution=college&date=${document.getElementById("dateFrom").value}`, "csv_att")
+                .then(data => {
+                    if (!data.records || !data.records.length) { showToast("No data to export", "warning"); return; }
+                    const headers = "Student,Bus,Route,Boarded,Arrived,Exited,Present\n";
+                    const rows = data.records.map(r => `${r.studentName||r.studentId},${r.busId},${r.route||""},${r.boardingTime?"Yes":"No"},${r.arrivalTime?"Yes":"No"},${r.exited?"Yes":"No"},${r.present}`).join("\n");
+                    const blob = new Blob([headers + rows], { type: "text/csv" });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement("a"); a.href = url; a.download = `college_attendance_${document.getElementById("dateFrom").value}.csv`; a.click();
+                    showToast("CSV downloaded!", "success");
+                }).catch(() => showToast("Export failed", "error"));
+        }
+
+        loadReports();
+    </script>
+</body>
+</html>

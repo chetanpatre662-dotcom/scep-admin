@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Admin - Route Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../shared/admin-styles.css">
+    <style>
+        :root{--primary:#0284C7;--secondary:#06B6D4;--accent:#22C55E;--gradient-main:linear-gradient(135deg,#0284C7,#06B6D4);--shadow-glow:0 4px 20px rgba(2,132,199,.15)}
+        .stop-row{background:#f8fafc;border-radius:8px;padding:8px;border:1px solid #e2e8f0}
+        .route-step{display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 14px;border-radius:8px;border-left:3px solid #2563eb;font-size:13px;font-weight:500}
+        .route-arrow{text-align:center;color:#94a3b8;font-size:16px;margin:2px 0}
+        .bus-preview-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;transition:.2s}
+        .bus-preview-card:hover{box-shadow:0 3px 12px rgba(37,99,235,.08);border-color:#2563eb}
+    </style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <h4><i class="bi bi-book me-2"></i>School Admin</h4>
+        <a href="dashboard.html"><div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div></a>
+        <a href="users.html"><div class="nav-item"><i class="bi bi-people"></i>Users</div></a>
+        <a href="bus.html"><div class="nav-item"><i class="bi bi-bus-front"></i>Bus Monitoring</div></a>
+        <a href="routes.html"><div class="nav-item active"><i class="bi bi-signpost-split"></i>Routes</div></a>
+        <a href="notifications.html"><div class="nav-item"><i class="bi bi-bell"></i>Notifications</div></a>
+        <a href="complaints.html"><div class="nav-item"><i class="bi bi-chat-dots"></i>Complaints</div></a>
+        <a href="reports.html"><div class="nav-item"><i class="bi bi-bar-chart"></i>Reports</div></a>
+        <div class="nav-item mt-4" onclick="logout()" style="color:#f87171;cursor:pointer"><i class="bi bi-box-arrow-left"></i>Logout</div>
+    </div>
+
+    <div class="main">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
+            <div><h5 class="fw-bold mb-0">Route Management</h5><small class="text-muted">Create, Edit & Manage School Bus Routes</small></div>
+            <span class="badge bg-info admin-box px-3 py-2">School Admin</span>
+        </div>
+
+        <!-- Stats Cards -->
+        <div class="row g-3">
+            <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-signpost-split"></i></div><div class="stat-value" id="sTotal">-</div><div class="stat-label">Total Routes</div></div></div>
+            <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-check-circle"></i></div><div class="stat-value" id="sActive">-</div><div class="stat-label">Active Routes</div></div></div>
+            <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#4f46e5"><i class="bi bi-geo-alt"></i></div><div class="stat-value" id="sStops">-</div><div class="stat-label">Total Stops</div></div></div>
+            <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-bus-front"></i></div><div class="stat-value" id="sBuses">-</div><div class="stat-label">Assigned Buses</div></div></div>
+        </div>
+
+        <!-- Filters + Create + Import Buttons -->
+        <div class="section-box">
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3"><input type="text" class="form-control form-control-sm" id="searchInput" placeholder="Search route or city..." oninput="applyFilters()"></div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="statusFilter" onchange="applyFilters()">
+                        <option value="all">All Status</option><option value="Active">Active</option><option value="Inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="busFilter" onchange="applyFilters()">
+                        <option value="all">All Buses</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <button class="btn btn-primary btn-sm w-100" data-bs-toggle="modal" data-bs-target="#importModal"><i class="bi bi-download me-1"></i>Import from College</button>
+                </div>
+                <div class="col-md-2">
+                    <button class="btn btn-info btn-sm w-100 text-white" data-bs-toggle="modal" data-bs-target="#createModal"><i class="bi bi-plus-lg me-1"></i>Create Route</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Route Table -->
+        <div class="section-box">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Route Name</th><th>Bus</th><th>Start</th><th>End</th><th>Stops</th><th>Status</th><th>Actions</th></tr></thead>
+                    <tbody id="routeTable"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Live Route Preview -->
+        <div class="section-box">
+            <h6 class="fw-bold mb-3"><i class="bi bi-map me-2 text-primary"></i>Route Preview</h6>
+            <div class="row g-3" id="previewGrid"></div>
+        </div>
+    </div>
+
+    <!-- Create Route Modal -->
+    <div class="modal fade" id="createModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down modal-lg">
+            <div class="modal-content border-0" style="border-radius:16px">
+                <div class="modal-header border-0 bg-light p-3" style="border-radius:16px 16px 0 0">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-plus-circle me-2 text-primary"></i>Create New Route</h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label fw-medium small">Route Name</label><input type="text" class="form-control" id="cRouteName" placeholder="e.g., Balaghat Route"></div>
+                        <div class="col-md-6"><label class="form-label fw-medium small">Assign Bus</label><select class="form-select" id="cBusSelect"></select></div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-medium small mb-0">Stops (drag to reorder)</label>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" onclick="addStop('cStops')">+ Add Stop</button>
+                            </div>
+                            <div id="cStops" class="d-flex flex-column gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3">
+                    <button class="btn btn-outline-info btn-sm" onclick="autoFillDemo()"><i class="bi bi-magic me-1"></i>Demo</button>
+                    <button class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" onclick="createRoute()"><i class="bi bi-check-lg me-1"></i>Create</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Route Modal -->
+    <div class="modal fade" id="editModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down modal-lg">
+            <div class="modal-content border-0" style="border-radius:16px">
+                <div class="modal-header border-0 bg-light p-3" style="border-radius:16px 16px 0 0">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-pencil-square me-2 text-warning"></i>Edit Route</h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6"><label class="form-label fw-medium small">Route Name</label><input type="text" class="form-control" id="eRouteName"></div>
+                        <div class="col-md-6"><label class="form-label fw-medium small">Assign Bus</label><select class="form-select" id="eBusSelect"></select></div>
+                        <div class="col-12">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <label class="form-label fw-medium small mb-0">Stops</label>
+                                <button type="button" class="btn btn-sm btn-link p-0 text-decoration-none" onclick="addStop('eStops')">+ Add Stop</button>
+                            </div>
+                            <div id="eStops" class="d-flex flex-column gap-2"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3">
+                    <button class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-warning text-white" onclick="saveEdit()"><i class="bi bi-check-lg me-1"></i>Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- View Route Modal -->
+    <div class="modal fade" id="viewModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content border-0" style="border-radius:16px">
+                <div class="modal-header border-0 bg-light p-3"><h6 class="modal-title fw-bold"><i class="bi bi-eye me-2 text-primary"></i>Route Details</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
+                <div class="modal-body p-4" id="viewBody"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Import from College Modal -->
+    <div class="modal fade" id="importModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-lg">
+            <div class="modal-content border-0" style="border-radius:16px">
+                <div class="modal-header border-0 bg-light p-3" style="border-radius:16px 16px 0 0">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-download me-2 text-primary"></i>Import Routes from College</h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">Select a college route to import (clone) into the School panel. The imported route will be independent.</p>
+                    <div id="importRouteList" class="d-flex flex-column gap-2">
+                        <div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Loading college routes...</div>
+                    </div>
+                </div>
+                <div class="modal-footer border-0 p-3">
+                    <button class="btn btn-light" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../shared/admin-common.js"></script>
+    <script>
+        if (!verifyInstitution("school")) throw "unauthorized";
+
+        const INST = "school";
+        const BUSES = ["BUS-2","BUS-3","BUS-7","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
+        let allRoutes = [];
+        let editingId = null;
+
+        // ── Init ─────────────────────────────────────────────────────
+        function populateBusSelects() {
+            const opts = BUSES.map(b => `<option value="${b}">${b}</option>`).join("");
+            document.getElementById("cBusSelect").innerHTML = opts;
+            document.getElementById("eBusSelect").innerHTML = opts;
+            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + opts;
+        }
+        populateBusSelects();
+
+        // ── Load Routes ──────────────────────────────────────────────
+        async function loadRoutes() {
+            try {
+                const data = await fetchWithCache(`${API}/admin/routes-by-institution?institution=${INST}`, `routes_${INST}`);
+                if (!data.success) return;
+                allRoutes = data.routes || [];
+                updateStats();
+                applyFilters();
+                renderPreview();
+            } catch (e) { console.error(e); }
+        }
+
+        function updateStats() {
+            document.getElementById("sTotal").innerText = allRoutes.length;
+            document.getElementById("sActive").innerText = allRoutes.filter(r => r.status === "Active").length;
+            document.getElementById("sStops").innerText = allRoutes.reduce((s, r) => s + (r.cities?.length||0), 0);
+            document.getElementById("sBuses").innerText = new Set(allRoutes.map(r => r.busId)).size;
+        }
+
+        // ── Filters ──────────────────────────────────────────────────
+        function applyFilters() {
+            const search = document.getElementById("searchInput").value.toLowerCase();
+            const status = document.getElementById("statusFilter").value;
+            const bus = document.getElementById("busFilter").value;
+            let filtered = allRoutes.filter(r => {
+                const matchSearch = (r.routeName||"").toLowerCase().includes(search) || (r.cities||[]).some(c => (c.name||"").toLowerCase().includes(search));
+                const matchStatus = status === "all" || r.status === status;
+                const matchBus = bus === "all" || r.busId === bus;
+                return matchSearch && matchStatus && matchBus;
+            });
+            renderTable(filtered);
+        }
+
+        function renderTable(routes) {
+            document.getElementById("routeTable").innerHTML = routes.map(r => {
+                const cities = r.cities || [];
+                const start = cities[0]?.name || "—";
+                const end = cities[cities.length-1]?.name || "—";
+                return `<tr>
+                    <td class="fw-semibold">${r.routeName||"-"}</td>
+                    <td><span class="badge bg-secondary">${r.busId||"-"}</span></td>
+                    <td class="small">${start}</td><td class="small">${end}</td>
+                    <td>${cities.length}</td>
+                    <td><span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></td>
+                    <td>
+                        <div class="d-flex gap-1 flex-wrap">
+                            <button class="btn btn-sm btn-outline-primary" onclick="viewRoute('${r.id}')" title="View"><i class="bi bi-eye"></i></button>
+                            <button class="btn btn-sm btn-outline-warning" onclick="editRoute('${r.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
+                            <button class="btn btn-sm btn-outline-success" onclick="sendToCollege('${r.id}')" title="Send to College"><i class="bi bi-send"></i></button>
+                            <button class="btn btn-sm btn-outline-danger" onclick="deleteRoute('${r.id}')" title="Delete"><i class="bi bi-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>`;
+            }).join("") || '<tr><td colspan="7" class="text-center text-muted">No routes found</td></tr>';
+        }
+
+        // ── Preview ──────────────────────────────────────────────────
+        function renderPreview() {
+            document.getElementById("previewGrid").innerHTML = allRoutes.map(r => {
+                const cities = r.cities || [];
+                let stopsHtml = cities.map((c, i) => {
+                    const isFirst = i === 0, isLast = i === cities.length-1;
+                    return `<div class="route-step"><span style="color:${isFirst?'#16a34a':isLast?'#dc2626':'#2563eb'}">●</span> ${c.name||c}</div>` + (!isLast ? '<div class="route-arrow">↓</div>' : '');
+                }).join("");
+                return `<div class="col-xl-4 col-md-6"><div class="bus-preview-card">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="fw-bold small">${r.busId}</span>
+                        <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}" style="font-size:10px">${r.status}</span>
+                    </div>
+                    <div class="small text-muted mb-2">${r.routeName} · ${cities.length} stops</div>
+                    <div>${stopsHtml || '<span class="text-muted small">No stops</span>'}</div>
+                </div></div>`;
+            }).join("") || '<p class="text-muted">No routes to preview</p>';
+        }
+
+        // ── Stop Management ──────────────────────────────────────────
+        function addStop(containerId, name="", lat="", lng="") {
+            const container = document.getElementById(containerId);
+            const row = document.createElement("div");
+            row.className = "row g-2 stop-row";
+            row.innerHTML = `
+                <div class="col-md-4"><input type="text" class="form-control form-control-sm city-name" placeholder="City Name" value="${name}" required></div>
+                <div class="col-md-3"><input type="number" step="any" class="form-control form-control-sm city-lat" placeholder="Latitude" value="${lat}"></div>
+                <div class="col-md-3"><input type="number" step="any" class="form-control form-control-sm city-lng" placeholder="Longitude" value="${lng}"></div>
+                <div class="col-md-2 d-flex gap-1">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="moveStopUp(this)">↑</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="moveStopDown(this)">↓</button>
+                    <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.stop-row').remove()">✕</button>
+                </div>`;
+            container.appendChild(row);
+        }
+        function moveStopUp(btn) { const row = btn.closest(".stop-row"); if (row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling); }
+        function moveStopDown(btn) { const row = btn.closest(".stop-row"); if (row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row); }
+
+        function getCities(containerId) {
+            const cities = [];
+            document.querySelectorAll(`#${containerId} .stop-row`).forEach((row, i) => {
+                const name = row.querySelector(".city-name")?.value.trim();
+                const lat = parseFloat(row.querySelector(".city-lat")?.value);
+                const lng = parseFloat(row.querySelector(".city-lng")?.value);
+                if (name) cities.push({ name, lat: isNaN(lat)?null:lat, lng: isNaN(lng)?null:lng, sequence: i+1 });
+            });
+            return cities;
+        }
+
+        // ── Create ───────────────────────────────────────────────────
+        async function createRoute() {
+            const routeName = document.getElementById("cRouteName").value.trim();
+            const busId = document.getElementById("cBusSelect").value;
+            const cities = getCities("cStops");
+            if (!routeName) { alert("Route name required"); return; }
+            if (!cities.length) { alert("Add at least one stop"); return; }
+            try {
+                const res = await fetch(`${API}/admin/routes`, { method: "POST", headers: headers(), body: JSON.stringify({ routeName, busId, cities, status: "Active", routeType: INST }) });
+                const data = await res.json();
+                if (data.success) { showToast("✅ Route created", "success"); bootstrap.Modal.getInstance(document.getElementById("createModal"))?.hide(); loadRoutes(); }
+                else { alert(data.error || "Failed"); }
+            } catch (e) { alert("Network error"); }
+        }
+
+        // ── View ─────────────────────────────────────────────────────
+        async function viewRoute(id) {
+            try {
+                const res = await fetch(`${API}/admin/routes/${id}`, { headers: headers() });
+                const data = await res.json();
+                const r = data.route;
+                if (!r) return;
+                const cities = r.cities || [];
+                document.getElementById("viewBody").innerHTML = `
+                    <p><strong>Route:</strong> ${r.routeName}</p>
+                    <p><strong>Bus:</strong> ${r.busId}</p>
+                    <p><strong>Status:</strong> <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></p>
+                    <hr>
+                    <h6 class="small fw-bold">Stops (${cities.length})</h6>
+                    <table class="table table-sm table-bordered"><thead><tr><th>#</th><th>City</th><th>Lat</th><th>Lng</th></tr></thead><tbody>
+                    ${cities.map((c,i) => `<tr><td>${i+1}</td><td>${c.name||"-"}</td><td>${c.lat??"-"}</td><td>${c.lng??"-"}</td></tr>`).join("")}
+                    </tbody></table>`;
+                new bootstrap.Modal(document.getElementById("viewModal")).show();
+            } catch (e) { alert("Failed to load"); }
+        }
+
+        // ── Edit ─────────────────────────────────────────────────────
+        async function editRoute(id) {
+            try {
+                const res = await fetch(`${API}/admin/routes/${id}`, { headers: headers() });
+                const data = await res.json();
+                const r = data.route;
+                if (!r) return;
+                editingId = id;
+                document.getElementById("eRouteName").value = r.routeName || "";
+                document.getElementById("eBusSelect").value = r.busId || "";
+                const container = document.getElementById("eStops");
+                container.innerHTML = "";
+                (r.cities || []).forEach(c => addStop("eStops", c.name||"", c.lat??"", c.lng??""));
+                new bootstrap.Modal(document.getElementById("editModal")).show();
+            } catch (e) { alert("Failed"); }
+        }
+
+        async function saveEdit() {
+            if (!editingId) return;
+            const routeName = document.getElementById("eRouteName").value.trim();
+            const busId = document.getElementById("eBusSelect").value;
+            const cities = getCities("eStops");
+            if (!routeName) { alert("Route name required"); return; }
+            if (!cities.length) { alert("Add at least one stop"); return; }
+            try {
+                const res = await fetch(`${API}/admin/routes/${editingId}`, { method: "PUT", headers: headers(), body: JSON.stringify({ routeName, busId, cities, status: "Active", routeType: INST }) });
+                if (res.ok) { showToast("✅ Route updated", "success"); bootstrap.Modal.getInstance(document.getElementById("editModal"))?.hide(); loadRoutes(); }
+                else { alert("Update failed"); }
+            } catch (e) { alert("Network error"); }
+        }
+
+        // ── Delete ───────────────────────────────────────────────────
+        async function deleteRoute(id) {
+            if (!confirm("Delete this route permanently?")) return;
+            try {
+                await fetch(`${API}/admin/routes/${id}`, { method: "DELETE", headers: headers() });
+                showToast("🗑️ Route deleted", "info");
+                loadRoutes();
+            } catch (e) { alert("Delete failed"); }
+        }
+
+        // ── Auto Fill Demo ───────────────────────────────────────────
+        function autoFillDemo() {
+            document.getElementById("cRouteName").value = "Balaghat Morning Route";
+            const container = document.getElementById("cStops");
+            container.innerHTML = "";
+            [["Balaghat",21.8107,80.1847],["Waraseoni",21.7589,80.046],["Katangi",21.7768,79.7936],["Lakhnadon",22.6048,79.604],["SCEP College",21.8253,80.1514]].forEach(s => addStop("cStops", s[0], s[1], s[2]));
+        }
+
+        // ── Init first stop in create modal ──────────────────────────
+        document.getElementById("createModal").addEventListener("show.bs.modal", () => {
+            if (!document.querySelectorAll("#cStops .stop-row").length) addStop("cStops");
+        });
+
+        // ── Import Modal: Fetch College Routes ───────────────────────
+        document.getElementById("importModal").addEventListener("show.bs.modal", loadCollegeRoutes);
+
+        async function loadCollegeRoutes() {
+            const container = document.getElementById("importRouteList");
+            container.innerHTML = '<div class="text-center text-muted py-4"><div class="spinner-border spinner-border-sm me-2"></div>Loading college routes...</div>';
+            try {
+                const res = await fetch(`${API}/admin/routes-by-institution?institution=college`, { headers: headers() });
+                const data = await res.json();
+                const routes = data.routes || [];
+                if (!routes.length) {
+                    container.innerHTML = '<div class="text-center text-muted py-4">No college routes available to import.</div>';
+                    return;
+                }
+                container.innerHTML = routes.map(r => {
+                    const cities = r.cities || [];
+                    const stopsPreview = cities.slice(0, 4).map(c => c.name).join(" → ") + (cities.length > 4 ? " ..." : "");
+                    return `<div class="d-flex justify-content-between align-items-center p-3 rounded border" style="background:#f8fafc">
+                        <div>
+                            <div class="fw-semibold small">${r.routeName || "-"}</div>
+                            <div class="text-muted" style="font-size:11px">${r.busId} · ${cities.length} stops · ${stopsPreview}</div>
+                        </div>
+                        <button class="btn btn-sm btn-primary" onclick="importRoute('${r.id}')"><i class="bi bi-download me-1"></i>Import</button>
+                    </div>`;
+                }).join("");
+            } catch (e) {
+                container.innerHTML = '<div class="text-center text-danger py-4">Failed to load college routes.</div>';
+            }
+        }
+
+        // ── Import Route (College → School) ──────────────────────────
+        async function importRoute(routeId) {
+            if (!confirm("Import this college route into School panel?")) return;
+            try {
+                const res = await fetch(`${API}/admin/routes/clone`, { method: "POST", headers: headers(), body: JSON.stringify({ routeId, targetRouteType: "school" }) });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("✅ Route imported from College", "success");
+                    bootstrap.Modal.getInstance(document.getElementById("importModal"))?.hide();
+                    loadRoutes();
+                } else { alert(data.error || "Import failed"); }
+            } catch (e) { alert("Network error"); }
+        }
+
+        // ── Send to College (School → College) ───────────────────────
+        async function sendToCollege(routeId) {
+            if (!confirm("Send this route to College panel?")) return;
+            try {
+                const res = await fetch(`${API}/admin/routes/clone`, { method: "POST", headers: headers(), body: JSON.stringify({ routeId, targetRouteType: "college" }) });
+                const data = await res.json();
+                if (data.success) {
+                    showToast("✅ Route sent to College", "success");
+                } else { alert(data.error || "Send failed"); }
+            } catch (e) { alert("Network error"); }
+        }
+
+        loadRoutes();
+    </script>
+</body>
+</html>
+
