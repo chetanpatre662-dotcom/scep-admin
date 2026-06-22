@@ -35,7 +35,7 @@ async function login() {
   const msg = document.getElementById("msg");
   msg.style.color = "gray"; msg.innerText = "Checking...";
   try {
-    const res = await fetch("http://162.245.191.109:3000/admin/login", {
+    const res = await fetch("https://scep-bus.duckdns.org/admin/login", {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });

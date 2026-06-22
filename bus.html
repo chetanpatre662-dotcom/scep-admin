@@ -981,7 +981,7 @@
 
     <script>
 
-        const API_URL = "http://162.245.191.109:3000/admin/dashboard";
+        const API_URL = "https://scep-bus.duckdns.org/admin/dashboard";
 
         let dashboardData = null;
         let chart;
@@ -1068,7 +1068,7 @@
            WEBSOCKET — same pattern as dashboard.html
            Receives live bus updates without resetting selected bus state.
         ========================= */
-        const ws = new WebSocket("ws://162.245.191.109:8080");
+        const ws = new WebSocket("wss://scep-bus.duckdns.org/ws");
 
         ws.onmessage = (event) => {
             try {
@@ -1666,7 +1666,7 @@
 
         try {
           const res = await fetch(
-            `http://162.245.191.109:3000/admin/bus/${encodeURIComponent(_editBusId)}`,
+            `https://scep-bus.duckdns.org/admin/bus/${encodeURIComponent(_editBusId)}`,
             {
               method:  "PUT",
               headers: { "Content-Type": "application/json" },

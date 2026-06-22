@@ -858,7 +858,7 @@
 
         async function loadDashboard() {
             try {
-                const res = await fetch("http://162.245.191.109:3000/admin/dashboard");
+                const res = await fetch("https://scep-bus.duckdns.org/admin/dashboard");
                 const data = await res.json();
 
                 // Total Users
@@ -1045,7 +1045,7 @@
 
         async function loadBuses() {
             try {
-                const res = await fetch("http://162.245.191.109:3000/admin/dashboard");
+                const res = await fetch("https://scep-bus.duckdns.org/admin/dashboard");
                 const data = await res.json();
 
                 busesCache = data.buses;
@@ -1064,7 +1064,7 @@
         }
         loadBuses();
 
-        const ws = new WebSocket("ws://162.245.191.109:8080");
+        const ws = new WebSocket("wss://scep-bus.duckdns.org/ws");
 
         ws.onmessage = (event) => {
             const res = JSON.parse(event.data);
@@ -1133,7 +1133,7 @@
             try {
 
                 const res = await fetch(
-                    "http://162.245.191.109:3000/admin/send-notification",
+                    "https://scep-bus.duckdns.org/admin/send-notification",
                     {
                         method: "POST",
 
