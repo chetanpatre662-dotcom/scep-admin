@@ -1,6 +1,6 @@
 // ── SCEP Admin Shared Utilities — Production Grade ──────────────────────────
-const API = "https://scep-bus.duckdns.org";
-const WS_URL = "wss://scep-bus.duckdns.org/ws";
+const API = "http://162.245.191.109:3000";
+const WS_URL = "ws://162.245.191.109:8080";
 
 function getToken() { return localStorage.getItem("token") || ""; }
 function getInstitution() { return localStorage.getItem("institution") || "college"; }
