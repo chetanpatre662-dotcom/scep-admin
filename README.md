@@ -1,2 +1,0 @@
-# scep-admin
-scep admin

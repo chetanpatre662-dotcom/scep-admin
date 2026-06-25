@@ -2,6 +2,7 @@ const WebSocket = require("ws");
 const axios = require("axios");
 const express = require("express");
 require("dotenv").config();
+process.env.TZ = "Asia/Kolkata";
 const cors = require("cors");
 const admin = require("firebase-admin");
 const lastStartNotification = {};
@@ -11,8 +12,10 @@ const cron = require("node-cron");
 const lastBusLocationTime = {};
 const trackerMonitor = {};
 const busDistanceTracker = {};
+const busRouteState = {};
 const lastSentData = {};
 const busStartTimes = {};
+let routeCache = {};
 const tripStatusMap = {};
 const busCollegeArrival = {};
 let latestBuses = [];
@@ -154,7 +157,7 @@ async function handleAttendance(bus, students) {
     // =========================
     // BOARDING
     // =========================
-    if (distance <= 0.1 && !att.boarded) {
+    if (distance <= 0.05 && bus.speed > 5 && !att.boarded) {
       att.boarded = true;
       att.arrived = false;
 
@@ -315,17 +318,6 @@ const driverMobileMap = {
   "BUS-15": "9876543217",
 };
 
-const busRoutes = {
-  "BUS-2": "Balaghat",
-  "BUS-3": "Lalburra",
-  "BUS-4": "Bharweli",
-  "BUS-7": "Waraseoni",
-  "BUS-10": "Khairlanji",
-  "BUS-11": "Balaghat",
-  "BUS-14": "Kirnapur",
-  "BUS-15": "Baihar",
-};
-
 const smlBusMap = {
   MBUZT54XBK0325975: {
     imei: "866334078434509",
@@ -343,7 +335,25 @@ const smlBusMap = {
   },
 };
 // eta
+async function getRouteByBus(busId) {
+  // cache hit
+  if (routeCache[busId]) return routeCache[busId];
 
+  const snap = await admin
+    .firestore()
+    .collection("routes")
+    .where("busId", "==", busId)
+    .limit(1)
+    .get();
+
+  if (snap.empty) return null;
+
+  const route = snap.docs[0].data();
+
+  routeCache[busId] = route;
+
+  return route;
+}
 function getBusStatus(bus) {
   const now = Date.now();
   const busId = bus.busId;
@@ -397,6 +407,69 @@ function getBusStatus(bus) {
   return "Idle";
 }
 
+function getRouteInfo(bus, route) {
+  if (!route?.cities?.length) return null;
+
+  let nearestIndex = -1;
+  let nearestDistance = Infinity;
+
+  route.cities.forEach((city, index) => {
+    const dist = calculateDistance(bus.lat, bus.lng, city.lat, city.lng);
+
+    if (dist < nearestDistance) {
+      nearestDistance = dist;
+      nearestIndex = index;
+    }
+  });
+
+  if (nearestIndex === -1) return null;
+
+  const state = busRouteState[bus.busId] || {
+    currentIndex: nearestIndex,
+    direction: "forward",
+  };
+
+  if (nearestIndex > state.currentIndex) {
+    state.direction = "forward";
+  } else if (nearestIndex < state.currentIndex) {
+    state.direction = "reverse";
+  }
+
+  state.currentIndex = nearestIndex;
+
+  busRouteState[bus.busId] = state;
+
+  const currentCity = route.cities[nearestIndex];
+
+  const nextIndex =
+    state.direction === "forward" ? nearestIndex + 1 : nearestIndex - 1;
+
+  const prevIndex =
+    state.direction === "forward" ? nearestIndex - 1 : nearestIndex + 1;
+
+  return {
+    currentCity: currentCity?.name || null,
+
+    nextCity: route.cities[nextIndex]?.name || null,
+
+    previousCity: route.cities[prevIndex]?.name || null,
+
+    distanceToNext: route.cities[nextIndex]
+      ? calculateDistance(
+          bus.lat,
+          bus.lng,
+          route.cities[nextIndex].lat,
+          route.cities[nextIndex].lng,
+        )
+      : null,
+
+    direction:
+      state.direction === "forward"
+        ? `${route.cities[0].name} → ${route.cities[route.cities.length - 1].name}`
+        : `${route.cities[route.cities.length - 1].name} → ${route.cities[0].name}`,
+  };
+}
+
 function getMonthKey() {
   const now = new Date();
 
@@ -420,14 +493,157 @@ function calculateETA(distance, speed) {
         : `${Math.floor(minutes / 60)} hr ${Math.round(minutes % 60)} min`,
   };
 }
+
+app.post("/admin/routes", async (req, res) => {
+  try {
+    let { routeName, busId, cities, status } = req.body;
+
+    if (!routeName || !busId || !Array.isArray(cities)) {
+      return res.status(400).json({
+        success: false,
+        error: "routeName, busId, cities required",
+      });
+    }
+
+    busId = normalizeBusId(busId);
+
+    const doc = await admin
+      .firestore()
+      .collection("routes")
+      .add({
+        routeName,
+        busId, // ✅ ALWAYS "BUS-14" format
+        cities,
+        startPoint: cities[0] || null,
+        endPoint: cities[cities.length - 1] || null,
+        status: status || "Active",
+        createdAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+    return res.json({
+      success: true,
+      id: doc.id,
+      busId,
+    });
+  } catch (e) {
+    return res.status(500).json({
+      success: false,
+      error: e.message,
+    });
+  }
+});
+
+app.get("/admin/routes", async (req, res) => {
+  try {
+    const snap = await admin.firestore().collection("routes").get();
+
+    const routes = snap.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    }));
+
+    return res.json({
+      success: true,
+      routes,
+    });
+  } catch (e) {
+    return res.status(500).json({
+      success: false,
+      error: e.message,
+    });
+  }
+});
+
+app.get("/admin/routes/:id", async (req, res) => {
+  try {
+    const doc = await admin
+      .firestore()
+      .collection("routes")
+      .doc(req.params.id)
+      .get();
+
+    if (!doc.exists) {
+      return res.status(404).json({
+        success: false,
+        error: "Route not found",
+      });
+    }
+
+    return res.json({
+      success: true,
+      route: {
+        id: doc.id,
+        ...doc.data(),
+      },
+    });
+  } catch (e) {
+    return res.status(500).json({
+      success: false,
+      error: e.message,
+    });
+  }
+});
+
+app.put("/admin/routes/:id", async (req, res) => {
+  try {
+    let { routeName, busId, cities, status } = req.body;
+
+    busId = normalizeBusId(busId);
+
+    await admin
+      .firestore()
+      .collection("routes")
+      .doc(req.params.id)
+      .update({
+        routeName,
+        busId,
+        cities,
+        startPoint: cities?.[0] || null,
+        endPoint: cities?.[cities.length - 1] || null,
+        status,
+        updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+      });
+
+    return res.json({
+      success: true,
+      message: "Route Updated",
+      busId,
+    });
+  } catch (e) {
+    return res.status(500).json({
+      success: false,
+      error: e.message,
+    });
+  }
+});
+
+app.delete("/admin/routes/:id", async (req, res) => {
+  try {
+    await admin.firestore().collection("routes").doc(req.params.id).delete();
+
+    return res.json({
+      success: true,
+      message: "Route Deleted",
+    });
+  } catch (e) {
+    return res.status(500).json({
+      success: false,
+      error: e.message,
+    });
+  }
+});
 /* =========================
    STUDENT LOCATION API
 ========================= */
 app.post("/student-location", async (req, res) => {
   try {
-    const now = new Date();
+    const indiaTime = new Date(
+      new Date().toLocaleString("en-US", {
+        timeZone: "Asia/Kolkata",
+      }),
+    );
 
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const currentMinutes = indiaTime.getHours() * 60 + indiaTime.getMinutes();
 
     const startMinutes = 7 * 60 + 30; // 7:30 AM
     const endMinutes = 11 * 60 + 30; // 11:30 AM
@@ -438,6 +654,7 @@ app.post("/student-location", async (req, res) => {
         message: "Tracking time closed",
       });
     }
+    console.log("IST TIME:", indiaTime);
     console.log("📥 LOCATION API HIT");
     console.log(req.body);
     const { studentId, busId, lat, lng, fcmToken } = req.body;
@@ -605,7 +822,7 @@ async function getAllData() {
 
   // console.log("VOLTY RAW:", voltyRaw);
 
-  const voltyBuses = formatBuses(voltyRaw);
+  const voltyBuses = await formatBuses(voltyRaw);
 
   console.log(`VOLTY buses: ${voltyBuses.length}`);
 
@@ -613,7 +830,7 @@ async function getAllData() {
 
   // console.log("SML RAW:", smlRaw);
 
-  const smlBuses = formatSMLBuses(smlRaw);
+  const smlBuses = await formatSMLBuses(smlRaw);
 
   console.log(`SML buses: ${smlBuses.length}`);
 
@@ -646,18 +863,21 @@ async function sendPush(topic, title, body) {
   }
 }
 
+function normalizeBusId(busId) {
+  return String(busId).trim().toUpperCase().replace(/\s+/g, "-");
+}
+
 /* =========================
    FORMAT BUS
 ========================= */
-function formatBuses(data) {
-  const now = Date.now(); // ✅ ADD THIS
-  return data
-    .map((item) => {
+async function formatBuses(data) {
+  const now = Date.now();
+
+  const results = await Promise.all(
+    data.map(async (item) => {
       if (!item) return null;
 
       const d = normalize(item);
-
-      if (process.env.DEBUG) console.log("IMEI:", d.imei);
 
       if (!busMap[d.imei]) {
         console.log("BUS MAP NOT FOUND:", d.imei);
@@ -673,6 +893,20 @@ function formatBuses(data) {
 
       const prev = lastBusLocationTime[d.imei];
 
+      // ✅ FIXED: await added
+      const routeData = await getRouteByBus(busId);
+
+      const routeInfo = routeData
+        ? getRouteInfo(
+            {
+              busId,
+              lat: d.lat,
+              lng: d.lng,
+            },
+            routeData
+          )
+        : null;
+
       if (prev) {
         const diffSec = Math.floor((now - prev) / 1000);
         console.log(`🚌 BUS UPDATE: ${busId} delay = ${diffSec}s`);
@@ -681,52 +915,76 @@ function formatBuses(data) {
       lastBusLocationTime[d.imei] = now;
 
       return {
-        busId: busMap[d.imei],
-        driver: driverMap[busMap[d.imei]] || "N/A",
-        route: busRoutes[busMap[d.imei]] || "N/A",
+        busId,
+        driver: driverMap[busId] || "N/A",
+        route: routeData?.routeName || "N/A",
+
+        currentCity: routeInfo?.currentCity || null,
+        nextCity: routeInfo?.nextCity || null,
+        previousCity: routeInfo?.previousCity || null,
+
+        nextCityDistance: routeInfo?.distanceToNext
+          ? Number(routeInfo.distanceToNext.toFixed(2))
+          : null,
+
+        routeDirection: routeInfo?.direction || null,
+
         imei: d.imei,
         lat: d.lat,
         lng: d.lng,
         speed: d.speed,
-        driverMobile: driverMobileMap[busMap[d.imei]] || "N/A",
+        driverMobile: driverMobileMap[busId] || "N/A",
 
-        startTime: busStartTimes[busMap[d.imei]]?.time || null,
-        todayKm: busDistanceTracker[busMap[d.imei]]?.totalKm?.toFixed(2) || "0",
-        collegeArrivalTime: busCollegeArrival[busMap[d.imei]]?.time || null,
-        // ✅ ETA
+        startTime: busStartTimes[busId]?.time || null,
+        todayKm: busDistanceTracker[busId]?.totalKm?.toFixed(2) || "0",
+        collegeArrivalTime: busCollegeArrival[busId]?.time || null,
+
         eta: calculateETA(5, d.speed).text,
 
         status: getBusStatus({
-          busId: busMap[d.imei],
+          busId,
           lat: d.lat,
           lng: d.lng,
-          speed: Number(item.speed || 0),
-          lastUpdate: item.lastOnline
-            ? new Date(Number(item.lastOnline) * 1000).toISOString()
-            : null,
+          speed: Number(d.speed || 0),
+          lastUpdate: null,
         }),
 
-        tripActive:
-          item.status === "Moving" || (d.speed != null && d.speed > 10),
+        tripActive: d.speed > 10,
 
         gpsTime: item.time || null,
         lastUpdate: item.time || null,
         timestamp: Date.now(),
       };
     })
-    .filter(Boolean);
+  );
+
+  return results.filter(Boolean);
 }
 
-function formatSMLBuses(data) {
-  const now = Date.now(); // ✅ ADD THIS
-  return data
-    .map((item) => {
-      const map = smlBusMap[item.chassisNumber];
+async function formatSMLBuses(data) {
+  const now = Date.now();
 
-      // ignore unwanted buses
+  const results = await Promise.all(
+    data.map(async (item) => {
+      const map = smlBusMap[item.chassisNumber];
       if (!map) return null;
+
       const busId = map.busId;
       const imei = map.imei;
+
+      // ✅ FIXED: await added
+      const routeData = await getRouteByBus(busId);
+
+      const routeInfo = routeData
+        ? getRouteInfo(
+            {
+              busId,
+              lat: Number(item.latitude),
+              lng: Number(item.longitude),
+            },
+            routeData
+          )
+        : null;
 
       const prev = lastBusLocationTime[imei];
 
@@ -738,32 +996,42 @@ function formatSMLBuses(data) {
       lastBusLocationTime[imei] = now;
 
       return {
-        busId: map.busId,
-        driver: driverMap[map.busId] || "N/A",
-        route: busRoutes[map.busId] || "N/A",
-        imei: map.imei,
-        driverMobile: driverMobileMap[map.busId] || "N/A",
+        busId,
+        driver: driverMap[busId] || "N/A",
+        route: routeData?.routeName || "N/A",
 
-        startTime: busStartTimes[map.busId]?.time || null,
+        currentCity: routeInfo?.currentCity || null,
+        nextCity: routeInfo?.nextCity || null,
+        previousCity: routeInfo?.previousCity || null,
+
+        nextCityDistance: routeInfo?.distanceToNext
+          ? Number(routeInfo.distanceToNext.toFixed(2))
+          : null,
+
+        routeDirection: routeInfo?.direction || null,
+
+        imei,
+        driverMobile: driverMobileMap[busId] || "N/A",
+
+        startTime: busStartTimes[busId]?.time || null,
+
         lat: Number(item.latitude),
-
         lng: Number(item.longitude),
-
         speed: Number(item.speed || 0),
 
         gpsSignal: Number(item.gpsSignal || 0),
 
         eta: calculateETA(5, Number(item.speed || 0)).text,
-        todayKm: busDistanceTracker[map.busId]?.totalKm?.toFixed(2) || "0",
-        collegeArrivalTime: busCollegeArrival[map.busId]?.time || null,
+
+        todayKm: busDistanceTracker[busId]?.totalKm?.toFixed(2) || "0",
+        collegeArrivalTime: busCollegeArrival[busId]?.time || null,
+
         status: getBusStatus({
-          busId: map.busId,
+          busId,
           lat: Number(item.latitude),
           lng: Number(item.longitude),
           speed: Number(item.speed || 0),
-          lastUpdate: item.lastOnline
-            ? new Date(Number(item.lastOnline) * 1000).toISOString()
-            : null,
+          lastUpdate: null,
         }),
 
         tripActive: Number(item.speed) > 5,
@@ -775,12 +1043,14 @@ function formatSMLBuses(data) {
         timestamp: Date.now(),
       };
     })
-    .filter(Boolean);
+  );
+
+  return results.filter(Boolean);
 }
 
 function calculateDistance(lat1, lon1, lat2, lon2) {
   const R = 6371; // km
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180; 
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
 
   const a =
@@ -821,7 +1091,7 @@ async function trackBusDistance(bus) {
         .set({
           busId: bus.busId,
 
-          route: busRoutes[bus.busId] || "N/A",
+          route: latestBuses.find((b) => b.busId === bus.busId)?.route || "N/A",
 
           date: tracker.date,
 
@@ -2065,7 +2335,7 @@ app.delete("/debug/redis-clear", async (req, res) => {
       error: e.message,
     });
   }
-}); 1tvpP5Eozkpxs
+});
 /* =========================
    SERVER
 ========================= */
