@@ -2,13 +2,13 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>College Admin - Reports</title>
+    <title>College Admin - Reports & Analytics</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../shared/admin-styles.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <style>/* college uses CSS defaults */</style>
+    <style>#reportContent .chart-box{background:#fff;border-radius:16px;padding:20px;border:1px solid #e2e8f0;margin-bottom:16px}</style>
 </head>
 <body>
     <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
@@ -27,98 +27,153 @@
     <div class="main">
         <div class="topbar">
             <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
-            <h5 class="fw-bold mb-0">Reports & Analytics</h5>
-            <div class="d-flex gap-2">
-                <button class="btn btn-outline-secondary btn-sm" onclick="exportCSV()"><i class="bi bi-filetype-csv me-1"></i>CSV</button>
-                <button class="btn btn-outline-secondary btn-sm" onclick="alert('PDF export coming soon')"><i class="bi bi-filetype-pdf me-1"></i>PDF</button>
-            </div>
+            <div><h5 class="fw-bold mb-0">Reports & Analytics</h5><small class="text-muted">Institution-wide MIS Dashboard</small></div>
+            <span class="badge bg-primary admin-box px-3 py-2">College Admin</span>
         </div>
 
-        <!-- Date Range -->
+        <!-- Overview Cards -->
+        <div class="row g-3" id="overviewCards">
+            <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-people-fill"></i></div><div class="stat-value" id="oStudents">-</div><div class="stat-label">Students</div></div></div>
+            <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#4f46e5"><i class="bi bi-person-badge"></i></div><div class="stat-value" id="oFaculty">-</div><div class="stat-label">Faculty</div></div></div>
+            <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-bus-front"></i></div><div class="stat-value" id="oBuses">-</div><div class="stat-label">Buses</div></div></div>
+            <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-signpost-split"></i></div><div class="stat-value" id="oRoutes">-</div><div class="stat-label">Routes</div></div></div>
+            <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#ccfbf1;color:#0d9488"><i class="bi bi-check2-square"></i></div><div class="stat-value" id="oAttPct">-</div><div class="stat-label">Attendance %</div></div></div>
+            <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-calendar-date"></i></div><div class="stat-value" id="oPresent">-</div><div class="stat-label">Present Today</div></div></div>
+        </div>
+
+        <!-- Filters -->
         <div class="section-box">
-            <div class="row g-2 align-items-end">
-                <div class="col-md-3"><label class="form-label small">From</label><input type="date" id="dateFrom" class="form-control form-control-sm"></div>
-                <div class="col-md-3"><label class="form-label small">To</label><input type="date" id="dateTo" class="form-control form-control-sm"></div>
-                <div class="col-md-2"><button class="btn btn-primary btn-sm w-100" onclick="loadReports()"><i class="bi bi-search me-1"></i>Apply</button></div>
+            <div class="row g-2 align-items-center">
+                <div class="col-md-3"><select class="form-select form-select-sm" id="fBus" onchange="loadReports()"><option value="">All Buses</option></select></div>
+                <div class="col-md-3"><select class="form-select form-select-sm" id="fBranch" onchange="loadReports()"><option value="">All Branches</option></select></div>
+                <div class="col-md-2"><input type="date" class="form-control form-control-sm" id="fDateFrom" onchange="loadReports()"></div>
+                <div class="col-md-2"><input type="date" class="form-control form-control-sm" id="fDateTo" onchange="loadReports()"></div>
+                <div class="col-md-2"><button class="btn btn-primary btn-sm w-100" onclick="loadReports()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button></div>
             </div>
         </div>
 
         <!-- Charts -->
-        <div class="row">
-            <div class="col-lg-6">
-                <div class="section-box">
-                    <h6 class="fw-bold mb-3">User Distribution</h6>
-                    <canvas id="userChart" height="200"></canvas>
+        <div id="reportContent">
+            <div class="row">
+                <div class="col-lg-6"><div class="chart-box"><h6 class="fw-bold small mb-3">Students by Branch</h6><canvas id="chartBranch" height="200"></canvas></div></div>
+                <div class="col-lg-6"><div class="chart-box"><h6 class="fw-bold small mb-3">Students by Year</h6><canvas id="chartYear" height="200"></canvas></div></div>
+            </div>
+            <div class="row">
+                <div class="col-lg-6"><div class="chart-box"><h6 class="fw-bold small mb-3">Bus Utilization (Users/Bus)</h6><canvas id="chartBusUsers" height="200"></canvas></div></div>
+                <div class="col-lg-6"><div class="chart-box"><h6 class="fw-bold small mb-3">Attendance Trend (Last 7 Days)</h6><canvas id="chartAttTrend" height="200"></canvas></div></div>
+            </div>
+            <div class="row">
+                <div class="col-lg-6"><div class="chart-box"><h6 class="fw-bold small mb-3">City-wise Student Distribution</h6><canvas id="chartCity" height="200"></canvas></div></div>
+                <div class="col-lg-6"><div class="chart-box"><h6 class="fw-bold small mb-3">Bus KM/Day (Last 30 Days Avg)</h6><canvas id="chartKm" height="200"></canvas></div></div>
+            </div>
+
+            <!-- Tables -->
+            <div class="section-box">
+                <h6 class="fw-bold mb-3">Bus Report (Detailed)</h6>
+                <div class="table-responsive">
+                    <table class="table table-sm table-hover align-middle"><thead class="table-light"><tr><th>Bus</th><th>Route</th><th>Stops</th><th>Users</th><th>Avg KM/Day</th><th>Total KM (30d)</th></tr></thead><tbody id="busTable"></tbody></table>
                 </div>
             </div>
-            <div class="col-lg-6">
-                <div class="section-box">
-                    <h6 class="fw-bold mb-3">Today's Attendance</h6>
-                    <canvas id="attChart" height="200"></canvas>
-                </div>
-            </div>
-        </div>
-        <div class="section-box">
-            <h6 class="fw-bold mb-3">Attendance Summary</h6>
-            <div class="row g-3" id="summaryCards"></div>
         </div>
     </div>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../shared/admin-common.js"></script>
     <script>
         if (!verifyInstitution("college")) throw "unauthorized";
-        document.getElementById("dateFrom").value = new Date().toISOString().split("T")[0];
-        document.getElementById("dateTo").value = new Date().toISOString().split("T")[0];
+        let charts = {};
 
-        let userChartInst, attChartInst;
         async function loadReports() {
+            const busF = document.getElementById("fBus").value;
+            const branchF = document.getElementById("fBranch").value;
+            const dateFrom = document.getElementById("fDateFrom").value;
+            const dateTo = document.getElementById("fDateTo").value;
+
             try {
-                const [usersRes, attRes] = await Promise.all([
-                    fetchWithCache(`${API}/admin/users-by-institution?institution=college`, "rpt_users_college"),
-                    fetchWithCache(`${API}/admin/attendance-by-institution?institution=college&date=${document.getElementById("dateFrom").value}`, "rpt_att_college")
+                const [analytics, students, faculty, buses, attendance] = await Promise.all([
+                    fetch(`${API}/admin/report/analytics`, { headers: headers() }).then(r=>r.json()),
+                    fetch(`${API}/admin/report/students`, { headers: headers() }).then(r=>r.json()),
+                    fetch(`${API}/admin/report/faculty`, { headers: headers() }).then(r=>r.json()),
+                    fetch(`${API}/admin/report/buses`, { headers: headers() }).then(r=>r.json()),
+                    fetch(`${API}/admin/report/attendance?${new URLSearchParams({dateFrom:dateFrom||"",dateTo:dateTo||"",busId:busF||"",branch:branchF||""})}`, { headers: headers() }).then(r=>r.json()),
                 ]);
 
-                if (usersRes.success) {
-                    const ctx = document.getElementById("userChart").getContext("2d");
-                    if (userChartInst) userChartInst.destroy();
-                    userChartInst = new Chart(ctx, {
-                        type: "doughnut",
-                        data: { labels: ["Students","Faculty","Parents"], datasets: [{ data: [usersRes.counts.students, usersRes.counts.faculty, usersRes.counts.parents], backgroundColor: ["#2563eb","#16a34a","#f59e0b"] }] },
-                        options: { responsive: true, plugins: { legend: { position: "bottom" } } }
-                    });
+                // Overview
+                if (analytics.success) {
+                    const o = analytics.overview;
+                    document.getElementById("oStudents").innerText = o.totalStudents;
+                    document.getElementById("oFaculty").innerText = o.totalFaculty;
+                    document.getElementById("oBuses").innerText = o.totalBuses;
+                    document.getElementById("oRoutes").innerText = o.totalRoutes;
+                    document.getElementById("oAttPct").innerText = o.attendancePercent + "%";
+                    document.getElementById("oPresent").innerText = o.presentToday;
                 }
-                if (attRes.success) {
-                    const ctx2 = document.getElementById("attChart").getContext("2d");
-                    if (attChartInst) attChartInst.destroy();
-                    attChartInst = new Chart(ctx2, {
-                        type: "bar",
-                        data: { labels: ["Total","Boarded","Present","Exited"], datasets: [{ data: [attRes.totalStudents, attRes.boarded, attRes.present, attRes.exited], backgroundColor: ["#64748b","#2563eb","#16a34a","#dc2626"], borderRadius: 6 }] },
-                        options: { responsive: true, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-                    });
-                    const pct = attRes.totalStudents > 0 ? Math.round((attRes.present/attRes.totalStudents)*100) : 0;
-                    document.getElementById("summaryCards").innerHTML = `
-                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value">${attRes.totalStudents}</div><div class="stat-label">Total Students</div></div></div>
-                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value text-primary">${attRes.boarded}</div><div class="stat-label">Boarded</div></div></div>
-                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value text-success">${pct}%</div><div class="stat-label">Attendance Rate</div></div></div>
-                        <div class="col-md-3 col-6"><div class="stat-card"><div class="stat-value text-danger">${attRes.exited}</div><div class="stat-label">Exited</div></div></div>
-                    `;
+
+                // Populate filters
+                if (students.success) {
+                    const branches = Object.keys(students.branchWise || {}).sort();
+                    const bSel = document.getElementById("fBranch");
+                    const cur = bSel.value;
+                    bSel.innerHTML = '<option value="">All Branches</option>' + branches.map(b=>`<option value="${b}">${b}</option>`).join("");
+                    bSel.value = cur;
                 }
-            } catch (e) { console.error("Report error:", e); }
+                if (buses.success) {
+                    const busList = (buses.busReport||[]).map(b=>b.busId).sort();
+                    const bSel = document.getElementById("fBus");
+                    const cur = bSel.value;
+                    bSel.innerHTML = '<option value="">All Buses</option>' + busList.map(b=>`<option value="${b}">${b}</option>`).join("");
+                    bSel.value = cur;
+                }
+
+                // Charts
+                renderChart("chartBranch", "doughnut", students.branchWise || {});
+                renderChart("chartYear", "bar", students.yearWise || {});
+                renderChart("chartBusUsers", "bar", students.busWise || {});
+                renderChart("chartCity", "pie", students.cityWise || {});
+
+                if (attendance.success) {
+                    renderChart("chartAttTrend", "line", attendance.dayWise || {});
+                }
+                if (buses.success) {
+                    const kmMap = {};
+                    (buses.busReport||[]).forEach(b => { kmMap[b.busId] = b.avgKmPerDay; });
+                    renderChart("chartKm", "bar", kmMap);
+
+                    // Bus table
+                    document.getElementById("busTable").innerHTML = (buses.busReport||[]).map(b =>
+                        `<tr><td class="fw-semibold">${b.busId}</td><td>${b.routeName||"—"}</td><td>${b.totalStops}</td><td>${b.usersAssigned}</td><td>${b.avgKmPerDay} km</td><td>${b.totalKm30d} km</td></tr>`
+                    ).join("") || '<tr><td colspan="6" class="text-center text-muted">No data</td></tr>';
+                }
+            } catch (e) { console.error("Report load error:", e); }
         }
 
-        function exportCSV() {
-            // Simple CSV export of current attendance data
-            showToast("Generating CSV...", "info");
-            fetchWithCache(`${API}/admin/attendance-by-institution?institution=college&date=${document.getElementById("dateFrom").value}`, "csv_att")
-                .then(data => {
-                    if (!data.records || !data.records.length) { showToast("No data to export", "warning"); return; }
-                    const headers = "Student,Bus,Route,Boarded,Arrived,Exited,Present\n";
-                    const rows = data.records.map(r => `${r.studentName||r.studentId},${r.busId},${r.route||""},${r.boardingTime?"Yes":"No"},${r.arrivalTime?"Yes":"No"},${r.exited?"Yes":"No"},${r.present}`).join("\n");
-                    const blob = new Blob([headers + rows], { type: "text/csv" });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement("a"); a.href = url; a.download = `college_attendance_${document.getElementById("dateFrom").value}.csv`; a.click();
-                    showToast("CSV downloaded!", "success");
-                }).catch(() => showToast("Export failed", "error"));
+        const COLORS = ["#2563eb","#7c3aed","#0891b2","#16a34a","#d97706","#dc2626","#4f46e5","#0d9488","#ea580c","#8b5cf6","#059669","#e11d48"];
+        function renderChart(canvasId, type, dataObj) {
+            const labels = Object.keys(dataObj);
+            const values = Object.values(dataObj);
+            if (charts[canvasId]) charts[canvasId].destroy();
+            const ctx = document.getElementById(canvasId).getContext("2d");
+            charts[canvasId] = new Chart(ctx, {
+                type,
+                data: {
+                    labels,
+                    datasets: [{
+                        label: "Count",
+                        data: values,
+                        backgroundColor: type === "line" ? "rgba(37,99,235,0.1)" : labels.map((_,i) => COLORS[i % COLORS.length]),
+                        borderColor: type === "line" ? "#2563eb" : undefined,
+                        borderWidth: type === "line" ? 2 : 0,
+                        borderRadius: type === "bar" ? 6 : 0,
+                        fill: type === "line",
+                        tension: 0.4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: type === "pie" || type === "doughnut", position: "bottom" } },
+                    scales: (type === "bar" || type === "line") ? { y: { beginAtZero: true, grid: { color: "#f1f5f9" } }, x: { grid: { display: false } } } : undefined,
+                },
+            });
         }
 
         loadReports();
