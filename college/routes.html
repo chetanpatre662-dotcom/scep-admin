@@ -9,7 +9,12 @@
     <link rel="stylesheet" href="../shared/admin-styles.css">
     <style>
         /* college uses CSS defaults */
-        .stop-row{background:#f8fafc;border-radius:8px;padding:8px;border:1px solid #e2e8f0}
+        .stop-row{background:#f8fafc;border-radius:8px;padding:8px;border:1px solid #e2e8f0;transition:transform .15s,box-shadow .15s,opacity .15s;cursor:grab}
+        .stop-row:active{cursor:grabbing}
+        .stop-row.dragging{opacity:0.4;transform:scale(0.97);box-shadow:0 4px 16px rgba(37,99,235,.15)}
+        .stop-row.drag-over{border-color:#2563eb;border-style:dashed;background:#eff6ff}
+        .drag-handle{cursor:grab;color:#94a3b8;font-size:18px;padding:0 6px;user-select:none;touch-action:none}
+        .drag-handle:active{cursor:grabbing;color:#2563eb}
         .route-step{display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 14px;border-radius:8px;border-left:3px solid #2563eb;font-size:13px;font-weight:500}
         .route-arrow{text-align:center;color:#94a3b8;font-size:16px;margin:2px 0}
         .bus-preview-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;transition:.2s}
@@ -183,7 +188,7 @@
         if (!verifyInstitution("college")) throw "unauthorized";
 
         const INST = "college";
-        const BUSES = ["BUS-2","BUS-3","BUS-7","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
+        const BUSES = ["BUS-2","BUS-3","BUS-4","BUS-5","BUS-6","BUS-7","BUS-8","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
         let allRoutes = [];
         let editingId = null;
 
@@ -271,24 +276,100 @@
             }).join("") || '<p class="text-muted">No routes to preview</p>';
         }
 
-        // ── Stop Management ──────────────────────────────────────────
+        // ── Stop Management (Drag-and-Drop Reordering) ─────────────
+        let _draggedRow = null;
+
         function addStop(containerId, name="", lat="", lng="") {
             const container = document.getElementById(containerId);
             const row = document.createElement("div");
             row.className = "row g-2 stop-row";
+            row.draggable = true;
             row.innerHTML = `
+                <div class="col-1 d-flex align-items-center"><span class="drag-handle" title="Drag to reorder">⠿</span></div>
                 <div class="col-md-4"><input type="text" class="form-control form-control-sm city-name" placeholder="City Name" value="${name}" required></div>
                 <div class="col-md-3"><input type="number" step="any" class="form-control form-control-sm city-lat" placeholder="Latitude" value="${lat}"></div>
                 <div class="col-md-3"><input type="number" step="any" class="form-control form-control-sm city-lng" placeholder="Longitude" value="${lng}"></div>
-                <div class="col-md-2 d-flex gap-1">
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="moveStopUp(this)">↑</button>
-                    <button type="button" class="btn btn-sm btn-secondary" onclick="moveStopDown(this)">↓</button>
+                <div class="col-1 d-flex align-items-center">
                     <button type="button" class="btn btn-sm btn-danger" onclick="this.closest('.stop-row').remove()">✕</button>
                 </div>`;
+
+            // Drag events
+            row.addEventListener("dragstart", (e) => {
+                _draggedRow = row;
+                row.classList.add("dragging");
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", "");
+            });
+            row.addEventListener("dragend", () => {
+                row.classList.remove("dragging");
+                container.querySelectorAll(".stop-row").forEach(r => r.classList.remove("drag-over"));
+                _draggedRow = null;
+            });
+            row.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                if (_draggedRow && _draggedRow !== row) {
+                    row.classList.add("drag-over");
+                }
+            });
+            row.addEventListener("dragleave", () => {
+                row.classList.remove("drag-over");
+            });
+            row.addEventListener("drop", (e) => {
+                e.preventDefault();
+                row.classList.remove("drag-over");
+                if (_draggedRow && _draggedRow !== row) {
+                    // Determine position: insert before or after
+                    const rect = row.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (e.clientY < midY) {
+                        container.insertBefore(_draggedRow, row);
+                    } else {
+                        container.insertBefore(_draggedRow, row.nextSibling);
+                    }
+                }
+            });
+
+            // Touch support for mobile
+            let _touchY = 0;
+            row.querySelector(".drag-handle").addEventListener("touchstart", (e) => {
+                _draggedRow = row;
+                _touchY = e.touches[0].clientY;
+                row.classList.add("dragging");
+                e.preventDefault();
+            }, { passive: false });
+            row.querySelector(".drag-handle").addEventListener("touchmove", (e) => {
+                if (!_draggedRow) return;
+                e.preventDefault();
+                const touch = e.touches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                const targetRow = target?.closest(".stop-row");
+                container.querySelectorAll(".stop-row").forEach(r => r.classList.remove("drag-over"));
+                if (targetRow && targetRow !== _draggedRow) {
+                    targetRow.classList.add("drag-over");
+                }
+            }, { passive: false });
+            row.querySelector(".drag-handle").addEventListener("touchend", (e) => {
+                if (!_draggedRow) return;
+                const touch = e.changedTouches[0];
+                const target = document.elementFromPoint(touch.clientX, touch.clientY);
+                const targetRow = target?.closest(".stop-row");
+                if (targetRow && targetRow !== _draggedRow) {
+                    const rect = targetRow.getBoundingClientRect();
+                    const midY = rect.top + rect.height / 2;
+                    if (touch.clientY < midY) {
+                        container.insertBefore(_draggedRow, targetRow);
+                    } else {
+                        container.insertBefore(_draggedRow, targetRow.nextSibling);
+                    }
+                }
+                row.classList.remove("dragging");
+                container.querySelectorAll(".stop-row").forEach(r => r.classList.remove("drag-over"));
+                _draggedRow = null;
+            });
+
             container.appendChild(row);
         }
-        function moveStopUp(btn) { const row = btn.closest(".stop-row"); if (row.previousElementSibling) row.parentNode.insertBefore(row, row.previousElementSibling); }
-        function moveStopDown(btn) { const row = btn.closest(".stop-row"); if (row.nextElementSibling) row.parentNode.insertBefore(row.nextElementSibling, row); }
 
         function getCities(containerId) {
             const cities = [];

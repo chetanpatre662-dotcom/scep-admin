@@ -19,11 +19,21 @@
     <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDdx_xK0a-HjRxXMnqV3quDpAAT90OOe8M&callback=initMapCallback"></script>
     <style>
         /* college uses CSS defaults */
-        #dashMap{width:100%;height:420px;border-radius:20px;margin-top:16px}
+        #dashMap{width:100%;height:420px;border-radius:20px}
         .map-bus-btn{border:none;background:var(--accent-gradient);color:#fff;padding:8px 14px;border-radius:10px;font-weight:600;font-size:12px;transition:.2s;cursor:pointer;box-shadow:0 2px 8px var(--card-glow)}
         .map-bus-btn:hover{background:#1d4ed8;transform:translateY(-1px)}
         .map-bus-btn.active{background:#0f172a}
         .bus-status-row td{font-size:13px}
+        /* Live Bus List */
+        .bus-list-item{display:flex;align-items:center;justify-content:space-between;padding:10px 12px;border-radius:12px;margin-bottom:8px;background:#f8fafc;border:1.5px solid #e2e8f0;transition:.2s;cursor:pointer}
+        .bus-list-item:hover{border-color:var(--primary);background:#f0f4ff}
+        .bus-list-item.active{border-color:var(--primary);background:#eff6ff;box-shadow:0 2px 8px rgba(79,70,229,.12)}
+        .bus-list-item .bus-id{font-weight:700;font-size:13px;color:#1e293b}
+        .bus-list-item .bus-route{font-size:11px;color:#64748b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100px}
+        .bus-list-item .bus-status-badge{font-size:10px;padding:3px 8px;border-radius:6px;font-weight:600}
+        .bus-list-item .locate-btn{border:none;background:var(--primary);color:#fff;padding:5px 10px;border-radius:8px;font-size:11px;font-weight:600;transition:.15s}
+        .bus-list-item .locate-btn:hover{background:#3730a3;transform:scale(1.05)}
+        .bus-list-item .locate-btn:disabled{background:#cbd5e1;cursor:not-allowed;transform:none}
     </style>
 </head>
 <body>
@@ -78,7 +88,18 @@
                 <div><h6 class="fw-bold mb-0">Live Bus Monitoring</h6><small class="text-muted">Click bus to focus</small></div>
                 <div id="mapBusButtons" style="display:flex;gap:8px;flex-wrap:wrap"></div>
             </div>
-            <div id="dashMap"></div>
+            <div class="row mt-2">
+                <!-- Live Bus List Panel -->
+                <div class="col-lg-4 col-md-5 mb-3 mb-md-0">
+                    <div id="liveBusList" style="max-height:420px;overflow-y:auto;padding-right:4px">
+                        <p class="text-muted small">Waiting for data...</p>
+                    </div>
+                </div>
+                <!-- Map -->
+                <div class="col-lg-8 col-md-7">
+                    <div id="dashMap"></div>
+                </div>
+            </div>
         </div>
 
         <!-- Bus Status Table -->
@@ -228,7 +249,7 @@
                 `).join("");
 
                 // Update map markers
-                if (mapReady) { updateMapMarkers(buses); renderBusButtons(buses); }
+                if (mapReady) { updateMapMarkers(buses); renderBusButtons(buses); renderLiveBusList(buses); }
 
                 // Update bus status table
                 renderBusStatusTable(buses);
@@ -352,12 +373,51 @@
             activeBusId = busId;
             Object.entries(markerMap).forEach(([id, { marker }]) => marker.setIcon(id === busId ? blueIcon() : redIcon()));
             document.querySelectorAll("#mapBusButtons button").forEach(b => b.classList.toggle("active", b.innerText === busId));
+            // Highlight in live bus list
+            document.querySelectorAll(".bus-list-item").forEach(el => el.classList.toggle("active", el.dataset.busId === busId));
             if (markerMap[busId]) {
-                map.panTo(markerMap[busId].marker.getPosition()); map.setZoom(15);
+                map.panTo(markerMap[busId].marker.getPosition()); map.setZoom(16);
                 if (activeInfoWindow) activeInfoWindow.close();
                 markerMap[busId].info.open(map, markerMap[busId].marker);
                 activeInfoWindow = markerMap[busId].info;
             }
+        }
+
+        // ── Live Bus List Panel ──────────────────────────────────────
+        function renderLiveBusList(buses) {
+            const container = document.getElementById("liveBusList");
+            if (!buses.length) {
+                container.innerHTML = '<p class="text-muted small text-center py-3">No buses active</p>';
+                return;
+            }
+            // Sort: moving first, then by busId
+            const sorted = [...buses].sort((a, b) => {
+                if (a.tripActive && !b.tripActive) return -1;
+                if (!a.tripActive && b.tripActive) return 1;
+                const numA = parseInt(a.busId.replace(/\D/g, "")) || 0;
+                const numB = parseInt(b.busId.replace(/\D/g, "")) || 0;
+                return numA - numB;
+            });
+
+            container.innerHTML = sorted.map(bus => {
+                const isActive = bus.busId === activeBusId;
+                const isMoving = bus.tripActive || bus.speed > 5;
+                const statusText = bus.status === "At College" ? "At College" : isMoving ? "Moving" : "Idle";
+                const statusColor = bus.status === "At College" ? "bg-success" : isMoving ? "bg-primary" : "bg-secondary";
+                const hasMarker = !!markerMap[bus.busId];
+                return `<div class="bus-list-item${isActive ? ' active' : ''}" data-bus-id="${bus.busId}" onclick="focusBus('${bus.busId}')">
+                    <div>
+                        <div class="bus-id">${bus.busId}</div>
+                        <div class="bus-route">${bus.route || bus.currentCity || '—'}</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="bus-status-badge badge ${statusColor}">${statusText}</span>
+                        <button class="locate-btn" onclick="event.stopPropagation();focusBus('${bus.busId}')" ${!hasMarker ? 'disabled' : ''}>
+                            <i class="bi bi-geo-alt-fill me-1"></i>Locate
+                        </button>
+                    </div>
+                </div>`;
+            }).join("");
         }
 
         // ── Init ─────────────────────────────────────────────────────

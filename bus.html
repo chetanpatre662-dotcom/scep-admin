@@ -981,7 +981,7 @@
 
     <script>
 
-        const API_URL = "https://scep-bus.duckdns.org/admin/dashboard";
+        const API_URL = "http://162.245.191.109:3000/admin/dashboard";
 
         let dashboardData = null;
         let chart;
@@ -1061,14 +1061,14 @@
 
         init();
 
-        // Refresh stats, cards and activities every 30s (WebSocket handles live bus data)
-        setInterval(init, 30000);
+        // Refresh stats, cards and activities every 5 s (same cadence as dashboard.html)
+        setInterval(init, 5000);
 
         /* =========================
            WEBSOCKET — same pattern as dashboard.html
            Receives live bus updates without resetting selected bus state.
         ========================= */
-        const ws = new WebSocket("wss://scep-bus.duckdns.org/ws");
+        const ws = new WebSocket("ws://162.245.191.109:8080");
 
         ws.onmessage = (event) => {
             try {
@@ -1234,7 +1234,6 @@
         }
 
         function initMap() {
-            if (mapReady) return; // singleton — only init once
             map = new google.maps.Map(document.getElementById("map"), {
                 center: { lat: 21.8253, lng: 80.1513 },
                 zoom: 12,
@@ -1666,7 +1665,7 @@
 
         try {
           const res = await fetch(
-            `https://scep-bus.duckdns.org/admin/bus/${encodeURIComponent(_editBusId)}`,
+            `http://162.245.191.109:3000/admin/bus/${encodeURIComponent(_editBusId)}`,
             {
               method:  "PUT",
               headers: { "Content-Type": "application/json" },
