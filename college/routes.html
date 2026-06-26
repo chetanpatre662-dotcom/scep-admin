@@ -17,8 +17,9 @@
         .drag-handle:active{cursor:grabbing;color:#2563eb}
         .route-step{display:flex;align-items:center;gap:8px;background:#f8fafc;padding:8px 14px;border-radius:8px;border-left:3px solid #2563eb;font-size:13px;font-weight:500}
         .route-arrow{text-align:center;color:#94a3b8;font-size:16px;margin:2px 0}
-        .bus-preview-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;transition:.2s}
+        .bus-preview-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;transition:.2s;height:420px;display:flex;flex-direction:column;overflow:hidden}
         .bus-preview-card:hover{box-shadow:0 3px 12px rgba(37,99,235,.08);border-color:#2563eb}
+        .bus-preview-card .route-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
     </style>
 </head>
 <body>
@@ -271,7 +272,7 @@
                         <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}" style="font-size:10px">${r.status}</span>
                     </div>
                     <div class="small text-muted mb-2">${r.routeName} · ${cities.length} stops</div>
-                    <div>${stopsHtml || '<span class="text-muted small">No stops</span>'}</div>
+                    <div class="route-scroll">${stopsHtml || '<span class="text-muted small">No stops</span>'}</div>
                 </div></div>`;
             }).join("") || '<p class="text-muted">No routes to preview</p>';
         }
