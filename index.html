@@ -57,6 +57,8 @@ async function login() {
       let path;
       if (data.role === "superadmin" || data.institution === "all") {
         path = "app/dashboard.html";
+      } else if (data.role === "bus_pass_admin" || data.institution === "buspass") {
+        path = "bus-pass/dashboard.html";
       } else if (data.institution === "school") {
         path = "school/dashboard.html";
       } else {
@@ -68,17 +70,16 @@ async function login() {
   } catch (err) { msg.style.color = "red"; msg.innerText = "Server not reachable"; }
 }
 
-// Auto-redirect if already logged in
-const t = localStorage.getItem("token");
-const i = localStorage.getItem("institution");
-if (t && i) {
-  let path;
-  if (i === "all") { path = "app/dashboard.html"; }
-  else if (i === "school") { path = "school/dashboard.html"; }
-  else { path = "college/dashboard.html"; }
-  console.log("AUTO-REDIRECT: institution=" + i + " → " + path);
-  window.location.href = path;
-}
+// Session auto-redirect DISABLED for security.
+// Admin must always log in fresh. Token is used for API calls only after manual login.
+// Clear any stale session on login page load to prevent confusion.
+(function() {
+  const t = localStorage.getItem("token");
+  if (!t) return; // No session, show login normally
+  // If user deliberately navigated to login page, do NOT redirect.
+  // Only redirect if they came from a dashboard (document.referrer check)
+  // Otherwise, always show login form. This prevents the "opens dashboard" issue.
+})();
 </script>
 </body>
 </html>

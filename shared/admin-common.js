@@ -6,15 +6,41 @@ function getToken() { return localStorage.getItem("token") || ""; }
 function getInstitution() { return localStorage.getItem("institution") || "college"; }
 function headers() { return { "Content-Type": "application/json", "Authorization": getToken() }; }
 
-// ── Security ────────────────────────────────────────────────────────────────
-function verifyInstitution(expected) {
-  if (getInstitution() !== expected || !getToken()) {
-    alert("Unauthorized. Redirecting to login.");
-    localStorage.removeItem("token");
-    window.location.href = "../index.html";
-    return false;
+// ── Security — Immediate Auth Gate (blocks page render) ─────────────────────
+// Call this at the TOP of every dashboard <script> to prevent content flash.
+function requireAuth(expectedInstitution) {
+  const token = getToken();
+  const inst = getInstitution();
+  const role = localStorage.getItem("role") || "";
+
+  // No token or malformed → redirect immediately
+  if (!token || token.split(".").length !== 3) {
+    localStorage.clear();
+    window.location.replace("../index.html");
+    // Hide body to prevent flash
+    document.documentElement.style.display = "none";
+    throw "unauthorized";
+  }
+
+  // Superadmin bypasses institution check
+  if (inst === "all") return true;
+
+  // Bus pass / payment admin can access buspass pages
+  if (expectedInstitution === "buspass" && (role === "bus_pass_admin" || role === "payment_admin" || inst === "buspass")) return true;
+
+  // Standard institution match
+  if (inst !== expectedInstitution) {
+    localStorage.clear();
+    window.location.replace("../index.html");
+    document.documentElement.style.display = "none";
+    throw "unauthorized";
   }
   return true;
+}
+
+// Legacy compatibility — still used by some pages
+function verifyInstitution(expected) {
+  return requireAuth(expected);
 }
 function logout() { localStorage.removeItem("token"); localStorage.removeItem("institution"); window.location.href = "../index.html"; }
 
