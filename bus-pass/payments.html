@@ -110,7 +110,7 @@
 </div>
 
 <script>
-const API="http://162.245.191.109:3000";
+const API="https://bustracker.satpudaengineeringcollege.com/api";
 const token=localStorage.getItem("token");
 const role=localStorage.getItem("role");
 if(!token||!token.includes(".")||(role!=="bus_pass_admin"&&role!=="payment_admin"&&localStorage.getItem("institution")!=="all")){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}

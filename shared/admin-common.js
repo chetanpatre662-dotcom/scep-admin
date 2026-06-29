@@ -1,6 +1,6 @@
 // ── SCEP Admin Shared Utilities — Production Grade ──────────────────────────
-const API = "http://162.245.191.109:3000";
-const WS_URL = "ws://162.245.191.109:8080";
+const API = "https://bustracker.satpudaengineeringcollege.com/api";
+const WS_URL = "wss://bustracker.satpudaengineeringcollege.com/ws";
 
 function getToken() { return localStorage.getItem("token") || ""; }
 function getInstitution() { return localStorage.getItem("institution") || "college"; }
