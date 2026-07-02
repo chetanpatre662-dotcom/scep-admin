@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>if(!localStorage.getItem("token")||localStorage.getItem("token").split(".").length!==3){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}</script>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>School Admin</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap" rel="stylesheet">
+    <style>*{font-family:'Poppins',sans-serif}body{background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh}</style>
+</head>
+<body>
+    <div class="text-center p-4">
+        <h4 class="fw-bold text-muted">Attendance Module</h4>
+        <p class="text-muted">Attendance tracking is managed at the College level only.</p>
+        <a href="dashboard.html" class="btn btn-primary btn-sm mt-2">← Back to Dashboard</a>
+    </div>
+    <script>
+        // Redirect to dashboard after 3 seconds
+        setTimeout(() => { window.location.href = "dashboard.html"; }, 3000);
+    </script>
+</body>
+</html>

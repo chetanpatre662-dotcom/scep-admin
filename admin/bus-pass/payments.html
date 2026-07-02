@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bus Pass — Payment Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root{--bg:#f8fafc;--card:#fff;--primary:#4f46e5;--success:#10b981;--warning:#f59e0b;--danger:#ef4444;--text:#1e293b;--muted:#94a3b8;--border:#e2e8f0;--radius:16px;--shadow:0 4px 24px rgba(0,0,0,.05)}
+        *{font-family:'Inter',system-ui,sans-serif;box-sizing:border-box}
+        body{background:var(--bg);margin:0;min-height:100vh;color:var(--text)}
+        .page{max-width:1440px;margin:0 auto;padding:20px}
+        .topbar{background:var(--card);border-radius:var(--radius);padding:18px 24px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;box-shadow:var(--shadow);border:1px solid var(--border);flex-wrap:wrap;gap:12px}
+        .topbar h4{font-weight:800;margin:0;font-size:18px}
+        .topbar p{margin:0;color:var(--muted);font-size:12px}
+        .btn-nav{text-decoration:none;border:1.5px solid var(--border);color:var(--text);padding:7px 14px;border-radius:10px;font-weight:600;font-size:12px;transition:.2s}
+        .btn-nav:hover{border-color:var(--primary);color:var(--primary)}
+        .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:22px}
+        .stat{background:var(--card);border-radius:var(--radius);padding:18px;border:1px solid var(--border);box-shadow:var(--shadow);text-align:center}
+        .stat-value{font-size:24px;font-weight:900;line-height:1.2}
+        .stat-label{font-size:10px;color:var(--muted);font-weight:600;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+        .card-box{background:var(--card);border-radius:var(--radius);padding:20px;border:1px solid var(--border);box-shadow:var(--shadow);margin-bottom:20px}
+        .card-box h6{font-weight:700;font-size:14px;margin-bottom:14px}
+        .table-card{background:var(--card);border-radius:var(--radius);border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden}
+        .table-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+        .search-box{position:relative;flex:1;min-width:160px}
+        .search-box input{width:100%;padding:9px 12px 9px 34px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;outline:none}
+        .search-box input:focus{border-color:var(--primary)}
+        .search-box i{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:13px}
+        .filter-input{padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:12px;outline:none;background:#fff;min-width:110px}
+        .table-wrap{overflow-x:auto;max-height:55vh;overflow-y:auto}
+        table{width:100%;border-collapse:collapse;min-width:800px}
+        thead{position:sticky;top:0;background:var(--bg);z-index:1}
+        th{padding:10px 12px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border)}
+        td{padding:10px 12px;font-size:12px;border-bottom:1px solid #f8fafc;vertical-align:middle}
+        tr:hover td{background:#fafbfe}
+        tr{cursor:pointer}
+        .badge-s{padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700}
+        .badge-success{background:#dcfce7;color:#166534}
+        .badge-failed{background:#fee2e2;color:#991b1b}
+        .badge-pending{background:#fef3c7;color:#92400e}
+        .table-footer{padding:12px 20px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+        .btn-export{border:1.5px solid var(--border);background:var(--card);padding:6px 12px;border-radius:8px;font-size:11px;font-weight:600;cursor:pointer;transition:.2s}
+        .btn-export:hover{border-color:var(--primary);color:var(--primary)}
+        /* Modal */
+        .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:1000;align-items:center;justify-content:center}
+        .modal-overlay.active{display:flex}
+        .modal-box{background:#fff;border-radius:20px;padding:28px;max-width:500px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.15)}
+        .modal-box h5{font-weight:800;margin-bottom:16px}
+        .modal-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+        .modal-row .label{color:var(--muted);font-weight:500}
+        .modal-row .value{font-weight:700;text-align:right;max-width:60%}
+        @media(max-width:768px){.stats{grid-template-columns:1fr 1fr}.table-header{flex-direction:column}.search-box{min-width:100%}}
+        @media(max-width:480px){.stats{grid-template-columns:1fr}}
+    </style>
+</head>
+<body>
+<div class="page">
+    <div class="topbar">
+        <div><h4>💰 Payment Analytics</h4><p>Revenue tracking & transaction management</p></div>
+        <div class="d-flex gap-2 flex-wrap">
+            <a href="dashboard.html" class="btn-nav"><i class="bi bi-arrow-left me-1"></i>Dashboard</a>
+            <button class="btn-nav" onclick="exportCSV()"><i class="bi bi-filetype-csv me-1"></i>CSV</button>
+            <button class="btn-nav" onclick="exportExcel()"><i class="bi bi-file-earmark-spreadsheet me-1"></i>Excel</button>
+            <button class="btn-nav" onclick="exportPDF()"><i class="bi bi-filetype-pdf me-1"></i>PDF</button>
+        </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats">
+        <div class="stat"><div class="stat-value" id="sTotal" style="color:var(--primary)">—</div><div class="stat-label">Total Revenue</div></div>
+        <div class="stat"><div class="stat-value" id="sToday" style="color:var(--success)">—</div><div class="stat-label">Today</div></div>
+        <div class="stat"><div class="stat-value" id="sMonth" style="color:#0ea5e9">—</div><div class="stat-label">This Month</div></div>
+        <div class="stat"><div class="stat-value" id="sSuccess" style="color:var(--success)">—</div><div class="stat-label">Successful</div></div>
+        <div class="stat"><div class="stat-value" id="sFailed" style="color:var(--danger)">—</div><div class="stat-label">Failed</div></div>
+        <div class="stat"><div class="stat-value" id="sAvg" style="color:var(--warning)">—</div><div class="stat-label">Avg Amount</div></div>
+    </div>
+
+    <!-- Charts -->
+    <div class="row g-3 mb-3">
+        <div class="col-lg-8"><div class="card-box"><h6><i class="bi bi-graph-up me-2 text-primary"></i>Revenue Trend (Last 30 Days)</h6><canvas id="chartTrend" height="100"></canvas></div></div>
+        <div class="col-lg-4"><div class="card-box"><h6><i class="bi bi-pie-chart me-2 text-success"></i>Payment Status</h6><canvas id="chartStatus" height="160"></canvas></div></div>
+    </div>
+    <div class="row g-3 mb-3">
+        <div class="col-lg-6"><div class="card-box"><h6><i class="bi bi-bar-chart me-2 text-info"></i>Monthly Revenue</h6><canvas id="chartMonthly" height="120"></canvas></div></div>
+        <div class="col-lg-6"><div class="card-box"><h6><i class="bi bi-trophy me-2 text-warning"></i>Top Paying Students</h6><div id="topStudents"></div></div></div>
+    </div>
+
+    <!-- Table -->
+    <div class="table-card">
+        <div class="table-header">
+            <div class="search-box"><i class="bi bi-search"></i><input type="text" id="fSearch" placeholder="Search student, payment ID..." oninput="applyFilter()"></div>
+            <select class="filter-input" id="fStatus" onchange="applyFilter()"><option value="">All Status</option><option value="success">Success</option><option value="failed">Failed</option><option value="pending">Pending</option></select>
+            <input type="date" class="filter-input" id="fDate" onchange="applyFilter()">
+            <input type="month" class="filter-input" id="fMonth" onchange="applyFilter()">
+        </div>
+        <div class="table-wrap">
+            <table><thead><tr><th>Student</th><th>Roll No</th><th>Payment ID</th><th>Amount</th><th>Upload #</th><th>Status</th><th>Refund</th><th>Date</th></tr></thead>
+            <tbody id="tbody"><tr><td colspan="8" style="text-align:center;padding:30px;color:var(--muted)">Loading...</td></tr></tbody></table>
+        </div>
+        <div class="table-footer"><span id="tableInfo"></span><span id="pageInfo"></span></div>
+    </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="modal-overlay" id="modal" onclick="if(event.target===this)closeModal()">
+    <div class="modal-box" id="modalBody"></div>
+</div>
+
+<script>
+const API="https://bustracker.satpudaengineeringcollege.com/api";
+const token=localStorage.getItem("token");
+const role=localStorage.getItem("role");
+if(!token||!token.includes(".")||(role!=="bus_pass_admin"&&role!=="payment_admin"&&localStorage.getItem("institution")!=="all")){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}
+function headers(){return{"Content-Type":"application/json","Authorization":token}}
+
+let allPayments=[],charts={};
+
+async function load(){
+    try{
+        const [histRes,statsRes]=await Promise.all([
+            fetch(`${API}/api/payment/history?limit=100`,{headers:headers()}),
+            fetch(`${API}/api/payment/stats`,{headers:headers()}),
+        ]);
+        if(histRes.status===401){localStorage.clear();location.href="../index.html";return}
+        const hist=await histRes.json();
+        const stats=await statsRes.json();
+        allPayments=hist.payments||[];
+        // Stats
+        if(stats.success){
+            document.getElementById("sTotal").innerText="₹"+(stats.totalRevenue||0);
+            document.getElementById("sToday").innerText="₹"+(stats.todayRevenue||0);
+            document.getElementById("sMonth").innerText="₹"+(stats.monthRevenue||0);
+            document.getElementById("sSuccess").innerText=stats.successfulPayments||0;
+            document.getElementById("sFailed").innerText=stats.failedPayments||0;
+            const avg=allPayments.length?Math.round(allPayments.reduce((s,p)=>s+(p.amount||0),0)/allPayments.length):0;
+            document.getElementById("sAvg").innerText="₹"+avg;
+        }
+        renderCharts();
+        renderTopStudents();
+        applyFilter();
+    }catch(e){console.error(e)}
+}
+
+function renderCharts(){
+    // Revenue Trend (daily for last 30 days)
+    const dailyMap={};
+    const today=new Date();
+    for(let i=29;i>=0;i--){const d=new Date(today);d.setDate(d.getDate()-i);dailyMap[d.toISOString().split("T")[0]]=0;}
+    allPayments.forEach(p=>{
+        if(p.status!=="success")return;
+        const d=p.createdAt?._seconds?new Date(p.createdAt._seconds*1000).toISOString().split("T")[0]:"";
+        if(dailyMap[d]!==undefined)dailyMap[d]+=(p.amount||0);
+    });
+    renderChart("chartTrend","line",dailyMap);
+
+    // Status pie
+    const statusMap={Success:0,Failed:0,Pending:0};
+    allPayments.forEach(p=>{if(p.status==="success")statusMap.Success++;else if(p.status==="failed")statusMap.Failed++;else statusMap.Pending++;});
+    renderChart("chartStatus","doughnut",statusMap);
+
+    // Monthly revenue
+    const monthlyMap={};
+    allPayments.forEach(p=>{
+        if(p.status!=="success")return;
+        const d=p.createdAt?._seconds?new Date(p.createdAt._seconds*1000).toISOString().substring(0,7):"";
+        if(d)monthlyMap[d]=(monthlyMap[d]||0)+(p.amount||0);
+    });
+    renderChart("chartMonthly","bar",monthlyMap);
+}
+
+function renderTopStudents(){
+    const map={};
+    allPayments.filter(p=>p.status==="success").forEach(p=>{
+        const key=p.studentName||p.studentId||"Unknown";
+        map[key]=(map[key]||0)+(p.amount||0);
+    });
+    const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,5);
+    document.getElementById("topStudents").innerHTML=sorted.map((s,i)=>
+        `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:13px"><span><strong>#${i+1}</strong> ${s[0]}</span><strong style="color:var(--primary)">₹${s[1]}</strong></div>`
+    ).join("")||'<p style="color:var(--muted);font-size:12px">No data</p>';
+}
+
+const COLORS=["#4f46e5","#10b981","#f59e0b","#ef4444","#0ea5e9","#8b5cf6"];
+function renderChart(id,type,data){
+    const labels=Object.keys(data),values=Object.values(data);
+    if(charts[id])charts[id].destroy();
+    charts[id]=new Chart(document.getElementById(id).getContext("2d"),{
+        type,data:{labels,datasets:[{label:"₹",data:values,
+            backgroundColor:type==="line"?"rgba(79,70,229,.08)":labels.map((_,i)=>COLORS[i%COLORS.length]),
+            borderColor:type==="line"?"#4f46e5":undefined,borderWidth:type==="line"?2:0,
+            borderRadius:type==="bar"?6:0,fill:type==="line",tension:.4,pointRadius:type==="line"?2:0,
+        }]},options:{responsive:true,plugins:{legend:{display:type==="doughnut",position:"bottom"}},
+        scales:(type==="bar"||type==="line")?{y:{beginAtZero:true,grid:{color:"#f1f5f9"}},x:{grid:{display:false}}}:undefined}
+    });
+}
+
+function applyFilter(){
+    const q=document.getElementById("fSearch").value.toLowerCase();
+    const status=document.getElementById("fStatus").value;
+    const dateF=document.getElementById("fDate").value;
+    const monthF=document.getElementById("fMonth").value;
+    const f=allPayments.filter(p=>{
+        if(q&&!(p.studentName||"").toLowerCase().includes(q)&&!(p.studentId||"").toLowerCase().includes(q)&&!(p.paymentId||"").toLowerCase().includes(q)&&!(p.rollNumber||"").toLowerCase().includes(q))return false;
+        if(status&&p.status!==status)return false;
+        const pDate=p.createdAt?._seconds?new Date(p.createdAt._seconds*1000).toISOString().split("T")[0]:"";
+        if(dateF&&pDate!==dateF)return false;
+        if(monthF&&!pDate.startsWith(monthF))return false;
+        return true;
+    });
+    render(f);
+    document.getElementById("tableInfo").innerText=`${f.length} of ${allPayments.length} transactions`;
+}
+
+function render(list){
+    document.getElementById("tbody").innerHTML=list.map(p=>{
+        const date=p.createdAt?._seconds?new Date(p.createdAt._seconds*1000).toLocaleString("en-IN",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit"}):"—";
+        let badge=p.status==="success"?'<span class="badge-s badge-success">Success</span>':p.status==="failed"?'<span class="badge-s badge-failed">Failed</span>':'<span class="badge-s badge-pending">Pending</span>';
+        const refund=p.refundStatus||"N/A";
+        return `<tr onclick="showDetail('${p.paymentId||p.id}')"><td class="fw-semibold">${p.studentName||p.studentId||"—"}</td><td style="font-size:11px">${p.rollNumber||"—"}</td><td style="font-size:10px;font-family:monospace">${(p.paymentId||"—").substring(0,16)}</td><td class="fw-bold">₹${p.amount||0}</td><td>#${p.uploadNumber||"?"}</td><td>${badge}</td><td style="font-size:11px;color:var(--muted)">${refund}</td><td style="font-size:11px;color:var(--muted)">${date}</td></tr>`;
+    }).join("")||'<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No transactions found</td></tr>';
+}
+
+function showDetail(id){
+    const p=allPayments.find(x=>(x.paymentId||x.id)===id);
+    if(!p)return;
+    const date=p.createdAt?._seconds?new Date(p.createdAt._seconds*1000).toLocaleString("en-IN"):"—";
+    const dev=p.deviceInfo||{};
+    document.getElementById("modalBody").innerHTML=`
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px"><h5 style="margin:0">Payment Details</h5><button onclick="closeModal()" style="border:none;background:none;font-size:20px;cursor:pointer">✕</button></div>
+        <div class="modal-row"><span class="label">Payment ID</span><span class="value" style="font-family:monospace;font-size:11px">${p.paymentId||"—"}</span></div>
+        <div class="modal-row"><span class="label">Order ID</span><span class="value" style="font-size:11px">${p.orderId||"—"}</span></div>
+        <div class="modal-row"><span class="label">Student</span><span class="value">${p.studentName||p.studentId||"—"}</span></div>
+        <div class="modal-row"><span class="label">Roll Number</span><span class="value">${p.rollNumber||"—"}</span></div>
+        <div class="modal-row"><span class="label">Course / Branch</span><span class="value">${p.course||""} ${p.branch||""}</span></div>
+        <div class="modal-row"><span class="label">Bus</span><span class="value">${p.busNumber||"—"}</span></div>
+        <div class="modal-row"><span class="label">Amount</span><span class="value" style="font-size:18px;color:var(--primary)">₹${p.amount||0}</span></div>
+        <div class="modal-row"><span class="label">Upload #</span><span class="value">#${p.uploadNumber||"?"}</span></div>
+        <div class="modal-row"><span class="label">Status</span><span class="value">${p.status||"—"}</span></div>
+        <div class="modal-row"><span class="label">Gateway</span><span class="value">${p.gateway||"—"}</span></div>
+        <div class="modal-row"><span class="label">Signature Verified</span><span class="value">${p.signatureVerified?"✅ Yes":"❌ No"}</span></div>
+        <div class="modal-row"><span class="label">Date</span><span class="value">${date}</span></div>
+        <div class="modal-row"><span class="label">Device</span><span class="value" style="font-size:11px">${dev.brand||""} ${dev.model||""} (Android ${dev.androidVersion||"?"})</span></div>
+        <div class="modal-row"><span class="label">Refund</span><span class="value">${p.refundStatus||"Not Applicable"}</span></div>
+    `;
+    document.getElementById("modal").classList.add("active");
+}
+function closeModal(){document.getElementById("modal").classList.remove("active")}
+
+// ── Export Functions ──────────────────────────────────────────
+function getExportData(){
+    return allPayments.map(p=>({
+        Date:p.createdAt?._seconds?new Date(p.createdAt._seconds*1000).toISOString():"",
+        Student:p.studentName||p.studentId||"",
+        RollNumber:p.rollNumber||"",
+        PaymentID:p.paymentId||"",
+        OrderID:p.orderId||"",
+        Amount:p.amount||0,
+        Status:p.status||"",
+        Upload:p.uploadNumber||"",
+        Gateway:p.gateway||"",
+    }));
+}
+
+function exportCSV(){
+    const data=getExportData();
+    if(!data.length)return;
+    const keys=Object.keys(data[0]);
+    let csv=keys.join(",")+"\n";
+    data.forEach(r=>{csv+=keys.map(k=>`"${(r[k]+"").replace(/"/g,'""')}"`).join(",")+"\n"});
+    download(csv,"payment_history.csv","text/csv");
+}
+
+function exportExcel(){
+    // Tab-separated (opens in Excel)
+    const data=getExportData();
+    if(!data.length)return;
+    const keys=Object.keys(data[0]);
+    let tsv=keys.join("\t")+"\n";
+    data.forEach(r=>{tsv+=keys.map(k=>r[k]).join("\t")+"\n"});
+    download(tsv,"payment_history.xls","application/vnd.ms-excel");
+}
+
+function exportPDF(){
+    // Print-friendly view
+    const w=window.open("","_blank");
+    w.document.write(`<html><head><title>Payment Report</title><style>body{font-family:Inter,sans-serif;padding:20px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #e2e8f0;padding:6px 8px;text-align:left}th{background:#f1f5f9;font-weight:700}</style></head><body>`);
+    w.document.write(`<h2>Payment Report — ${new Date().toLocaleDateString()}</h2>`);
+    w.document.write(`<table><tr><th>Date</th><th>Student</th><th>Roll No</th><th>Amount</th><th>Status</th><th>Payment ID</th></tr>`);
+    allPayments.forEach(p=>{
+        const d=p.createdAt?._seconds?new Date(p.createdAt._seconds*1000).toLocaleDateString():"";
+        w.document.write(`<tr><td>${d}</td><td>${p.studentName||p.studentId||""}</td><td>${p.rollNumber||""}</td><td>₹${p.amount||0}</td><td>${p.status||""}</td><td>${p.paymentId||""}</td></tr>`);
+    });
+    w.document.write(`</table></body></html>`);
+    w.document.close();
+    w.print();
+}
+
+function download(content,filename,type){
+    const blob=new Blob([content],{type});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=filename;a.click();
+    URL.revokeObjectURL(url);
+}
+
+load();
+</script>
+</body>
+</html>

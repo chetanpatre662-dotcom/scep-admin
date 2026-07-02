@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script>if(!localStorage.getItem("token")||localStorage.getItem("token").split(".").length!==3){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SCEP Admin - Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../shared/admin-styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        window.initMapCallback = function() { if (typeof initMap === "function") initMap(); };
+    </script>
+    <script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyDdx_xK0a-HjRxXMnqV3quDpAAT90OOe8M&callback=initMapCallback"></script>
+    <style>
+        #dashMap { width:100%; height:400px; border-radius:20px; margin-top:14px; }
+        .map-bus-btn { border:none; color:#fff; padding:8px 14px; border-radius:10px; font-weight:600; font-size:12px; transition:.2s; cursor:pointer; }
+        .map-bus-btn:hover { opacity:.85; transform:translateY(-1px); }
+        .map-bus-btn.active { background:#0f172a !important; }
+    </style>
+</head>
+<body>
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar"><!-- auto-rendered by sidebar.js --></div>
+
+    <div class="main">
+        <!-- Topbar -->
+        <div class="topbar">
+            <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
+            <div>
+                <h5 class="fw-bold mb-0" id="topTitle">Dashboard</h5>
+                <small class="text-muted" id="topSubtitle">Loading...</small>
+            </div>
+            <div class="d-flex align-items-center gap-2">
+                <span id="connStatus"><span class="badge bg-secondary">Connecting...</span></span>
+                <span class="badge px-3 py-2" id="topBadge">Admin</span>
+            </div>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="row g-3" id="statsRow"></div>
+
+        <!-- Google Map Section -->
+        <div class="section-box" id="mapSection" style="display:none">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <div><h6 class="fw-bold mb-0">Live Bus Monitoring</h6><small class="text-muted">Click bus to focus</small></div>
+                <div id="mapBusButtons" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+            </div>
+            <div id="dashMap"></div>
+        </div>
+
+        <!-- Bus Status Table -->
+        <div class="section-box" id="busTableSection" style="display:none">
+            <h6 class="fw-bold mb-3">Bus Status</h6>
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light"><tr><th>Bus</th><th>Driver</th><th>Speed</th><th>Status</th><th>City</th><th>Last Update</th></tr></thead>
+                    <tbody id="busStatusBody"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Attendance Section (college only) -->
+        <div class="row" id="attendanceSection" style="display:none">
+            <div class="col-lg-8">
+                <div class="section-box">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">Today's Attendance</h6>
+                        <small class="text-muted" id="lastUpdate">—</small>
+                    </div>
+                    <canvas id="attChart" height="110"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-4">
+                <div class="section-box">
+                    <h6 class="fw-bold mb-3">Quick Summary</h6>
+                    <div id="todaySummary"><div class="skeleton-line mb-2"></div><div class="skeleton-line mb-2"></div><div class="skeleton-line"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Super Admin Section -->
+        <div class="row" id="superSection" style="display:none">
+            <div class="col-lg-6">
+                <div class="section-box">
+                    <h6 class="fw-bold mb-3">Institution Breakdown</h6>
+                    <canvas id="instChart" height="160"></canvas>
+                </div>
+            </div>
+            <div class="col-lg-6">
+                <div class="section-box">
+                    <h6 class="fw-bold mb-3">System Overview</h6>
+                    <div id="systemOverview"><div class="skeleton-line mb-2"></div><div class="skeleton-line mb-2"></div></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Bus Feed -->
+        <div class="section-box" id="busFeedSection" style="display:none">
+            <h6 class="fw-bold mb-3">Live Bus Feed</h6>
+            <div id="busFeed"><p class="text-muted small">Connecting...</p></div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="../shared/admin-common.js"></script>
+    <script src="../shared/config.js"></script>
+    <script src="../shared/sidebar.js"></script>
+
+    <script>
+    (function() {
+        "use strict";
+
+        // ══════════════════════════════════════════════════════════════
+        // AUTH & CONFIG
+        // ══════════════════════════════════════════════════════════════
+        const token = getToken();
+        const institution = (localStorage.getItem("institution") || "").toLowerCase();
+        if (!token) { window.location.href = "../index.html"; return; }
+
+        const cfg = getConfig(institution);
+        const inst = cfg.institution;
+        const isCollege = (institution === "college");
+        const isSchool = (institution === "school");
+        const isSuper = (institution === "all");
+        const instParam = isSuper ? "college" : institution; // API query param
+
+        // ══════════════════════════════════════════════════════════════
+        // BRANDING
+        // ══════════════════════════════════════════════════════════════
+        document.title = inst.title + " - Dashboard";
+        document.getElementById("topTitle").innerText = inst.title + " Dashboard";
+        document.getElementById("topSubtitle").innerText = inst.subtitle;
+        const badge = document.getElementById("topBadge");
+        badge.className = `badge ${inst.badgeClass} px-3 py-2`;
+        badge.innerText = inst.badgeText;
+
+        // Set theme color for map buttons
+        document.querySelectorAll(".map-bus-btn").forEach(b => b.style.background = inst.themeColor);
+
+        // ══════════════════════════════════════════════════════════════
+        // SHOW/HIDE SECTIONS BASED ON ROLE
+        // ══════════════════════════════════════════════════════════════
+        if (isCollege || isSchool) {
+            document.getElementById("mapSection").style.display = "";
+            document.getElementById("busTableSection").style.display = "";
+            document.getElementById("busFeedSection").style.display = "";
+        }
+        if (isCollege) {
+            document.getElementById("attendanceSection").style.display = "";
+        }
+        if (isSuper) {
+            document.getElementById("superSection").style.display = "";
+            document.getElementById("mapSection").style.display = "";
+            document.getElementById("busTableSection").style.display = "";
+            document.getElementById("busFeedSection").style.display = "";
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // STATS CARDS — Role-specific
+        // ══════════════════════════════════════════════════════════════
+        function renderStats(d) {
+            const row = document.getElementById("statsRow");
+            if (isCollege) {
+                row.innerHTML = `
+                    <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-people-fill"></i></div><div class="stat-value">${d.total||0}</div><div class="stat-label">Total Users</div></div></div>
+                    <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-person-check"></i></div><div class="stat-value">${d.students||0}</div><div class="stat-label">Students</div></div></div>
+                    <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-mortarboard"></i></div><div class="stat-value">${d.faculty||0}</div><div class="stat-label">Faculty</div></div></div>
+                    <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#ccfbf1;color:#0d9488"><i class="bi bi-bus-front"></i></div><div class="stat-value" id="sBuses">${d.buses||0}</div><div class="stat-label">Active Buses</div></div></div>
+                    <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#4f46e5"><i class="bi bi-signpost-split"></i></div><div class="stat-value">${d.routes||0}</div><div class="stat-label">Routes</div></div></div>
+                    <div class="col-xl-2 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:#fee2e2;color:#dc2626"><i class="bi bi-percent"></i></div><div class="stat-value">${d.attPct||0}%</div><div class="stat-label">Attendance</div></div></div>`;
+            } else if (isSchool) {
+                row.innerHTML = `
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#e0f2fe;color:#0ea5e9"><i class="bi bi-people-fill"></i></div><div class="stat-value">${d.total||0}</div><div class="stat-label">Total Users</div></div></div>
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-person-check"></i></div><div class="stat-value">${d.students||0}</div><div class="stat-label">Students</div></div></div>
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-person-hearts"></i></div><div class="stat-value">${d.parents||0}</div><div class="stat-label">Parents</div></div></div>
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#ccfbf1;color:#0d9488"><i class="bi bi-bus-front"></i></div><div class="stat-value" id="sBuses">${d.buses||0}</div><div class="stat-label">Active Buses</div></div></div>`;
+            } else if (isSuper) {
+                row.innerHTML = `
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#7c3aed"><i class="bi bi-people-fill"></i></div><div class="stat-value">${d.totalUsers||0}</div><div class="stat-label">Total Users</div></div></div>
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-mortarboard"></i></div><div class="stat-value">${d.collegeUsers||0}</div><div class="stat-label">College Users</div></div></div>
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#e0f2fe;color:#0ea5e9"><i class="bi bi-book"></i></div><div class="stat-value">${d.schoolUsers||0}</div><div class="stat-label">School Users</div></div></div>
+                    <div class="col-xl-3 col-md-6 col-6"><div class="stat-card"><div class="stat-icon" style="background:#ccfbf1;color:#0d9488"><i class="bi bi-bus-front"></i></div><div class="stat-value" id="sBuses">${d.buses||0}</div><div class="stat-label">Active Buses</div></div></div>`;
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // DATA LOADING
+        // ══════════════════════════════════════════════════════════════
+        let attChart, liveBuses = [];
+
+        async function loadDashboard() {
+            try {
+                if (isSuper) {
+                    const res = await fetch(`${API}/admin/system-stats`, { headers: headers() });
+                    const data = await res.json();
+                    if (data.success) {
+                        renderStats({
+                            totalUsers: data.stats.totalUsers,
+                            collegeUsers: data.stats.collegeUsers,
+                            schoolUsers: data.stats.schoolUsers,
+                            buses: liveBuses.length || data.stats.activeBuses || 0,
+                        });
+                        document.getElementById("systemOverview").innerHTML = `
+                            <div class="d-flex justify-content-between mb-2 small"><span>Total Students</span><strong>${data.stats.totalStudents}</strong></div>
+                            <div class="d-flex justify-content-between mb-2 small"><span>Total Parents</span><strong>${data.stats.totalParents}</strong></div>
+                            <div class="d-flex justify-content-between mb-2 small"><span>Total Faculty</span><strong>${data.stats.totalFaculty}</strong></div>
+                            <div class="d-flex justify-content-between mb-2 small"><span>Total Routes</span><strong>${data.stats.totalRoutes}</strong></div>
+                            <div class="d-flex justify-content-between mb-2 small"><span>Active Routes</span><strong>${data.stats.activeRoutes}</strong></div>
+                            <div class="d-flex justify-content-between small"><span>Pending Complaints</span><strong class="text-danger">${data.stats.pendingComplaints}</strong></div>`;
+                        const ctx = document.getElementById("instChart")?.getContext("2d");
+                        if (ctx) new Chart(ctx, { type:"doughnut", data:{labels:["College","School"],datasets:[{data:[data.stats.collegeUsers,data.stats.schoolUsers],backgroundColor:["#2563eb","#0ea5e9"],borderWidth:0}]}, options:{responsive:true,plugins:{legend:{position:"bottom"}}} });
+                    }
+                } else {
+                    // College or School
+                    const [usersRes, routesRes] = await Promise.all([
+                        fetch(`${API}/admin/users-by-institution?institution=${instParam}`, { headers: headers() }),
+                        fetch(`${API}/admin/routes-by-institution?institution=${instParam}`, { headers: headers() }),
+                    ]);
+                    const users = await usersRes.json();
+                    const routes = await routesRes.json();
+
+                    const stats = {
+                        total: users.success ? (users.counts?.total || 0) : 0,
+                        students: users.success ? (users.counts?.students || 0) : 0,
+                        faculty: users.success ? (users.counts?.faculty || 0) : 0,
+                        parents: users.success ? (users.counts?.parents || 0) : 0,
+                        routes: routes.success ? (routes.count || 0) : 0,
+                        buses: liveBuses.length || 0,
+                        attPct: 0,
+                    };
+
+                    // Attendance (college only)
+                    if (isCollege) {
+                        try {
+                            const attRes = await fetch(`${API}/admin/attendance-by-institution?institution=college`, { headers: headers() });
+                            const att = await attRes.json();
+                            if (att.success) {
+                                stats.attPct = att.totalStudents > 0 ? Math.round((att.present / att.totalStudents) * 100) : 0;
+                                document.getElementById("todaySummary").innerHTML = `
+                                    <div class="d-flex justify-content-between mb-2 small"><span>Total Students</span><strong>${att.totalStudents}</strong></div>
+                                    <div class="d-flex justify-content-between mb-2 small"><span>Boarded</span><strong class="text-primary">${att.boarded}</strong></div>
+                                    <div class="d-flex justify-content-between mb-2 small"><span>Present</span><strong class="text-success">${att.present}</strong></div>
+                                    <div class="d-flex justify-content-between mb-2 small"><span>Exited</span><strong class="text-danger">${att.exited}</strong></div>
+                                    <div class="d-flex justify-content-between small"><span>Rate</span><strong>${stats.attPct}%</strong></div>`;
+                                const ctx = document.getElementById("attChart")?.getContext("2d");
+                                if (ctx) {
+                                    if (attChart) attChart.destroy();
+                                    attChart = new Chart(ctx, { type:"bar", data:{labels:["Total","Boarded","Present","Exited"],datasets:[{data:[att.totalStudents,att.boarded,att.present,att.exited],backgroundColor:["#64748b","#2563eb","#16a34a","#dc2626"],borderRadius:8}]}, options:{responsive:true,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true}}} });
+                                }
+                            }
+                        } catch (_) {}
+                    }
+                    renderStats(stats);
+                }
+                document.getElementById("lastUpdate").innerText = new Date().toLocaleTimeString();
+            } catch (e) { console.error("Dashboard load error:", e); }
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // WEBSOCKET — Live Bus Updates
+        // ══════════════════════════════════════════════════════════════
+        const ws = new WebSocket(WS_URL);
+        ws.onopen = () => updateConnectionStatus(true);
+        ws.onmessage = (event) => {
+            try {
+                const msg = JSON.parse(event.data);
+                const buses = msg.data || [];
+                if (!buses.length) return;
+                liveBuses = buses;
+                updateConnectionStatus(true);
+
+                // Update bus count
+                const el = document.getElementById("sBuses");
+                if (el) el.innerText = buses.filter(b => b.tripActive).length || buses.length;
+
+                // Bus feed
+                document.getElementById("busFeed").innerHTML = buses.slice(0, 5).map(b => `
+                    <div class="d-flex justify-content-between align-items-center mb-2 small">
+                        <span class="fw-medium">${b.busId}</span>
+                        <span class="text-muted">${b.currentCity||"—"} → ${b.nextCity||"—"}</span>
+                        <span class="badge ${b.tripActive?'bg-success':'bg-secondary'}">${b.tripActive?'Moving':'Idle'}</span>
+                    </div>`).join("");
+
+                // Bus status table
+                document.getElementById("busStatusBody").innerHTML = buses.map(b => {
+                    let st = b.tripActive ? '<span class="badge bg-primary">Moving</span>' : '<span class="badge bg-secondary">Idle</span>';
+                    if (b.status === "At College") st = '<span class="badge bg-success">At College</span>';
+                    const t = b.timestamp ? new Date(b.timestamp).toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}) : "—";
+                    return `<tr><td class="fw-semibold">${b.busId}</td><td>${b.driver||"N/A"}</td><td>${Math.round(b.speed||0)} km/h</td><td>${st}</td><td>${b.currentCity||"—"}</td><td class="text-muted">${t}</td></tr>`;
+                }).join("");
+
+                // Map markers
+                if (mapReady) updateMapMarkers(buses);
+                if (mapReady && !_buttonsRendered) { renderBusButtons(buses); _buttonsRendered = true; }
+            } catch (_) {}
+        };
+        ws.onerror = () => updateConnectionStatus(false);
+        ws.onclose = () => updateConnectionStatus(false);
+
+        // ══════════════════════════════════════════════════════════════
+        // GOOGLE MAPS
+        // ══════════════════════════════════════════════════════════════
+        let map, mapReady = false, markerMap = {}, activeBusId = null, _buttonsRendered = false;
+        let activeInfoWindow = null; // only one InfoWindow open at a time
+
+        function redIcon() { return "https://maps.google.com/mapfiles/ms/icons/red-dot.png"; }
+        function blueIcon() { return "https://maps.google.com/mapfiles/ms/icons/blue-dot.png"; }
+
+        function animateMarker(marker, from, to, duration) {
+            const start = performance.now();
+            const fLat = from.lat(), fLng = from.lng();
+            function step(now) {
+                const t = Math.min((now - start) / duration, 1);
+                const e = t * (2 - t);
+                marker.setPosition({ lat: fLat + (to.lat - fLat) * e, lng: fLng + (to.lng - fLng) * e });
+                if (t < 1) requestAnimationFrame(step);
+            }
+            requestAnimationFrame(step);
+        }
+
+        function initMap() {
+            if (mapReady) return; // singleton — only init once
+            map = new google.maps.Map(document.getElementById("dashMap"), { center:{lat:21.8253,lng:80.1513}, zoom:12 });
+            mapReady = true;
+            if (liveBuses.length) { updateMapMarkers(liveBuses); renderBusButtons(liveBuses); _buttonsRendered = true; }
+        }
+
+        function renderBusButtons(buses) {
+            const wrap = document.getElementById("mapBusButtons");
+            wrap.innerHTML = "";
+            const allBtn = document.createElement("button");
+            allBtn.className = "map-bus-btn"; allBtn.innerText = "ALL";
+            allBtn.style.background = inst.themeColor;
+            allBtn.onclick = () => {
+                activeBusId = null;
+                wrap.querySelectorAll("button").forEach(b => b.classList.remove("active"));
+                Object.values(markerMap).forEach(({marker}) => marker.setIcon(redIcon()));
+                const bounds = new google.maps.LatLngBounds();
+                buses.forEach(b => bounds.extend({lat:Number(b.lat),lng:Number(b.lng)}));
+                if (buses.length) map.fitBounds(bounds);
+            };
+            wrap.appendChild(allBtn);
+            buses.forEach(bus => {
+                const btn = document.createElement("button");
+                btn.className = "map-bus-btn" + (bus.busId === activeBusId ? " active" : "");
+                btn.style.background = inst.themeColor;
+                btn.innerText = bus.busId;
+                btn.onclick = () => focusBus(bus.busId);
+                wrap.appendChild(btn);
+            });
+        }
+
+        function updateMapMarkers(buses) {
+            const liveIds = new Set(buses.map(b => b.busId));
+            buses.forEach(bus => {
+                const newPos = {lat:Number(bus.lat), lng:Number(bus.lng)};
+                const icon = (bus.busId === activeBusId) ? blueIcon() : redIcon();
+                const info = `<div style="padding:8px;font-family:Poppins"><strong>${bus.busId}</strong><br><small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small></div>`;
+                if (markerMap[bus.busId]) {
+                    const old = markerMap[bus.busId].marker.getPosition();
+                    if (old.lat() !== newPos.lat || old.lng() !== newPos.lng) animateMarker(markerMap[bus.busId].marker, old, newPos, 1500);
+                    markerMap[bus.busId].marker.setIcon(icon);
+                    markerMap[bus.busId].info.setContent(info);
+                } else {
+                    const marker = new google.maps.Marker({position:newPos, map, title:bus.busId, icon});
+                    const iw = new google.maps.InfoWindow({content:info});
+                    marker.addListener("click", () => { focusBus(bus.busId); });
+                    markerMap[bus.busId] = {marker, info:iw};
+                }
+            });
+            Object.keys(markerMap).forEach(id => { if (!liveIds.has(id)) { markerMap[id].marker.setMap(null); delete markerMap[id]; } });
+            if (!map._fitted && buses.length) {
+                const bounds = new google.maps.LatLngBounds();
+                buses.forEach(b => bounds.extend({lat:Number(b.lat),lng:Number(b.lng)}));
+                map.fitBounds(bounds); map._fitted = true;
+            }
+        }
+
+        function focusBus(busId) {
+            activeBusId = busId;
+            Object.entries(markerMap).forEach(([id,{marker}]) => marker.setIcon(id === busId ? blueIcon() : redIcon()));
+            document.querySelectorAll("#mapBusButtons button").forEach(b => b.classList.toggle("active", b.innerText === busId));
+            if (markerMap[busId]) {
+                map.panTo(markerMap[busId].marker.getPosition()); map.setZoom(15);
+                if (activeInfoWindow) activeInfoWindow.close();
+                markerMap[busId].info.open(map, markerMap[busId].marker);
+                activeInfoWindow = markerMap[busId].info;
+            }
+        }
+
+        // ══════════════════════════════════════════════════════════════
+        // INIT
+        // ══════════════════════════════════════════════════════════════
+        loadDashboard();
+        setInterval(loadDashboard, 60000); // refresh stats every 60s only
+
+    })();
+    </script>
+</body>
+</html>
