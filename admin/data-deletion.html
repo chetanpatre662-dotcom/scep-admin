@@ -1,151 +1,421 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Account & Data Deletion - Bus Tracking App</title>
-
+    <title>Data Deletion - SCEP Bus Tracking System</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <style>
-        *{
-            margin:0;
-            padding:0;
-            box-sizing:border-box;
-            font-family:Arial, Helvetica, sans-serif;
+        :root {
+            --bg: #f8faff;
+            --card: #ffffff;
+            --text: #1e293b;
+            --text-secondary: #475569;
+            --primary: #2563EB;
+            --primary-light: rgba(37, 99, 235, 0.08);
+            --border: #e2e8f0;
+            --bg-alt: #f1f5f9;
+            --nav-bg: rgba(255, 255, 255, 0.85);
+            --footer-bg: #0f172a;
+            --footer-text: #f1f5f9;
         }
 
-        body{
-            background:#f4f7fb;
-            color:#333;
-            line-height:1.7;
+        [data-theme="dark"] {
+            --bg: #0f172a;
+            --card: #1e293b;
+            --text: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --primary: #2563EB;
+            --primary-light: rgba(37, 99, 235, 0.15);
+            --border: #334155;
+            --bg-alt: #1e293b;
+            --nav-bg: rgba(15, 23, 42, 0.85);
         }
 
-        .container{
-            max-width:900px;
-            margin:50px auto;
-            background:#fff;
-            padding:40px;
-            border-radius:12px;
-            box-shadow:0 5px 20px rgba(0,0,0,0.08);
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        h1{
-            color:#1565c0;
-            margin-bottom:20px;
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            transition: background-color 0.3s ease, color 0.3s ease;
         }
 
-        h2{
-            margin-top:30px;
-            color:#0d47a1;
+        /* Navbar */
+        .navbar {
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+            background: var(--nav-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid var(--border);
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        p{
-            margin-top:10px;
+        .nav-logo a {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--primary);
+            text-decoration: none;
         }
 
-        ul{
-            margin:15px 0 15px 25px;
+        .nav-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: var(--text);
         }
 
-        li{
-            margin-bottom:8px;
+        .nav-actions {
+            display: flex;
+            align-items: center;
+            gap: 16px;
         }
 
-        .note{
-            margin-top:25px;
-            padding:15px;
-            background:#e3f2fd;
-            border-left:5px solid #1565c0;
-            border-radius:6px;
+        .theme-toggle {
+            background: var(--bg-alt);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 1rem;
+            color: var(--text);
+            transition: all 0.3s ease;
         }
 
-        footer{
-            margin-top:40px;
-            text-align:center;
-            color:#777;
-            font-size:14px;
+        .theme-toggle:hover {
+            border-color: var(--primary);
         }
 
-        a{
-            color:#1565c0;
-            text-decoration:none;
+        .back-link {
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: var(--primary);
+            text-decoration: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: 1px solid var(--primary);
+            transition: all 0.3s ease;
         }
 
-        a:hover{
-            text-decoration:underline;
+        .back-link:hover {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        /* Hero */
+        .hero {
+            height: 200px;
+            background: linear-gradient(135deg, #1e3a5f, #2563EB);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 24px;
+        }
+
+        .hero h1 {
+            color: #ffffff;
+            font-size: 2rem;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+        }
+
+        .hero p {
+            color: rgba(255, 255, 255, 0.85);
+            font-size: 1rem;
+            margin-top: 8px;
+        }
+
+        /* Content */
+        .content {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 40px 24px;
+        }
+
+        .last-updated {
+            text-align: center;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+            margin-bottom: 32px;
+        }
+
+        /* Cards */
+        .card {
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 32px;
+            margin-bottom: 24px;
+            transition: background-color 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--text);
+            margin-bottom: 16px;
+        }
+
+        .card p {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            margin-bottom: 12px;
+        }
+
+        .card ul {
+            list-style: none;
+            padding: 0;
+            margin: 12px 0;
+        }
+
+        .card ul li {
+            font-size: 0.95rem;
+            line-height: 1.8;
+            color: var(--text-secondary);
+            padding: 8px 16px;
+            margin-bottom: 4px;
+            border-left: 3px solid rgba(37, 99, 235, 0.2);
+            background: var(--bg-alt);
+            border-radius: 0 8px 8px 0;
+        }
+
+        .card a {
+            color: var(--primary);
+            text-decoration: none;
+        }
+
+        .card a:hover {
+            text-decoration: underline;
+        }
+
+        .email-box {
+            background: var(--primary-light);
+            border: 1px solid rgba(37, 99, 235, 0.2);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin: 16px 0;
+        }
+
+        .email-box p {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .email-box .email-address {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+
+        /* Footer */
+        .footer {
+            background: #0f172a;
+            color: #f1f5f9;
+            padding: 40px 24px;
+            text-align: center;
+        }
+
+        .footer-links {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .footer-links a {
+            color: #94a3b8;
+            text-decoration: none;
+            font-size: 0.9rem;
+            transition: color 0.3s ease;
+        }
+
+        .footer-links a:hover {
+            color: #ffffff;
+        }
+
+        .footer p {
+            font-size: 0.85rem;
+            color: #64748b;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .navbar {
+                flex-wrap: wrap;
+                gap: 12px;
+            }
+
+            .nav-title {
+                display: none;
+            }
+
+            .hero h1 {
+                font-size: 1.5rem;
+            }
+
+            .card {
+                padding: 24px 20px;
+            }
+
+            .content {
+                padding: 24px 16px;
+            }
         }
     </style>
 </head>
-
 <body>
+    <!-- Navbar -->
+    <nav class="navbar">
+        <div class="nav-logo"><a href="../">SCEP Bus Tracker</a></div>
+        <div class="nav-title">Data Deletion</div>
+        <div class="nav-actions">
+            <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">🌙</button>
+            <a href="../" class="back-link">← Back to Home</a>
+        </div>
+    </nav>
 
-<div class="container">
+    <!-- Hero -->
+    <section class="hero">
+        <div>
+            <h1>Data Deletion Policy</h1>
+            <p>SCEP Bus Tracking System</p>
+        </div>
+    </section>
 
-<h1>Account & Data Deletion</h1>
+    <!-- Content -->
+    <main class="content">
+        <p class="last-updated">Last Updated: July 2025</p>
 
-<p>
-Thank you for using our Bus Tracking Application. We respect your privacy and provide a simple process for requesting the deletion of your account and personal data.
-</p>
+        <!-- 1. Introduction -->
+        <div class="card">
+            <h2 class="card-title">🗑️ Introduction</h2>
+            <p>At Satpuda College of Engineering & Polytechnic, we respect your right to control your personal data. Users of the SCEP Bus Tracking System may request complete deletion of their account and all associated personal data at any time.</p>
+            <p>This page explains what data will be deleted, what may be retained for legal compliance, and how to submit a deletion request.</p>
+        </div>
 
-<h2>How to Request Account Deletion</h2>
+        <!-- 2. What Gets Deleted -->
+        <div class="card">
+            <h2 class="card-title">❌ What Gets Deleted</h2>
+            <p>Upon successful processing of your deletion request, the following data will be permanently removed from our systems:</p>
+            <ul>
+                <li><strong>Personal Information:</strong> Full name, email address, and phone number</li>
+                <li><strong>Authentication Data:</strong> Login credentials, authentication tokens, and session data</li>
+                <li><strong>Bus Pass Records:</strong> Digital bus pass details, route assignments, and pass history</li>
+                <li><strong>Profile Information:</strong> Student/staff details, department, year, designation, and profile photo</li>
+                <li><strong>Notification Tokens:</strong> FCM tokens and notification preferences</li>
+                <li><strong>Activity Logs:</strong> App usage history, location history, and tracking data</li>
+            </ul>
+            <p>Once deleted, this data cannot be recovered. You will need to create a new account if you wish to use the service again in the future.</p>
+        </div>
 
-<p>
-If you wish to permanently delete your account and associated data, please follow these steps:
-</p>
+        <!-- 3. What May Be Retained -->
+        <div class="card">
+            <h2 class="card-title">📂 What May Be Retained</h2>
+            <p>In compliance with Indian financial regulations and legal requirements, the following information may be retained even after account deletion:</p>
+            <ul>
+                <li><strong>Payment Records:</strong> Transaction history and payment receipts as required by financial regulations and tax laws</li>
+                <li><strong>Transaction References:</strong> Razorpay transaction IDs and payment reference numbers for audit and reconciliation purposes</li>
+                <li><strong>Compliance Records:</strong> Any data required to be retained by applicable Indian laws, court orders, or regulatory requirements</li>
+            </ul>
+            <p>Retained data is stored securely and accessed only for legal, regulatory, or audit purposes. It is not used for marketing, profiling, or any other purpose.</p>
+        </div>
 
-<ul>
-    <li>Open the Bus Tracking Application.</li>
-    <li>Log in to your account.</li>
-    <li>Go to the <strong>Support</strong> section.</li>
-    <li>Create a new  requesting <strong>Account Deletion</strong>.</li>
-    <li>Our administrator will review your request.</li>
-    <li>Once verified, your account and personal information will be permanently deleted.</li>
-</ul>
+        <!-- 4. How to Request -->
+        <div class="card">
+            <h2 class="card-title">📧 How to Request Data Deletion</h2>
+            <p>To request deletion of your account and personal data, please send an email to our support team with the following details:</p>
 
-<h2>What Data Will Be Deleted?</h2>
+            <div class="email-box">
+                <p>Send your request to:</p>
+                <a href="mailto:support@satpudaengineeringcollege.com" class="email-address">support@satpudaengineeringcollege.com</a>
+            </div>
 
-<ul>
-    <li>User profile information</li>
-    <li>Login credentials</li>
-    <li>Bus pass information</li>
-    <li>Complaint history</li>
-    <li>Any other personal data linked to your account</li>
-</ul>
+            <p><strong>Email Subject Line:</strong> Account Deletion Request</p>
+            <p><strong>Include the following information in your email:</strong></p>
+            <ul>
+                <li><strong>Full Name:</strong> Your complete name as registered in the app</li>
+                <li><strong>Registered Email:</strong> The email address associated with your account</li>
+                <li><strong>Phone Number:</strong> The phone number linked to your account</li>
+                <li><strong>Reason (Optional):</strong> You may optionally share why you are requesting deletion to help us improve our services</li>
+            </ul>
+            <p>Please send the request from the same email address that is registered with your account for identity verification purposes.</p>
+        </div>
 
-<h2>Processing Time</h2>
+        <!-- 5. Processing Time -->
+        <div class="card">
+            <h2 class="card-title">⏱️ Processing Time</h2>
+            <p>Your data deletion request will be processed as follows:</p>
+            <ul>
+                <li><strong>Verification:</strong> Our team will verify your identity to prevent unauthorized deletion requests. This may involve confirming details from your registered email</li>
+                <li><strong>Review Period:</strong> Requests are reviewed within 2-3 business days of receipt</li>
+                <li><strong>Processing:</strong> Once verified, data deletion is completed within 7-15 business days</li>
+                <li><strong>Total Timeline:</strong> The entire process from request to completion takes approximately 7-15 business days</li>
+            </ul>
+            <p>During the processing period, your account may be temporarily deactivated to prevent new data from being generated.</p>
+        </div>
 
-<p>
-Account deletion requests are generally processed within <strong>7 business days</strong> after verification by the administrator.
-</p>
+        <!-- 6. Confirmation -->
+        <div class="card">
+            <h2 class="card-title">✅ Deletion Confirmation</h2>
+            <p>Once your data has been successfully deleted from our systems, you will receive a confirmation email at your registered email address. This confirmation will include:</p>
+            <ul>
+                <li><strong>Deletion Date:</strong> The date on which your data was permanently removed</li>
+                <li><strong>Scope:</strong> A summary of what data was deleted</li>
+                <li><strong>Retained Data:</strong> Information about any records retained for legal compliance (if applicable)</li>
+                <li><strong>Reference Number:</strong> A deletion reference number for your records</li>
+            </ul>
+            <p>If you do not receive a confirmation email within 15 business days of your request, please contact us again at <a href="mailto:support@satpudaengineeringcollege.com">support@satpudaengineeringcollege.com</a> for a status update.</p>
+            <p>For any questions about the data deletion process, please do not hesitate to reach out to our support team. We are committed to protecting your privacy and ensuring a transparent process.</p>
+        </div>
+    </main>
 
-<h2>Data Retention</h2>
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-links">
+            <a href="../">Home</a>
+            <a href="privacy-policy.html">Privacy Policy</a>
+            <a href="terms-condition.html">Terms & Conditions</a>
+            <a href="data-deletion.html">Data Deletion</a>
+            <a href="../">Admin Panel</a>
+        </div>
+        <p>&copy; 2025 Satpuda College of Engineering & Polytechnic, Balaghat. All rights reserved.</p>
+    </footer>
 
-<p>
-Certain information may be retained for a limited period if required by applicable laws, legal obligations, fraud prevention, or security purposes. Any retained data will only be kept for the duration required by law.
-</p>
+    <script>
+        function toggleTheme() {
+            const html = document.documentElement;
+            const current = html.getAttribute('data-theme');
+            const next = current === 'dark' ? 'light' : 'dark';
+            html.setAttribute('data-theme', next);
+            localStorage.setItem('scep-theme', next);
+            updateToggleIcon(next);
+        }
 
-<div class="note">
-<strong>Important:</strong><br>
-Account deletion is permanent and cannot be undone. Once your account has been deleted, you will lose access to all associated services and data.
-</div>
+        function updateToggleIcon(theme) {
+            const btn = document.querySelector('.theme-toggle');
+            btn.textContent = theme === 'dark' ? '☀️' : '🌙';
+        }
 
-<h2>Need Help?</h2>
-
-<p>
-If you have any questions regarding account deletion, please contact our support team.
-</p>
-
-<p>
-Email:
-<a href="mailto:support@bustracker.satpudaengineeringcollege.com">bustracker.satpudaengineeringcollege.com</a>
-</p>
-
-<footer>
-© 2026 Scep  Bus. All Rights Reserved.
-</footer>
-
-</div>
-
-
-
+        (function () {
+            const saved = localStorage.getItem('scep-theme');
+            if (saved) {
+                document.documentElement.setAttribute('data-theme', saved);
+                updateToggleIcon(saved);
+            }
+        })();
+    </script>
 </body>
 </html>
