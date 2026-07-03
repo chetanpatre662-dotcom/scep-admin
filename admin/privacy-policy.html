@@ -277,7 +277,7 @@
 
     <!-- Content -->
     <main class="content">
-        <p class="last-updated">Last Updated: July 2025</p>
+        <p class="last-updated">Last Updated: July 2026</p>
 
         <!-- 1. Introduction -->
         <div class="card">
@@ -322,6 +322,14 @@
             <h2 class="card-title">📍 Location Permission</h2>
             <p>The SCEP Bus Tracking System requests location permission solely for transport-related features, including real-time bus tracking, route navigation, and stop proximity alerts.</p>
             <p>Your location data is used exclusively within the application for these purposes. We do not sell, rent, or share your location information with third parties for advertising or marketing purposes. Location tracking is active only when you are using the relevant transport features of the app.</p>
+            <h3 style="margin-top: 16px; font-size: 1rem; font-weight: 600;">Background Location Access</h3>
+            <p>This app collects location data in the background to enable the following core functionality:</p>
+            <ul>
+                <li><strong>Automatic Attendance:</strong> When your assigned bus is moving, the app tracks your location in the background to verify boarding and automatically mark attendance without manual intervention.</li>
+                <li><strong>Proximity Alerts:</strong> To notify you when the bus is approaching your stop, even when the app is minimized or the screen is locked.</li>
+            </ul>
+            <p>Background location tracking is active <strong>only</strong> while your assigned bus is in motion (detected automatically via bus speed). When the bus stops or the trip ends, background location tracking is paused immediately. No location data is collected while the bus is stationary.</p>
+            <p>You can stop background location tracking at any time by logging out of the app or revoking location permission in your device settings.</p>
         </div>
 
         <!-- 5. Notification Permission -->
