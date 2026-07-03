@@ -104,7 +104,7 @@
 const API="https://bustracker.satpudaengineeringcollege.com/api";
 const token=localStorage.getItem("token");
 const role=localStorage.getItem("role");
-if(!token||!token.includes(".")||(role!=="bus_pass_admin"&&role!=="payment_admin"&&localStorage.getItem("institution")!=="all")){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}
+if(!token||!token.includes(".")||(role!=="bus_pass_admin"&&localStorage.getItem("institution")!=="all")){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}
 function headers(){return{"Content-Type":"application/json","Authorization":token}}
 function logout(){localStorage.clear();window.location.replace("../index.html")}
 
