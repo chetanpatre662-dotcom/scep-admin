@@ -259,7 +259,12 @@
 
         // ── WebSocket ────────────────────────────────────────────────
         const ws = new WebSocket(WS_URL);
-        ws.onopen = () => updateConnectionStatus(true);
+        ws.onopen = () => {
+            updateConnectionStatus(true);
+            // Declare institution so server sends filtered bus data
+            const wsInst = localStorage.getItem("institution") || "college";
+            ws.send(JSON.stringify({ type: "join", institution: wsInst }));
+        };
         ws.onmessage = (event) => {
             try {
                 const res = JSON.parse(event.data);

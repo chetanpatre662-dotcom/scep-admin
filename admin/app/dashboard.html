@@ -263,7 +263,10 @@
         // WEBSOCKET — Live Bus Updates
         // ══════════════════════════════════════════════════════════════
         const ws = new WebSocket(WS_URL);
-        ws.onopen = () => updateConnectionStatus(true);
+        ws.onopen = () => {
+            updateConnectionStatus(true);
+            ws.send(JSON.stringify({ type: "join", institution: "all" }));
+        };
         ws.onmessage = (event) => {
             try {
                 const msg = JSON.parse(event.data);
