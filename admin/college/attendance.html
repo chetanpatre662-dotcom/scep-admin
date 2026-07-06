@@ -8,6 +8,9 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../shared/admin-styles.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
         .report-chip{display:inline-block;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e2e8f0;transition:.2s;margin-right:6px}
         .report-chip.active{background:#2563eb;color:#fff;border-color:#2563eb}
@@ -36,7 +39,11 @@
         <div class="topbar">
             <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
             <div><h5 class="fw-bold mb-0">Attendance Management</h5><small class="text-muted">College Bus Attendance Records</small></div>
-            <span class="badge bg-primary admin-box px-3 py-2">College Admin</span>
+            <div class="d-flex gap-2 align-items-center">
+                <button class="btn btn-danger btn-sm" onclick="exportAttendancePDF()"><i class="bi bi-file-pdf me-1"></i>PDF</button>
+                <button class="btn btn-success btn-sm" onclick="exportAttendanceExcel()"><i class="bi bi-file-excel me-1"></i>Excel</button>
+                <span class="badge bg-primary admin-box px-3 py-2">College Admin</span>
+            </div>
         </div>
 
         <!-- Stats Cards -->
@@ -353,6 +360,124 @@
             loadAttendance();
         }
         initPage();
+
+        // ── Export PDF ───────────────────────────────────────────────
+        function exportAttendancePDF() {
+            const search = document.getElementById("searchInput").value.toLowerCase();
+            const busF = document.getElementById("busFilter").value;
+            const { label } = getDateRange();
+
+            // Get currently filtered records
+            const filtered = getFilteredRecords();
+            if (filtered.length === 0) { alert("No records to export"); return; }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text("SCEP Bus Tracking System", 14, 18);
+            doc.setFontSize(13);
+            doc.text("Attendance Report", 14, 26);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Date: ${label}`, 14, 34);
+            doc.text(`Bus: ${busF === "all" ? "All Buses" : busF}`, 14, 40);
+            doc.text(`Institution: College`, 100, 34);
+            doc.text(`Generated: ${new Date().toLocaleDateString("en-IN")}`, 100, 40);
+            doc.text(`Total Records: ${filtered.length}`, 14, 46);
+
+            // Table
+            const rows = filtered.map(r => {
+                const student = allStudents[r.studentId] || {};
+                const city = student.city || "—";
+                const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
+                return [
+                    r.studentName || r.studentId || "—",
+                    city,
+                    r.busId || "—",
+                    bt,
+                    r.date || "—",
+                ];
+            });
+
+            doc.autoTable({
+                startY: 52,
+                head: [["Student Name", "City", "Bus", "Boarding Time", "Date"]],
+                body: rows,
+                theme: "grid",
+                headStyles: { fillColor: [37, 99, 235], fontSize: 9, fontStyle: "bold" },
+                bodyStyles: { fontSize: 8 },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
+                margin: { left: 14, right: 14 },
+            });
+
+            // Footer
+            const pageCount = doc.internal.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                doc.setFontSize(8);
+                doc.setFont("helvetica", "italic");
+                doc.text("Generated from SCEP Bus Tracking System", 14, 288);
+                doc.text(`Page ${i} of ${pageCount}`, 180, 288);
+            }
+
+            doc.save(`Attendance_${label.replace(/\s/g,"_")}.pdf`);
+        }
+
+        // ── Export Excel ─────────────────────────────────────────────
+        function exportAttendanceExcel() {
+            const filtered = getFilteredRecords();
+            if (filtered.length === 0) { alert("No records to export"); return; }
+            const { label } = getDateRange();
+            const busF = document.getElementById("busFilter").value;
+
+            const rows = filtered.map(r => {
+                const student = allStudents[r.studentId] || {};
+                const city = student.city || "—";
+                const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
+                return {
+                    "Student Name": r.studentName || r.studentId || "—",
+                    "City": city,
+                    "Bus Number": r.busId || "—",
+                    "Boarding Time": bt,
+                    "Boarding Date": r.date || "—",
+                    "Branch": r.branch || student.branch || "—",
+                    "Status": r.present ? "Present" : r.exited ? "Exited" : "Absent",
+                };
+            });
+
+            const wb = XLSX.utils.book_new();
+            const ws = XLSX.utils.json_to_sheet(rows);
+            ws["!cols"] = [{wch:22},{wch:14},{wch:10},{wch:14},{wch:12},{wch:16},{wch:10}];
+            XLSX.utils.book_append_sheet(wb, ws, "Attendance");
+            XLSX.writeFile(wb, `Attendance_${label.replace(/\s/g,"_")}_${busF === "all" ? "AllBuses" : busF}.xlsx`);
+        }
+
+        // ── Helper: Get currently filtered records ───────────────────
+        function getFilteredRecords() {
+            const search = document.getElementById("searchInput").value.toLowerCase();
+            const busF = document.getElementById("busFilter").value;
+            const cityF = document.getElementById("cityFilter").value;
+            const branchF = document.getElementById("branchFilter").value;
+            const yearF = document.getElementById("yearFilter").value;
+
+            return allRecords.filter(r => {
+                const student = allStudents[r.studentId] || {};
+                const studentCity = student.city || "";
+                const studentBranch = r.branch || student.branch || "";
+                const studentYear = r.academicYear || student.year || "";
+
+                const matchSearch = !search || (r.studentName || "").toLowerCase().includes(search) || (r.studentId || "").toLowerCase().includes(search);
+                const matchBus = busF === "all" || r.busId === busF;
+                const matchCity = cityF === "all" || studentCity.toLowerCase() === cityF.toLowerCase();
+                const matchBranch = branchF === "all" || studentBranch === branchF;
+                const matchYear = yearF === "all" || studentYear === yearF;
+
+                return matchSearch && matchBus && matchCity && matchBranch && matchYear;
+            });
+        }
     </script>
 </body>
 </html>

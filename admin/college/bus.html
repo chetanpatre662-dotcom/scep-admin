@@ -247,6 +247,7 @@
                 dashboardData = newData;
                 loadStats();
                 loadBusCards();
+                loadAllTrips();
                 loadActivities();
                 if (_firstLoad) { renderChart("users"); _firstLoad = false; }
                 if (!mapReady && typeof google !== "undefined" && google.maps) { initMap(); }
@@ -334,6 +335,13 @@
                                 <i class="bi bi-pencil-square"></i> Edit Driver / Route
                             </button>
                         </div>
+                        <div class="trip-history-section" id="trips-${bus.busId}" style="margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px">
+                            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+                                <span style="font-size:13px;font-weight:600;color:#64748b"><i class="bi bi-clock-history me-1"></i>Today's Trips</span>
+                                <span class="badge bg-light text-dark" id="trip-count-${bus.busId}" style="font-size:11px">Loading...</span>
+                            </div>
+                            <div id="trip-list-${bus.busId}" style="font-size:13px;color:#334155"></div>
+                        </div>
                     </div>
                 </div>`;
             });
@@ -349,6 +357,63 @@
             allArrows.forEach(el => el.style.transform = "rotate(0deg)");
             if (!isOpen) { current.style.display = "block"; arrow.style.transform = "rotate(180deg)"; _expandedBusIndex = index; }
             else { _expandedBusIndex = -1; }
+        }
+
+        // ── Trip History per Bus ─────────────────────────────────────
+        // College admin page: both college admin and super admin can see passenger count
+        const canViewPassengers = (localStorage.getItem("institution") !== "school");
+
+        async function loadTripsForBus(busId) {
+            // Trips are pre-loaded in batch — just render from cache
+            const container = document.getElementById(`trip-list-${busId}`);
+            const badge = document.getElementById(`trip-count-${busId}`);
+            if (!container) return;
+            const busTrips = _allTripsCache[busId] || [];
+            if (busTrips.length === 0) {
+                container.innerHTML = '<span style="color:#94a3b8;font-size:12px">No trips recorded today</span>';
+                badge.textContent = "0 trips";
+                return;
+            }
+            badge.textContent = `${busTrips.length} trip${busTrips.length > 1 ? 's' : ''}`;
+            let html = '';
+            busTrips.forEach((trip, i) => {
+                const statusColor = trip.status === 'running' ? '#16a34a' : trip.status === 'completed' ? '#2563eb' : '#94a3b8';
+                const statusIcon = trip.status === 'running' ? '🟢' : trip.status === 'completed' ? '✅' : '⏸️';
+                html += `<div style="background:#f8fafc;border-radius:12px;padding:12px 14px;margin-bottom:8px;border-left:3px solid ${statusColor}">`;
+                html += `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">`;
+                html += `<span style="font-weight:600;color:#0f172a">${statusIcon} Trip ${i+1}</span>`;
+                html += `<span style="font-size:11px;font-weight:600;color:${statusColor};text-transform:uppercase">${trip.status}</span>`;
+                html += `</div>`;
+                html += `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;font-size:12px">`;
+                html += `<span>🕐 Start: <strong>${trip.startTime || '-'}</strong></span>`;
+                html += `<span>🕐 End: <strong>${trip.endTime || '-'}</strong></span>`;
+                if (trip.duration) html += `<span>⏱️ ${trip.duration} min</span>`;
+                if (trip.distance) html += `<span>📍 ${trip.distance} KM</span>`;
+                if (canViewPassengers && trip.passengerCount != null) html += `<span>👥 ${trip.passengerCount} passengers</span>`;
+                html += `</div></div>`;
+            });
+            container.innerHTML = html;
+        }
+
+        // Single batch API call for all bus trips today (served from backend in-memory cache — instant)
+        let _allTripsCache = {};
+
+        async function loadAllTrips() {
+            try {
+                const today = new Date().toISOString().split("T")[0];
+                const res = await fetch(`${API}/admin/trips?date=${today}`, { headers: headers() });
+                const data = await res.json();
+                if (data.success && data.byBus) {
+                    _allTripsCache = data.byBus;
+                } else {
+                    _allTripsCache = {};
+                }
+            } catch (e) { _allTripsCache = {}; }
+
+            // Render trips for all buses
+            if (dashboardData && dashboardData.buses) {
+                dashboardData.buses.forEach(bus => loadTripsForBus(bus.busId));
+            }
         }
 
         // ── Activity Timeline ────────────────────────────────────────
