@@ -256,32 +256,46 @@
         setInterval(init, 30000); // Stats refresh every 30s (WebSocket handles live bus data)
 
         // ── WebSocket ────────────────────────────────────────────────
-        const ws = new WebSocket(WS_URL);
-        ws.onopen = () => {
-            updateConnectionStatus(true);
-            const wsInst = localStorage.getItem("institution") || "school";
-            ws.send(JSON.stringify({ type: "join", institution: wsInst }));
-        };
-        ws.onmessage = (event) => {
-            try {
-                const res = JSON.parse(event.data);
-                if (res.type === "update" || res.type === "init") {
-                    const buses = res.data;
-                    if (mapReady) updateMarkers(buses);
-                    const prevCount = document.querySelectorAll("#busButtons button").length;
-                    if (mapReady && prevCount !== buses.length + 1) {
-                        renderBusButtons(buses);
-                    } else if (mapReady) {
-                        document.querySelectorAll("#busButtons button").forEach(b => {
-                            if (b.id !== "btn-ALL") b.classList.toggle("active", b.id === `btn-${activeBusId}`);
-                        });
+        let ws;
+        let wsReconnectTimer = null;
+        function connectWebSocket() {
+            if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => {
+                updateConnectionStatus(true);
+                const wsInst = localStorage.getItem("institution") || "school";
+                ws.send(JSON.stringify({ type: "join", institution: wsInst }));
+            };
+            ws.onmessage = (event) => {
+                try {
+                    const res = JSON.parse(event.data);
+                    if (res.type === "update" || res.type === "init") {
+                        const buses = res.data;
+                        // Update dashboardData.buses with live WebSocket data for consistency
+                        if (dashboardData && buses.length > 0) {
+                            dashboardData.buses = buses;
+                            dashboardData.activeBuses = buses.length;
+                        }
+                        if (mapReady) updateMarkers(buses);
+                        const prevCount = document.querySelectorAll("#busButtons button").length;
+                        if (mapReady && prevCount !== buses.length + 1) {
+                            renderBusButtons(buses);
+                        } else if (mapReady) {
+                            document.querySelectorAll("#busButtons button").forEach(b => {
+                                if (b.id !== "btn-ALL") b.classList.toggle("active", b.id === `btn-${activeBusId}`);
+                            });
+                        }
+                        updateConnectionStatus(true);
                     }
-                    updateConnectionStatus(true);
-                }
-            } catch (e) {}
-        };
-        ws.onerror = () => updateConnectionStatus(false);
-        ws.onclose = () => updateConnectionStatus(false);
+                } catch (e) {}
+            };
+            ws.onerror = () => updateConnectionStatus(false);
+            ws.onclose = () => {
+                updateConnectionStatus(false);
+                wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+            };
+        }
+        connectWebSocket();
 
         // ── Stats ────────────────────────────────────────────────────
         function loadStats() {

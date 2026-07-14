@@ -92,12 +92,18 @@
             const dateTo = document.getElementById("fDateTo").value;
 
             try {
-                const [analytics, students, parents, buses] = await Promise.all([
-                    fetch(`${API}/admin/report/analytics`, { headers: headers() }).then(r=>r.json()),
-                    fetch(`${API}/admin/report/students`, { headers: headers() }).then(r=>r.json()),
-                    fetch(`${API}/admin/report/parents`, { headers: headers() }).then(r=>r.json()),
-                    fetch(`${API}/admin/report/buses`, { headers: headers() }).then(r=>r.json()),
+                const [analyticsRes, studentsRes, parentsRes, busesRes] = await Promise.all([
+                    fetch(`${API}/admin/report/analytics`, { headers: headers() }),
+                    fetch(`${API}/admin/report/students`, { headers: headers() }),
+                    fetch(`${API}/admin/report/parents`, { headers: headers() }),
+                    fetch(`${API}/admin/report/buses`, { headers: headers() }),
                 ]);
+                // Check for auth failures
+                if (analyticsRes.status === 401 || studentsRes.status === 401) { logout(); return; }
+                const analytics = analyticsRes.ok ? await analyticsRes.json() : { success: false };
+                const students = studentsRes.ok ? await studentsRes.json() : { success: false };
+                const parents = parentsRes.ok ? await parentsRes.json() : { success: false };
+                const buses = busesRes.ok ? await busesRes.json() : { success: false };
 
                 // Overview
                 if (analytics.success) {

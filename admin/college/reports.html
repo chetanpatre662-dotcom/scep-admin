@@ -122,6 +122,7 @@ const role = localStorage.getItem("role");
 const inst = localStorage.getItem("institution") || "college";
 const isSuperAdmin = (inst === "all");
 function headers() { return { "Content-Type": "application/json", "Authorization": token }; }
+function logout() { localStorage.removeItem("token"); localStorage.removeItem("institution"); window.location.href = "../index.html"; }
 
 // Show institution filter for super admin
 if (isSuperAdmin) {
@@ -146,6 +147,10 @@ async function loadStats() {
     try {
         const selectedInst = getSelectedInst();
         const resp = await fetch(`${API}/admin/reports/dashboard-stats?institution=${selectedInst}`, { headers: headers() });
+        if (!resp.ok) {
+            if (resp.status === 401) { logout(); return; }
+            throw new Error(`HTTP ${resp.status}`);
+        }
         const data = await resp.json();
         if (data.success) {
             document.getElementById("sTotalTrips").textContent = data.totalTrips || 0;
@@ -161,6 +166,7 @@ async function loadBusFilter() {
     try {
         const selectedInst = getSelectedInst();
         const resp = await fetch(`${API}/admin/routes?institution=${selectedInst}`, { headers: headers() });
+        if (!resp.ok) return;
         const data = await resp.json();
         if (data.success) {
             const select = document.getElementById("fBus");
@@ -184,6 +190,10 @@ async function loadReport() {
         if (busId) url += `&busId=${busId}`;
 
         const resp = await fetch(url, { headers: headers() });
+        if (!resp.ok) {
+            if (resp.status === 401) { logout(); return; }
+            throw new Error(`Server returned ${resp.status}`);
+        }
         const data = await resp.json();
         if (!data.success) throw new Error(data.error || "Failed");
 

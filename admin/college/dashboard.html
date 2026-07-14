@@ -226,38 +226,55 @@
         }
 
         // ── WebSocket — Live Bus Updates ─────────────────────────────
-        const ws = new WebSocket(WS_URL);
-        ws.onopen = () => updateConnectionStatus(true);
-        ws.onmessage = (event) => {
-            try {
-                const msg = JSON.parse(event.data);
-                const buses = msg.data || [];
-                if (!buses.length) return;
-                liveBuses = buses;
+        // ── WebSocket — Live Bus Updates ─────────────────────────────
+        let ws;
+        let wsReconnectTimer = null;
+        function connectWebSocket() {
+            if (wsReconnectTimer) { clearTimeout(wsReconnectTimer); wsReconnectTimer = null; }
+            ws = new WebSocket(WS_URL);
+            ws.onopen = () => {
                 updateConnectionStatus(true);
+                // Send join message so server knows which institution's buses to send
+                const wsInst = localStorage.getItem("institution") || "college";
+                ws.send(JSON.stringify({ type: "join", institution: wsInst }));
+            };
+            ws.onmessage = (event) => {
+                try {
+                    const msg = JSON.parse(event.data);
+                    if (msg.type !== "update" && msg.type !== "init") return;
+                    const buses = msg.data || [];
+                    if (!buses.length) return;
+                    liveBuses = buses;
+                    updateConnectionStatus(true);
 
-                // Update active bus count
-                const active = buses.filter(b => b.tripActive).length;
-                document.getElementById("sBuses").innerText = active || buses.length;
+                    // Update active bus count
+                    const active = buses.filter(b => b.tripActive).length;
+                    document.getElementById("sBuses").innerText = active || buses.length;
 
-                // Bus feed
-                document.getElementById("busFeed").innerHTML = buses.slice(0, 5).map(b => `
-                    <div class="d-flex justify-content-between align-items-center mb-2 small">
-                        <span class="fw-medium">${b.busId}</span>
-                        <span class="text-muted">${b.currentCity||'—'} → ${b.nextCity||'—'}</span>
-                        <span class="badge ${b.tripActive?'bg-success':'bg-secondary'}">${b.tripActive?'Moving':'Idle'}</span>
-                    </div>
-                `).join("");
+                    // Bus feed
+                    document.getElementById("busFeed").innerHTML = buses.slice(0, 5).map(b => `
+                        <div class="d-flex justify-content-between align-items-center mb-2 small">
+                            <span class="fw-medium">${b.busId}</span>
+                            <span class="text-muted">${b.currentCity||'—'} → ${b.nextCity||'—'}</span>
+                            <span class="badge ${b.tripActive?'bg-success':'bg-secondary'}">${b.tripActive?'Moving':'Idle'}</span>
+                        </div>
+                    `).join("");
 
-                // Update map markers
-                if (mapReady) { updateMapMarkers(buses); renderBusButtons(buses); renderLiveBusList(buses); }
+                    // Update map markers
+                    if (mapReady) { updateMapMarkers(buses); renderBusButtons(buses); renderLiveBusList(buses); }
 
-                // Update bus status table
-                renderBusStatusTable(buses);
-            } catch (e) {}
-        };
-        ws.onerror = () => updateConnectionStatus(false);
-        ws.onclose = () => updateConnectionStatus(false);
+                    // Update bus status table
+                    renderBusStatusTable(buses);
+                } catch (e) { console.error("WS message error:", e); }
+            };
+            ws.onerror = () => updateConnectionStatus(false);
+            ws.onclose = () => {
+                updateConnectionStatus(false);
+                // Auto-reconnect after 3 seconds
+                wsReconnectTimer = setTimeout(connectWebSocket, 3000);
+            };
+        }
+        connectWebSocket();
 
         // ── Bus Status Table ─────────────────────────────────────────
         function renderBusStatusTable(buses) {

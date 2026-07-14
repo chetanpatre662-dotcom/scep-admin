@@ -76,7 +76,14 @@ function cacheGet(key, maxAgeMs = 5 * 60 * 1000) {
 async function fetchWithCache(url, cacheKey, opts = {}) {
   try {
     const res = await fetch(url, { headers: headers(), ...opts });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      if (res.status === 401) { logout(); throw new Error("Unauthorized"); }
+      throw new Error(`HTTP ${res.status}`);
+    }
+    const contentType = res.headers.get("content-type") || "";
+    if (!contentType.includes("application/json")) {
+      throw new Error("Response is not JSON");
+    }
     const data = await res.json();
     cacheSet(cacheKey, data);
     updateConnectionStatus(true);
