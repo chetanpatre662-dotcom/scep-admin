@@ -341,6 +341,18 @@ body {
   .table tbody td { padding: 12px 8px; }
 }
 
+/* ── Table overflow container (use .table-responsive-wrap around tables) ── */
+.table-responsive-wrap { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
+
+/* ── Stats grid responsive helper ─────────────────────────────────────────── */
+.stats-grid-responsive {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 20px;
+}
+@media (max-width: 1200px) { .stats-grid-responsive { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 576px) { .stats-grid-responsive { grid-template-columns: 1fr; gap: 12px; } }
+
 /* ══════════════════════════════════════════════════════════════════════════════
    SCHOOL THEME OVERRIDE
    Add this to school pages:

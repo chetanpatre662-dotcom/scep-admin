@@ -16,7 +16,7 @@
         :root { --accent: #2563eb; }
         * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Poppins", sans-serif; }
         body { background: #f1f5f9; }
-        .page { margin-left: 260px; padding: 30px; min-height: 100vh; }
+        .page { margin-left: 272px; padding: 30px; min-height: 100vh; }
         .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
         .topbar h4 { font-weight: 700; color: #0f172a; margin: 0; }
         .topbar p { color: #64748b; font-size: 13px; margin: 0; }
@@ -36,28 +36,68 @@
         .stat-card h3 { font-size: 28px; font-weight: 700; color: #0f172a; margin: 0; }
         .stat-card p { font-size: 12px; color: #64748b; margin: 4px 0 0; }
         .stat-icon { font-size: 24px; margin-bottom: 8px; }
-        .report-card { background: #fff; border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,.04); }
-        .bus-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; }
+        .report-card { background: #fff; border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow-x: auto; }
+        .bus-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; flex-wrap: wrap; gap: 8px; }
         .bus-header h5 { font-weight: 700; color: #0f172a; margin: 0; }
         .bus-summary { display: flex; gap: 20px; flex-wrap: wrap; }
         .bus-summary span { font-size: 13px; color: #64748b; }
         .bus-summary strong { color: #0f172a; }
         .trip-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        .trip-table th { background: #f8fafc; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #64748b; text-align: left; border-bottom: 1px solid #e2e8f0; }
-        .trip-table td { padding: 10px 14px; font-size: 13px; color: #334155; border-bottom: 1px solid #f1f5f9; }
+        .trip-table th { background: #f8fafc; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #64748b; text-align: left; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
+        .trip-table td { padding: 10px 14px; font-size: 13px; color: #334155; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
         .trip-table tr:hover { background: #f8fafc; }
         .status-running { color: #16a34a; font-weight: 600; }
         .status-completed { color: #2563eb; font-weight: 600; }
         .status-not-started { color: #94a3b8; font-weight: 600; }
         .loading { text-align: center; padding: 60px; color: #64748b; }
         .empty { text-align: center; padding: 60px; color: #94a3b8; }
-        @media(max-width:768px) { .page { margin-left: 0; padding: 16px; } .stats-row { grid-template-columns: repeat(2, 1fr); } }
+        .report-table-wrap { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
+        .report-sidebar {
+            position: fixed; top: 0; left: 0; width: 272px; height: 100vh;
+            background: #0f172a; padding: 24px 16px; overflow-y: auto;
+            z-index: 1001; transition: transform .3s cubic-bezier(.4,0,.2,1);
+        }
+        .sidebar-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,.6);
+            z-index: 1000; display: none; backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        .sidebar-overlay.open { display: block; }
+        .sidebar-close-btn { display: none; }
+        .mobile-menu-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: #0f172a; padding: 4px; }
+        @media(max-width:991px) {
+            .page { margin-left: 0; padding: 16px; }
+            .mobile-menu-btn { display: inline-flex; }
+            .report-sidebar { transform: translateX(-100%); }
+            .report-sidebar.open { transform: translateX(0); }
+            .sidebar-close-btn { display: block !important; }
+            .topbar { flex-direction: row; gap: 8px; }
+            .filters { flex-direction: column; }
+            .filter-group { width: 100%; }
+            .filter-input { width: 100%; min-width: unset; }
+        }
+        @media(max-width:576px) {
+            .page { padding: 12px; }
+            .topbar h4 { font-size: 16px; }
+            .topbar p { font-size: 11px; }
+            .btn-export { padding: 8px 14px; font-size: 12px; }
+            .stat-card h3 { font-size: 22px; }
+            .stat-card p { font-size: 11px; }
+            .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+            .report-card { padding: 16px; border-radius: 16px; }
+        }
     </style>
 </head>
 <body>
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleReportSidebar()"></div>
+
     <!-- Sidebar -->
-    <nav class="sidebar" style="position:fixed;top:0;left:0;width:260px;height:100vh;background:#0f172a;padding:24px 16px;overflow-y:auto;z-index:100;">
-        <h4 style="color:#fff;font-size:15px;margin-bottom:24px;"><i class="bi bi-mortarboard me-2"></i>College Admin</h4>
+    <nav class="report-sidebar" id="reportSidebar">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
+            <h4 style="color:#fff;font-size:15px;margin:0;"><i class="bi bi-mortarboard me-2"></i>College Admin</h4>
+            <button onclick="toggleReportSidebar()" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer;padding:4px 8px;">&times;</button>
+        </div>
         <a href="dashboard.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-grid me-2"></i>Dashboard</div></a>
         <a href="users.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-people me-2"></i>Users</div></a>
         <a href="attendance.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-check2-square me-2"></i>Attendance</div></a>
@@ -70,8 +110,11 @@
 
     <div class="page">
         <div class="topbar">
-            <div><h4>📊 Reports & Analytics</h4><p>Bus-wise trip reports, attendance, and exports</p></div>
-            <div class="d-flex gap-2">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <button class="mobile-menu-btn" id="menuToggle" onclick="toggleReportSidebar()" aria-label="Toggle menu"><i class="bi bi-list"></i></button>
+                <div><h4>📊 Reports & Analytics</h4><p>Bus-wise trip reports, attendance, and exports</p></div>
+            </div>
+            <div class="d-flex gap-2" style="flex-wrap:wrap;">
                 <button class="btn-export" onclick="exportPDF()"><i class="bi bi-file-pdf me-1"></i>Export PDF</button>
                 <button class="btn-export btn-export-excel" onclick="exportExcel()"><i class="bi bi-file-excel me-1"></i>Export Excel</button>
             </div>
@@ -116,6 +159,21 @@
     </div>
 
 <script>
+// ── Sidebar toggle (mobile) ──
+function toggleReportSidebar() {
+    var sb = document.getElementById('reportSidebar');
+    var ov = document.getElementById('sidebarOverlay');
+    var isOpen = sb.classList.toggle('open');
+    ov.classList.toggle('open', isOpen);
+}
+// On resize: if desktop, remove open state
+window.addEventListener('resize', function() {
+    if (window.innerWidth > 991) {
+        document.getElementById('reportSidebar').classList.remove('open');
+        document.getElementById('sidebarOverlay').classList.remove('open');
+    }
+});
+
 const API = "https://bustracker.satpudaengineeringcollege.com/api";
 const token = localStorage.getItem("token");
 const role = localStorage.getItem("role");
@@ -123,6 +181,21 @@ const inst = localStorage.getItem("institution") || "college";
 const isSuperAdmin = (inst === "all");
 function headers() { return { "Content-Type": "application/json", "Authorization": token }; }
 function logout() { localStorage.removeItem("token"); localStorage.removeItem("institution"); window.location.href = "../index.html"; }
+
+// Format YYYY-MM-DD → "15 Aug 2026" (readable date)
+function formatTripDate(dateStr) {
+    if (!dateStr || dateStr === 'Unknown Date') return dateStr || '-';
+    try {
+        const parts = dateStr.split('-');
+        if (parts.length !== 3) return dateStr;
+        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        const day = parseInt(parts[2], 10);
+        const monthIdx = parseInt(parts[1], 10) - 1;
+        const year = parts[0];
+        if (monthIdx < 0 || monthIdx > 11) return dateStr;
+        return `${day} ${months[monthIdx]} ${year}`;
+    } catch (e) { return dateStr; }
+}
 
 // Show institution filter for super admin
 if (isSuperAdmin) {
@@ -214,25 +287,44 @@ async function loadReport() {
             if (bus.totalPassengers !== undefined) html += `<span>Passengers: <strong>${bus.totalPassengers}</strong></span>`;
             html += `</div></div>`;
 
-            // Trips table
+            // Trips table — grouped by date (newest first)
             if (bus.trips.length > 0) {
-                html += `<h6 style="font-size:13px;color:#64748b;margin:12px 0 8px;">Trip History</h6>`;
-                html += `<table class="trip-table"><thead><tr><th>#</th><th>Start Time</th><th>End Time</th><th>Duration</th><th>Distance</th><th>Status</th></tr></thead><tbody>`;
-                bus.trips.forEach((t, i) => {
-                    const statusClass = t.status === 'running' ? 'status-running' : t.status === 'completed' ? 'status-completed' : 'status-not-started';
-                    html += `<tr><td>${i+1}</td><td>${t.startTime || '-'}</td><td>${t.endTime || '-'}</td><td>${t.duration ? t.duration + ' min' : '-'}</td><td>${t.distance ? t.distance + ' KM' : '-'}</td><td class="${statusClass}">${t.status || '-'}</td></tr>`;
+                // Sort trips: newest date first, then by startTime within same date
+                const sortedTrips = [...bus.trips].sort((a, b) => {
+                    if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
+                    return (a.startTime || '').localeCompare(b.startTime || '');
                 });
-                html += `</tbody></table>`;
+
+                // Group by date
+                const tripsByDate = {};
+                sortedTrips.forEach(t => {
+                    const d = t.date || 'Unknown Date';
+                    if (!tripsByDate[d]) tripsByDate[d] = [];
+                    tripsByDate[d].push(t);
+                });
+
+                html += `<h6 style="font-size:13px;color:#64748b;margin:12px 0 8px;">Trip History</h6>`;
+                for (const [dateKey, dateTrips] of Object.entries(tripsByDate)) {
+                    // Date header
+                    const formattedDate = formatTripDate(dateKey);
+                    html += `<div style="margin-top:14px;margin-bottom:6px;padding:6px 12px;background:#f1f5f9;border-radius:8px;font-size:12px;font-weight:600;color:#334155;border-left:3px solid #2563eb;">📅 ${formattedDate}</div>`;
+                    html += `<div class="report-table-wrap"><table class="trip-table"><thead><tr><th>#</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Duration</th><th>Distance</th><th>Status</th></tr></thead><tbody>`;
+                    dateTrips.forEach((t, i) => {
+                        const statusClass = t.status === 'running' ? 'status-running' : t.status === 'completed' ? 'status-completed' : 'status-not-started';
+                        html += `<tr><td>${i+1}</td><td>${formattedDate}</td><td>${t.startTime || '-'}</td><td>${t.endTime || '-'}</td><td>${t.duration ? t.duration + ' min' : '-'}</td><td>${t.distance ? t.distance + ' KM' : '-'}</td><td class="${statusClass}">${t.status || '-'}</td></tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                }
             }
 
             // Boardings table (visible to College Admin + Super Admin)
             if (bus.boardings && bus.boardings.length > 0) {
                 html += `<h6 style="font-size:13px;color:#64748b;margin:16px 0 8px;">Boarding Details</h6>`;
-                html += `<table class="trip-table"><thead><tr><th>Student</th><th>City</th><th>Boarding Time</th><th>Date</th><th>Type</th></tr></thead><tbody>`;
+                html += `<div class="report-table-wrap"><table class="trip-table"><thead><tr><th>Student</th><th>City</th><th>Boarding Time</th><th>Date</th><th>Type</th></tr></thead><tbody>`;
                 bus.boardings.forEach(b => {
                     html += `<tr><td>${b.name}</td><td>${b.city}</td><td>${b.boardingTime || '-'}</td><td>${b.date}</td><td>${b.userType}</td></tr>`;
                 });
-                html += `</tbody></table>`;
+                html += `</tbody></table></div>`;
             }
 
             html += `</div>`;
@@ -273,10 +365,15 @@ function exportPDF() {
 
         // Trips table
         if (bus.trips.length > 0) {
-            const tripRows = bus.trips.map((t, i) => [i+1, t.startTime||'-', t.endTime||'-', t.duration?t.duration+'min':'-', t.distance?t.distance+'KM':'-', t.status||'-']);
+            // Sort: newest date first, then by startTime
+            const sortedTrips = [...bus.trips].sort((a, b) => {
+                if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
+                return (a.startTime || '').localeCompare(b.startTime || '');
+            });
+            const tripRows = sortedTrips.map((t, i) => [i+1, formatTripDate(t.date||''), t.startTime||'-', t.endTime||'-', t.duration?t.duration+'min':'-', t.distance?t.distance+'KM':'-', t.status||'-']);
             doc.autoTable({
                 startY: yPos,
-                head: [['#', 'Start', 'End', 'Duration', 'Distance', 'Status']],
+                head: [['#', 'Date', 'Start', 'End', 'Duration', 'Distance', 'Status']],
                 body: tripRows,
                 theme: 'grid',
                 headStyles: { fillColor: [37, 99, 235], fontSize: 9 },
@@ -337,10 +434,16 @@ function exportExcel() {
     // Detail sheets per bus
     for (const bus of reportData.report) {
         const rows = [];
+        // Sort trips: newest date first, then by start time
+        const sortedTrips = [...bus.trips].sort((a, b) => {
+            if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
+            return (a.startTime || '').localeCompare(b.startTime || '');
+        });
         // Add trips
-        bus.trips.forEach((t, i) => {
+        sortedTrips.forEach((t, i) => {
             rows.push({
                 "Trip #": i + 1,
+                "Date": formatTripDate(t.date || ''),
                 "Start Time": t.startTime || "-",
                 "End Time": t.endTime || "-",
                 "Duration (min)": t.duration || "-",
@@ -350,7 +453,7 @@ function exportExcel() {
         });
         if (rows.length > 0) {
             const ws = XLSX.utils.json_to_sheet(rows);
-            ws["!cols"] = [{wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12}];
+            ws["!cols"] = [{wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12}];
             XLSX.utils.book_append_sheet(wb, ws, bus.busId.replace(/[^\w]/g, ""));
         }
 
