@@ -183,6 +183,8 @@
                 <h5 style="margin:0;font-weight:700;color:#0f172a">Edit Bus — <span id="editModalBusId"></span></h5>
                 <button onclick="closeBusEdit()" style="border:none;background:#f1f5f9;border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
             </div>
+            <label style="font-size:13px;font-weight:600;color:#64748b">RTO Bus Number / Vehicle Registration</label>
+            <input id="editRtoNumber" type="text" placeholder="e.g. MP50 ZL2578" style="width:100%;margin:6px 0 14px;padding:11px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;text-transform:uppercase">
             <label style="font-size:13px;font-weight:600;color:#64748b">Driver Name</label>
             <input id="editDriverName" type="text" placeholder="e.g. Rahul Sharma" style="width:100%;margin:6px 0 14px;padding:11px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;box-sizing:border-box">
             <label style="font-size:13px;font-weight:600;color:#64748b">Driver Mobile</label>
@@ -213,6 +215,21 @@
         let activeInfoWindow = null; // only one InfoWindow open at a time
         let busTrails = {};
         const MAX_TRAIL_POINTS = 5;
+        let rtoMapping = {}; // unified RTO mapping
+
+        // ── Load RTO Mapping ─────────────────────────────────────────
+        async function loadRtoMapping() {
+            try {
+                const res = await fetch(`${API}/admin/rto-mapping`, { headers: headers() });
+                const data = await res.json();
+                if (data.success) rtoMapping = data.mapping || {};
+            } catch (e) { console.error("RTO mapping load error:", e); }
+        }
+        function getRtoDisplay(busId) {
+            const rto = rtoMapping[busId];
+            return rto ? `${busId} - ${rto}` : busId;
+        }
+        loadRtoMapping();
 
         // ── Trail Tracking ───────────────────────────────────────────
         function updateBusTrail(busId, lat, lng) {
@@ -338,13 +355,14 @@
                 <div class="bus-card-item">
                     <div class="bus-top" onclick="toggleBus(${index})">
                         <div class="d-flex align-items-center gap-3 flex-wrap">
-                            <div class="bus-title">${bus.busId}</div>
+                            <div class="bus-title">${getRtoDisplay(bus.busId)}</div>
                             <div class="status-badge ${statusClass}">${statusText}</div>
                         </div>
                         <i class="bi bi-chevron-down" id="arrow-${index}" style="font-size:20px;transition:.3s;flex-shrink:0;${isExpanded?'transform:rotate(180deg)':''}"></i>
                     </div>
                     <div id="bus-content-${index}" style="display:${isExpanded?'block':'none'};margin-top:18px">
                         <div class="bus-grid">
+                            <div class="bus-box"><span>RTO Number</span><h4>${rtoMapping[bus.busId] || "Not Set"}</h4></div>
                             <div class="bus-box"><span>Driver</span><h4>${bus.driver || "N/A"}</h4></div>
                             <div class="bus-box"><span>Driver Mobile</span><h4>${bus.driverMobile || "N/A"}</h4></div>
                             <div class="bus-box"><span>Route</span><h4>${bus.route || "N/A"}</h4></div>
@@ -602,6 +620,7 @@
         function openBusEdit(busId, driver, mobile, route) {
             _editBusId = busId;
             document.getElementById("editModalBusId").textContent = busId;
+            document.getElementById("editRtoNumber").value = rtoMapping[busId] || "";
             document.getElementById("editDriverName").value = driver || "";
             document.getElementById("editDriverMobile").value = mobile || "";
             document.getElementById("editRoute").value = route || "";
@@ -613,6 +632,7 @@
 
         async function saveBusEdit() {
             if (!_editBusId) return;
+            const rtoNumber = document.getElementById("editRtoNumber").value.trim().toUpperCase();
             const driverName = document.getElementById("editDriverName").value.trim();
             const driverMobile = document.getElementById("editDriverMobile").value.trim();
             const route = document.getElementById("editRoute").value.trim();
@@ -620,9 +640,15 @@
             const btn = document.getElementById("editSaveBtn");
             btn.disabled = true; msg.style.color = "#64748b"; msg.textContent = "Saving…";
             try {
-                const res = await fetch(`${API}/admin/bus/${encodeURIComponent(_editBusId)}`, { method: "PUT", headers: headers(), body: JSON.stringify({ driverName, driverMobile, route }) });
+                const res = await fetch(`${API}/admin/bus/${encodeURIComponent(_editBusId)}`, { method: "PUT", headers: headers(), body: JSON.stringify({ driverName, driverMobile, route, rtoNumber }) });
                 const data = await res.json();
-                if (data.success) { msg.style.color = "#16a34a"; msg.textContent = "✅ Saved successfully"; setTimeout(closeBusEdit, 1000); }
+                if (data.success) {
+                    // Update local RTO mapping
+                    if (rtoNumber) rtoMapping[_editBusId] = rtoNumber;
+                    else delete rtoMapping[_editBusId];
+                    msg.style.color = "#16a34a"; msg.textContent = "✅ Saved successfully";
+                    setTimeout(() => { closeBusEdit(); loadBusCards(); }, 800);
+                }
                 else { msg.style.color = "#dc2626"; msg.textContent = "❌ " + (data.error || "Save failed"); btn.disabled = false; }
             } catch (e) { msg.style.color = "#dc2626"; msg.textContent = "❌ Network error"; btn.disabled = false; }
         }

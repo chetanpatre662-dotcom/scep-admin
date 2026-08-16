@@ -94,6 +94,19 @@
             <h6 class="fw-bold mb-3"><i class="bi bi-map me-2 text-primary"></i>Route Preview</h6>
             <div class="row g-3" id="previewGrid"></div>
         </div>
+
+        <!-- RTO Number Mapping -->
+        <div class="section-box">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <div>
+                    <h6 class="fw-bold mb-0"><i class="bi bi-card-text me-2 text-primary"></i>RTO Bus Number Mapping</h6>
+                    <small class="text-muted">Assign vehicle registration numbers to all buses (Bus 1–15)</small>
+                </div>
+                <button class="btn btn-primary btn-sm" onclick="saveAllRtoMappings()"><i class="bi bi-check-lg me-1"></i>Save All</button>
+            </div>
+            <div class="row g-2" id="rtoMappingGrid"></div>
+            <div id="rtoSaveStatus" style="font-size:13px;margin-top:10px;min-height:18px"></div>
+        </div>
     </div>
 
     <!-- Create Route Modal -->
@@ -195,16 +208,32 @@
         const BUSES = ["BUS-2","BUS-3","BUS-4","BUS-5","BUS-6","BUS-7","BUS-8","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
         let allRoutes = [];
         let editingId = null;
+        let rtoMapping = {};
+
+        // ── Load RTO Mapping ─────────────────────────────────────────
+        async function loadRtoMapping() {
+            try {
+                const res = await fetch(`${API}/admin/rto-mapping`, { headers: headers() });
+                const data = await res.json();
+                if (data.success) rtoMapping = data.mapping || {};
+            } catch (e) { console.error("RTO mapping load error:", e); }
+        }
+        function getBusDisplayName(busId) {
+            const rto = rtoMapping[busId];
+            return rto ? `${busId} - ${rto}` : busId;
+        }
 
         // ── Init ─────────────────────────────────────────────────────
         function populateBusSelects() {
-            const opts = BUSES.map(b => `<option value="${b}">${b}</option>`).join("");
+            const opts = BUSES.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
             document.getElementById("cBusSelect").innerHTML = opts;
             document.getElementById("eBusSelect").innerHTML = opts;
-            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + opts;
+            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + BUSES.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
         }
-        populateBusSelects();
-
+        loadRtoMapping().then(() => {
+            populateBusSelects();
+            loadRoutes();
+        });
         // ── Load Routes ──────────────────────────────────────────────
         async function loadRoutes() {
             try {
@@ -245,7 +274,7 @@
                 const end = cities[cities.length-1]?.name || "—";
                 return `<tr>
                     <td class="fw-semibold">${r.routeName||"-"}</td>
-                    <td><span class="badge bg-secondary">${r.busId||"-"}</span></td>
+                    <td><span class="badge bg-secondary">${getBusDisplayName(r.busId||"-")}</span></td>
                     <td class="small">${start}</td><td class="small">${end}</td>
                     <td>${cities.length}</td>
                     <td><span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></td>
@@ -271,7 +300,7 @@
                 }).join("");
                 return `<div class="col-xl-4 col-md-6"><div class="bus-preview-card">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="fw-bold small">${r.busId}</span>
+                        <span class="fw-bold small">${getBusDisplayName(r.busId)}</span>
                         <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}" style="font-size:10px">${r.status}</span>
                     </div>
                     <div class="small text-muted mb-2">${r.routeName} · ${cities.length} stops</div>
@@ -532,7 +561,55 @@
             } catch (e) { alert("Network error"); }
         }
 
-        loadRoutes();
+        // ── RTO Mapping Grid Management ──────────────────────────────
+        const ALL_BUSES_RTO = ["BUS-1","BUS-2","BUS-3","BUS-4","BUS-5","BUS-6","BUS-7","BUS-8","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
+
+        function renderRtoMappingGrid() {
+            const grid = document.getElementById("rtoMappingGrid");
+            grid.innerHTML = ALL_BUSES_RTO.map(busId => {
+                const num = busId.replace("BUS-", "");
+                const rto = rtoMapping[busId] || "";
+                return `<div class="col-md-4 col-sm-6">
+                    <div class="d-flex align-items-center gap-2 p-2" style="background:#f8fafc;border-radius:10px;border:1px solid #e5e7eb">
+                        <span style="font-size:13px;font-weight:700;color:#1e293b;min-width:55px">Bus ${num}</span>
+                        <input type="text" class="form-control form-control-sm rto-input" data-bus="${busId}" value="${rto}" placeholder="e.g. MP50 ZL2578" style="text-transform:uppercase;font-size:12px">
+                    </div>
+                </div>`;
+            }).join("");
+        }
+
+        async function saveAllRtoMappings() {
+            const inputs = document.querySelectorAll(".rto-input");
+            const mapping = {};
+            inputs.forEach(input => {
+                const busId = input.dataset.bus;
+                const value = input.value.trim().toUpperCase();
+                mapping[busId] = value;
+            });
+            const statusEl = document.getElementById("rtoSaveStatus");
+            statusEl.style.color = "#64748b"; statusEl.textContent = "Saving...";
+            try {
+                const res = await fetch(`${API}/admin/rto-mapping`, { method: "PUT", headers: headers(), body: JSON.stringify({ mapping }) });
+                const data = await res.json();
+                if (data.success) {
+                    rtoMapping = mapping;
+                    statusEl.style.color = "#16a34a"; statusEl.textContent = "✅ RTO mapping saved successfully";
+                    // Refresh dropdowns and table
+                    populateBusSelects();
+                    applyFilters();
+                    renderPreview();
+                    setTimeout(() => { statusEl.textContent = ""; }, 3000);
+                } else {
+                    statusEl.style.color = "#dc2626"; statusEl.textContent = "❌ " + (data.error || "Save failed");
+                }
+            } catch (e) {
+                statusEl.style.color = "#dc2626"; statusEl.textContent = "❌ Network error";
+            }
+        }
+
+        // Render RTO grid after mapping is loaded
+        loadRtoMapping().then(() => { renderRtoMappingGrid(); });
+
     </script>
 </body>
 </html>
