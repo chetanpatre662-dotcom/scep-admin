@@ -11,96 +11,139 @@
     <link rel="stylesheet" href="../shared/admin-styles.css">
     <style>
         /* School theme override */
-        :root{--primary:#0284C7;--primary-light:#0EA5E9;--secondary:#06B6D4;--accent:#22C55E;--gradient-main:linear-gradient(135deg,#0284C7 0%,#06B6D4 100%);--gradient-accent:linear-gradient(135deg,#22C55E 0%,#0284C7 100%)}
-        /* ── Support Chat — Premium SaaS style matching admin design system ── */
-        .support-layout{display:flex;gap:24px;margin-top:24px;height:calc(100vh - 220px);min-height:400px}
+        :root { --primary: #0284C7; --primary-light: #0EA5E9; --secondary: #06B6D4; --accent: #22C55E; --gradient-main: linear-gradient(135deg, #0284C7 0%, #06B6D4 100%); --gradient-accent: linear-gradient(135deg, #22C55E 0%, #0284C7 100%); }
+
+        /* ── Support Chat Layout ── */
+        .support-layout {
+            display: flex; gap: 20px; margin-top: 20px;
+            height: calc(100vh - 240px); min-height: 420px;
+        }
 
         /* ── Ticket List Panel ── */
-        .ticket-list-panel{width:360px;flex-shrink:0;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border-light);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;overflow:hidden}
-        .ticket-list-header{padding:22px 22px 16px;border-bottom:1px solid var(--border-light)}
-        .ticket-list-header h6{font-size:17px;font-weight:700;color:var(--text-primary);margin:0;letter-spacing:-.2px}
-        .ticket-list-header .subtitle{font-size:12px;color:var(--text-muted);margin-top:3px;font-weight:500}
-        .ticket-search{margin-top:12px;position:relative}
-        .ticket-search input{width:100%;padding:11px 14px 11px 40px;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:13px;font-family:inherit;outline:none;transition:all .2s;background:var(--bg-page);color:var(--text-primary)}
-        .ticket-search input:focus{border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb, var(--primary) 10%, transparent);background:var(--bg-card)}
-        .ticket-search input::placeholder{color:var(--text-muted)}
-        .ticket-search i{position:absolute;left:13px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:14px}
-        .ticket-filters{display:flex;gap:6px;padding:12px 22px;border-bottom:1px solid var(--border-light);overflow-x:auto;scrollbar-width:none}
-        .ticket-filters::-webkit-scrollbar{display:none}
-        .ticket-filters .chip{padding:6px 14px;border-radius:20px;font-size:11.5px;font-weight:600;cursor:pointer;white-space:nowrap;border:1.5px solid var(--border);color:var(--text-secondary);transition:all .2s;background:transparent;user-select:none}
-        .ticket-filters .chip.active{background:var(--gradient-main);color:var(--text-on-primary);border-color:transparent;box-shadow:0 3px 10px color-mix(in srgb, var(--primary) 30%, transparent)}
-        .ticket-filters .chip:hover:not(.active){background:color-mix(in srgb, var(--primary) 6%, white);border-color:color-mix(in srgb, var(--primary) 30%, transparent);color:var(--primary)}
-        .ticket-list{flex:1;overflow-y:auto;padding:8px 10px;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-        .ticket-item{padding:14px 16px;border-radius:var(--radius-sm);cursor:pointer;transition:all .2s;border:1.5px solid transparent;margin-bottom:4px;position:relative}
-        .ticket-item:hover{background:var(--bg-page);border-color:var(--border)}
-        .ticket-item.active{background:color-mix(in srgb, var(--primary) 5%, white);border-color:color-mix(in srgb, var(--primary) 25%, transparent);box-shadow:0 2px 8px color-mix(in srgb, var(--primary) 10%, transparent)}
-        .ticket-item .top{display:flex;justify-content:space-between;align-items:center}
-        .ticket-item .name{font-size:13.5px;font-weight:600;color:var(--text-primary);letter-spacing:-.1px}
-        .ticket-item .time{font-size:10px;color:var(--text-muted);font-weight:500}
-        .ticket-item .preview{font-size:12px;color:var(--text-secondary);margin-top:5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;line-height:1.4}
-        .ticket-item .meta{display:flex;align-items:center;gap:6px;margin-top:7px}
-        .ticket-item .priority-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-        .ticket-item .unread-badge{background:var(--gradient-main);color:#fff;font-size:10px;font-weight:700;min-width:20px;height:20px;border-radius:10px;display:flex;align-items:center;justify-content:center;padding:0 6px;margin-left:auto;box-shadow:0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent);letter-spacing:-.2px}
+        .ticket-list-panel {
+            width: 340px; flex-shrink: 0;
+            background: var(--bg-card); border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light); box-shadow: var(--shadow-sm);
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .ticket-list-header { padding: 20px 20px 14px; border-bottom: 1px solid var(--border-light); }
+        .ticket-list-header h6 { font-size: 16px; font-weight: 700; color: var(--text-primary); margin: 0; }
+        .ticket-list-header .subtitle { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-weight: 500; }
+        .ticket-search { margin-top: 12px; position: relative; }
+        .ticket-search input {
+            width: 100%; padding: 10px 14px 10px 38px;
+            border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            font-size: 13px; font-family: inherit; outline: none;
+            transition: border-color .2s, box-shadow .2s;
+            background: var(--bg-page); color: var(--text-primary);
+        }
+        .ticket-search input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 10%, transparent); background: var(--bg-card); }
+        .ticket-search input::placeholder { color: var(--text-muted); }
+        .ticket-search i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
+        .ticket-filters { display: flex; gap: 6px; padding: 12px 20px; border-bottom: 1px solid var(--border-light); overflow-x: auto; scrollbar-width: none; }
+        .ticket-filters::-webkit-scrollbar { display: none; }
+        .ticket-filters .chip {
+            padding: 6px 14px; border-radius: 20px; font-size: 11.5px; font-weight: 600;
+            cursor: pointer; white-space: nowrap; border: 1.5px solid var(--border);
+            color: var(--text-secondary); transition: all .2s; background: transparent; user-select: none;
+        }
+        .ticket-filters .chip.active { background: var(--gradient-main); color: var(--text-on-primary); border-color: transparent; box-shadow: 0 3px 10px color-mix(in srgb, var(--primary) 30%, transparent); }
+        .ticket-filters .chip:hover:not(.active) { background: color-mix(in srgb, var(--primary) 6%, white); border-color: color-mix(in srgb, var(--primary) 30%, transparent); color: var(--primary); }
+        .ticket-list { flex: 1; overflow-y: auto; padding: 8px 10px; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        .ticket-item { padding: 14px 16px; border-radius: var(--radius-sm); cursor: pointer; transition: all .2s; border: 1.5px solid transparent; margin-bottom: 4px; }
+        .ticket-item:hover { background: var(--bg-page); border-color: var(--border); }
+        .ticket-item.active { background: color-mix(in srgb, var(--primary) 5%, white); border-color: color-mix(in srgb, var(--primary) 25%, transparent); box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 10%, transparent); }
+        .ticket-item .top { display: flex; justify-content: space-between; align-items: center; }
+        .ticket-item .name { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+        .ticket-item .time { font-size: 10px; color: var(--text-muted); font-weight: 500; }
+        .ticket-item .preview { font-size: 12px; color: var(--text-secondary); margin-top: 4px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; line-height: 1.4; }
+        .ticket-item .meta { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+        .ticket-item .priority-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+        .ticket-item .unread-badge { background: var(--gradient-main); color: #fff; font-size: 10px; font-weight: 700; min-width: 20px; height: 20px; border-radius: 10px; display: flex; align-items: center; justify-content: center; padding: 0 6px; margin-left: auto; box-shadow: 0 2px 8px color-mix(in srgb, var(--primary) 35%, transparent); }
 
         /* ── Chat Panel ── */
-        .chat-panel{flex:1;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border-light);box-shadow:var(--shadow-sm);display:flex;flex-direction:column;overflow:hidden;min-width:0}
-        .chat-empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:48px}
-        .chat-empty i{font-size:52px;color:var(--border);margin-bottom:16px;opacity:.5}
-        .chat-empty p{color:var(--text-muted);font-size:14px;font-weight:500}
-
-        /* Chat Header */
-        .chat-header{padding:18px 24px;background:var(--bg-card);border-bottom:1px solid var(--border-light);display:flex;align-items:center;gap:14px;flex-shrink:0}
-        .chat-header .avatar{width:42px;height:42px;background:var(--gradient-main);border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:16px;box-shadow:0 4px 12px color-mix(in srgb, var(--primary) 25%, transparent);letter-spacing:-.3px}
-        .chat-header .info h6{font-size:14px;font-weight:600;color:var(--text-primary);margin:0;letter-spacing:-.1px}
-        .chat-header .info span{font-size:11.5px;color:var(--text-muted);font-weight:500}
-        .chat-header .actions{margin-left:auto;display:flex;gap:8px}
-        .chat-header .actions select{padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;background:var(--bg-page);color:var(--text-primary);transition:all .15s;appearance:auto}
-        .chat-header .actions select:focus{border-color:var(--primary);outline:none;box-shadow:0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent)}
-
-        /* Messages Area */
-        .chat-messages{flex:1;overflow-y:auto;padding:24px 28px;display:flex;flex-direction:column;gap:8px;background:var(--bg-page);min-height:0;scrollbar-width:thin;scrollbar-color:var(--border) transparent}
-        .chat-messages::-webkit-scrollbar{width:5px}
-        .chat-messages::-webkit-scrollbar-track{background:transparent}
-        .chat-messages::-webkit-scrollbar-thumb{background:var(--border);border-radius:10px}
+        .chat-panel {
+            flex: 1; background: var(--bg-card); border-radius: var(--radius-lg);
+            border: 1px solid var(--border-light); box-shadow: var(--shadow-sm);
+            display: flex; flex-direction: column; overflow: hidden; min-width: 0;
+        }
+        .chat-empty { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 48px 24px; }
+        .chat-empty i { font-size: 48px; color: var(--border); margin-bottom: 16px; opacity: .5; }
+        .chat-empty p { color: var(--text-muted); font-size: 14px; font-weight: 500; margin: 0; }
+        .chat-header { padding: 16px 20px; background: var(--bg-card); border-bottom: 1px solid var(--border-light); display: flex; align-items: center; gap: 12px; flex-shrink: 0; }
+        .chat-header .avatar { width: 40px; height: 40px; background: var(--gradient-main); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 15px; box-shadow: 0 4px 12px color-mix(in srgb, var(--primary) 25%, transparent); flex-shrink: 0; }
+        .chat-header .info h6 { font-size: 14px; font-weight: 600; color: var(--text-primary); margin: 0; }
+        .chat-header .info span { font-size: 11.5px; color: var(--text-muted); font-weight: 500; }
+        .chat-header .actions { margin-left: auto; display: flex; gap: 8px; flex-shrink: 0; }
+        .chat-header .actions select { padding: 7px 12px; border: 1.5px solid var(--border); border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; background: var(--bg-page); color: var(--text-primary); transition: all .15s; }
+        .chat-header .actions select:focus { border-color: var(--primary); outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 10%, transparent); }
+        .chat-messages { flex: 1; overflow-y: auto; padding: 20px 24px; display: flex; flex-direction: column; gap: 8px; background: var(--bg-page); min-height: 0; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+        .chat-messages::-webkit-scrollbar { width: 5px; }
+        .chat-messages::-webkit-scrollbar-track { background: transparent; }
+        .chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 10px; }
 
         /* Message Bubbles */
-        .msg{max-width:68%;padding:12px 16px;font-size:13.5px;line-height:1.6;position:relative;word-wrap:break-word;animation:fadeUp .25s ease}
-        .msg.user{align-self:flex-start;background:var(--bg-card);border:1px solid var(--border-light);border-radius:4px var(--radius-md) var(--radius-md) var(--radius-md);box-shadow:var(--shadow-sm)}
-        .msg.admin{align-self:flex-end;background:var(--gradient-main);color:var(--text-on-primary);border-radius:var(--radius-md) var(--radius-md) 4px var(--radius-md);box-shadow:0 4px 16px color-mix(in srgb, var(--primary) 20%, transparent)}
-        .msg .msg-meta{font-size:10px;margin-top:5px;opacity:.55;font-weight:500}
-        .msg .msg-status{font-size:9.5px;margin-top:3px;display:flex;align-items:center;gap:4px;justify-content:flex-end;opacity:.75}
-        .msg .msg-status .sending{color:rgba(255,255,255,.65)}
-        .msg .msg-status .sent{color:rgba(255,255,255,.9)}
-        .msg .msg-status .failed{color:#fca5a5;cursor:pointer;font-weight:600}
-        .msg.optimistic{opacity:.8}
-        .msg.user .sender{font-size:10.5px;font-weight:700;color:var(--primary);margin-bottom:3px;letter-spacing:.1px}
+        .msg { max-width: 70%; padding: 12px 16px; font-size: 13px; line-height: 1.6; word-wrap: break-word; animation: fadeUp .25s ease; }
+        .msg.user { align-self: flex-start; background: var(--bg-card); border: 1px solid var(--border-light); border-radius: 4px var(--radius-md) var(--radius-md) var(--radius-md); box-shadow: var(--shadow-sm); }
+        .msg.admin { align-self: flex-end; background: var(--gradient-main); color: var(--text-on-primary); border-radius: var(--radius-md) var(--radius-md) 4px var(--radius-md); box-shadow: 0 4px 16px color-mix(in srgb, var(--primary) 20%, transparent); }
+        .msg .msg-meta { font-size: 10px; margin-top: 4px; opacity: .55; font-weight: 500; }
+        .msg .msg-status { font-size: 9.5px; margin-top: 3px; display: flex; align-items: center; gap: 4px; justify-content: flex-end; opacity: .75; }
+        .msg .msg-status .sending { color: rgba(255,255,255,.65); }
+        .msg .msg-status .sent { color: rgba(255,255,255,.9); }
+        .msg .msg-status .failed { color: #fca5a5; cursor: pointer; font-weight: 600; }
+        .msg.optimistic { opacity: .8; }
+        .msg.user .sender { font-size: 10.5px; font-weight: 700; color: var(--primary); margin-bottom: 3px; }
 
         /* Input Area */
-        .chat-input{padding:18px 24px;background:var(--bg-card);border-top:1px solid var(--border-light);display:flex;gap:12px;align-items:flex-end;flex-shrink:0}
-        .chat-input textarea{flex:1;border:1.5px solid var(--border);border-radius:var(--radius-sm);padding:12px 16px;font-size:13.5px;resize:none;outline:none;max-height:120px;font-family:inherit;transition:all .2s;background:var(--bg-page);color:var(--text-primary);line-height:1.5}
-        .chat-input textarea:focus{border-color:var(--primary);box-shadow:0 0 0 4px color-mix(in srgb, var(--primary) 8%, transparent);background:var(--bg-card)}
-        .chat-input textarea::placeholder{color:var(--text-muted)}
-        .chat-input button{width:44px;height:44px;border:none;background:var(--gradient-main);color:#fff;border-radius:var(--radius-sm);cursor:pointer;font-size:17px;display:flex;align-items:center;justify-content:center;transition:all .2s;box-shadow:0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent);flex-shrink:0}
-        .chat-input button:hover{transform:translateY(-2px) scale(1.02);box-shadow:0 6px 24px color-mix(in srgb, var(--primary) 40%, transparent)}
-        .chat-input button:active{transform:translateY(0) scale(.97)}
+        .chat-input { padding: 16px 20px; background: var(--bg-card); border-top: 1px solid var(--border-light); display: flex; gap: 12px; align-items: flex-end; flex-shrink: 0; }
+        .chat-input textarea { flex: 1; border: 1.5px solid var(--border); border-radius: var(--radius-sm); padding: 11px 14px; font-size: 13px; resize: none; outline: none; max-height: 120px; font-family: inherit; transition: all .2s; background: var(--bg-page); color: var(--text-primary); line-height: 1.5; }
+        .chat-input textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 8%, transparent); background: var(--bg-card); }
+        .chat-input textarea::placeholder { color: var(--text-muted); }
+        .chat-input button { width: 42px; height: 42px; border: none; background: var(--gradient-main); color: #fff; border-radius: var(--radius-sm); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: all .2s; box-shadow: 0 4px 14px color-mix(in srgb, var(--primary) 30%, transparent); flex-shrink: 0; }
+        .chat-input button:hover { transform: translateY(-2px); box-shadow: 0 6px 24px color-mix(in srgb, var(--primary) 40%, transparent); }
+        .chat-input button:active { transform: scale(.95); }
 
         /* ── Profile Panel ── */
-        .profile-panel{width:280px;flex-shrink:0;background:var(--bg-card);border-radius:var(--radius-lg);border:1px solid var(--border-light);box-shadow:var(--shadow-sm);padding:24px;overflow-y:auto;align-self:flex-start}
-        .profile-panel h6{font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:18px;text-transform:uppercase;letter-spacing:1px}
-        .profile-field{margin-bottom:14px}
-        .profile-field .label{font-size:10px;color:var(--text-muted);text-transform:uppercase;font-weight:600;letter-spacing:.6px}
-        .profile-field .value{font-size:13px;color:var(--text-primary);font-weight:500;margin-top:3px}
-        .status-badge{display:inline-flex;align-items:center;gap:4px;padding:5px 12px;border-radius:8px;font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
-        .status-badge.open{background:color-mix(in srgb, #3B82F6 10%, white);color:#1d4ed8}
-        .status-badge.pending{background:color-mix(in srgb, #F59E0B 10%, white);color:#92400e}
-        .status-badge.resolved{background:color-mix(in srgb, #10B981 10%, white);color:#065f46}
-        .status-badge.closed{background:var(--bg-page);color:var(--text-secondary)}
+        .profile-panel { width: 260px; flex-shrink: 0; background: var(--bg-card); border-radius: var(--radius-lg); border: 1px solid var(--border-light); box-shadow: var(--shadow-sm); padding: 22px; overflow-y: auto; align-self: flex-start; }
+        .profile-panel h6 { font-size: 11px; font-weight: 700; color: var(--text-muted); margin-bottom: 16px; text-transform: uppercase; letter-spacing: 1px; }
+        .profile-field { margin-bottom: 12px; }
+        .profile-field .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: .5px; }
+        .profile-field .value { font-size: 13px; color: var(--text-primary); font-weight: 500; margin-top: 2px; }
+        .status-badge { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 8px; font-size: 10.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .3px; }
+        .status-badge.open { background: color-mix(in srgb, #3B82F6 10%, white); color: #1d4ed8; }
+        .status-badge.pending { background: color-mix(in srgb, #F59E0B 10%, white); color: #92400e; }
+        .status-badge.resolved { background: color-mix(in srgb, #10B981 10%, white); color: #065f46; }
+        .status-badge.closed { background: var(--bg-page); color: var(--text-secondary); }
 
         /* ── Responsive ── */
-        @media(max-width:1200px){.profile-panel{display:none}}
-        @media(max-width:991px){.support-layout{flex-direction:column;height:auto}.ticket-list-panel{width:100%;max-height:280px}.chat-panel{min-height:480px;height:calc(100vh - 380px)}}
-        @media(max-width:576px){.support-layout{gap:14px;margin-top:16px}.chat-messages{padding:16px 14px}.msg{max-width:85%}.chat-input{padding:12px 14px;gap:8px}.chat-input textarea{padding:10px 12px;font-size:13px}.chat-header{padding:14px 16px;gap:10px;flex-wrap:wrap}.chat-header .actions{margin-left:0;width:100%;margin-top:8px}.chat-header .actions select{flex:1}.ticket-list-header{padding:16px 14px 12px}.ticket-search input{padding:10px 12px 10px 36px;font-size:12px}.ticket-list-panel{max-height:240px}.ticket-item .name{font-size:12.5px}.ticket-item .preview{font-size:11px}.ticket-filters{padding:10px 14px;gap:5px}.ticket-filters .chip{padding:5px 10px;font-size:10.5px}}
-        @media(max-width:375px){.topbar{gap:6px;padding:12px}.topbar h5{font-size:15px}.stat-card{padding:14px 10px}.stat-value{font-size:20px}.stat-label{font-size:10px}.stat-icon{width:40px;height:40px;font-size:16px;border-radius:10px}}
+        @media (max-width: 1200px) { .profile-panel { display: none; } }
+        @media (max-width: 991px) {
+            .support-layout { flex-direction: column; height: auto; min-height: unset; gap: 16px; }
+            .ticket-list-panel { width: 100%; max-height: 260px; }
+            .chat-panel { min-height: 360px; height: 60vh; max-height: 500px; }
+        }
+        @media (max-width: 576px) {
+            .support-layout { gap: 12px; margin-top: 16px; }
+            .ticket-list-panel { max-height: 220px; }
+            .chat-panel { min-height: 300px; height: 55vh; }
+            .chat-messages { padding: 14px 12px; }
+            .msg { max-width: 85%; padding: 10px 14px; font-size: 12.5px; }
+            .chat-input { padding: 12px; gap: 8px; }
+            .chat-input textarea { padding: 10px 12px; font-size: 12.5px; }
+            .chat-input button { width: 38px; height: 38px; font-size: 15px; }
+            .chat-header { padding: 12px 14px; gap: 10px; flex-wrap: wrap; }
+            .chat-header .info h6 { font-size: 13px; }
+            .chat-header .actions { margin-left: 0; width: 100%; margin-top: 6px; }
+            .chat-header .actions select { flex: 1; font-size: 11px; padding: 6px 10px; }
+            .ticket-list-header { padding: 14px 14px 10px; }
+            .ticket-list-header h6 { font-size: 14px; }
+            .ticket-search input { padding: 9px 12px 9px 34px; font-size: 12px; }
+            .ticket-item { padding: 11px 12px; }
+            .ticket-item .name { font-size: 12px; }
+            .ticket-item .preview { font-size: 11px; }
+            .ticket-filters { padding: 10px 14px; gap: 5px; }
+            .ticket-filters .chip { padding: 5px 10px; font-size: 10.5px; }
+        }
     </style>
 </head>
 <body>
@@ -117,12 +160,13 @@
         <div class="nav-item mt-4" onclick="logout()" style="color:#f87171;cursor:pointer"><i class="bi bi-box-arrow-left"></i>Logout</div>
     </div>
     <div class="main">
+        <!-- Topbar -->
         <div class="topbar">
             <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
-            <div><h5 class="fw-bold mb-0">Support Tickets</h5><small class="text-muted">Student support conversations</small></div>
+            <div><h5 class="fw-bold mb-0">Support Tickets</h5><small class="text-muted">Manage student support conversations</small></div>
             <div class="d-flex align-items-center gap-2">
                 <span id="connStatus"></span>
-                <span class="badge bg-primary px-3 py-2 admin-box">School Admin</span>
+                <span class="badge bg-info px-3 py-2 admin-box">School Admin</span>
             </div>
         </div>
 

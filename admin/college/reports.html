@@ -8,479 +8,397 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../shared/admin-styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="../shared/admin-styles.css">
     <style>
-        :root { --accent: #2563eb; }
-        * { margin: 0; padding: 0; box-sizing: border-box; font-family: "Poppins", sans-serif; }
-        body { background: #f1f5f9; }
-        .page { margin-left: 272px; padding: 30px; min-height: 100vh; }
-        .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }
-        .topbar h4 { font-weight: 700; color: #0f172a; margin: 0; }
-        .topbar p { color: #64748b; font-size: 13px; margin: 0; }
-        .btn-nav { background: #f1f5f9; border: 1px solid #e2e8f0; border-radius: 12px; padding: 8px 16px; font-size: 13px; font-weight: 500; color: #334155; text-decoration: none; transition: .2s; }
-        .btn-nav:hover { background: #e2e8f0; }
-        .btn-export { background: var(--accent); color: #fff; border: none; border-radius: 12px; padding: 10px 20px; font-size: 13px; font-weight: 600; cursor: pointer; transition: .2s; }
-        .btn-export:hover { background: #1d4ed8; transform: translateY(-1px); }
-        .btn-export-excel { background: #16a34a; }
-        .btn-export-excel:hover { background: #15803d; }
-        .filters { background: #fff; border-radius: 20px; padding: 20px; margin-bottom: 24px; box-shadow: 0 4px 20px rgba(0,0,0,.04); display: flex; flex-wrap: wrap; gap: 12px; align-items: end; }
-        .filter-group { display: flex; flex-direction: column; gap: 4px; }
-        .filter-group label { font-size: 11px; font-weight: 600; color: #64748b; text-transform: uppercase; }
-        .filter-input { border: 1px solid #e2e8f0; border-radius: 10px; padding: 8px 14px; font-size: 13px; outline: none; min-width: 140px; }
-        .filter-input:focus { border-color: var(--accent); }
-        .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 24px; }
-        .stat-card { background: #fff; border-radius: 16px; padding: 20px; box-shadow: 0 4px 20px rgba(0,0,0,.04); text-align: center; }
-        .stat-card h3 { font-size: 28px; font-weight: 700; color: #0f172a; margin: 0; }
-        .stat-card p { font-size: 12px; color: #64748b; margin: 4px 0 0; }
-        .stat-icon { font-size: 24px; margin-bottom: 8px; }
-        .report-card { background: #fff; border-radius: 20px; padding: 24px; margin-bottom: 20px; box-shadow: 0 4px 20px rgba(0,0,0,.04); overflow-x: auto; }
-        .bus-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; padding-bottom: 12px; border-bottom: 2px solid #f1f5f9; flex-wrap: wrap; gap: 8px; }
-        .bus-header h5 { font-weight: 700; color: #0f172a; margin: 0; }
-        .bus-summary { display: flex; gap: 20px; flex-wrap: wrap; }
-        .bus-summary span { font-size: 13px; color: #64748b; }
-        .bus-summary strong { color: #0f172a; }
-        .trip-table { width: 100%; border-collapse: collapse; margin-top: 12px; }
-        .trip-table th { background: #f8fafc; padding: 10px 14px; font-size: 12px; font-weight: 600; color: #64748b; text-align: left; border-bottom: 1px solid #e2e8f0; white-space: nowrap; }
-        .trip-table td { padding: 10px 14px; font-size: 13px; color: #334155; border-bottom: 1px solid #f1f5f9; white-space: nowrap; }
-        .trip-table tr:hover { background: #f8fafc; }
         .status-running { color: #16a34a; font-weight: 600; }
         .status-completed { color: #2563eb; font-weight: 600; }
-        .status-not-started { color: #94a3b8; font-weight: 600; }
-        .loading { text-align: center; padding: 60px; color: #64748b; }
-        .empty { text-align: center; padding: 60px; color: #94a3b8; }
-        .report-table-wrap { overflow-x: auto; width: 100%; -webkit-overflow-scrolling: touch; }
-        .report-sidebar {
-            position: fixed; top: 0; left: 0; width: 272px; height: 100vh;
-            background: #0f172a; padding: 24px 16px; overflow-y: auto;
-            z-index: 1001; transition: transform .3s cubic-bezier(.4,0,.2,1);
-        }
-        .sidebar-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,.6);
-            z-index: 1000; display: none; backdrop-filter: blur(4px);
-            -webkit-backdrop-filter: blur(4px);
-        }
-        .sidebar-overlay.open { display: block; }
-        .sidebar-close-btn { display: none; }
-        .mobile-menu-btn { display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: #0f172a; padding: 4px; }
-        @media(max-width:991px) {
-            .page { margin-left: 0; padding: 16px; }
-            .mobile-menu-btn { display: inline-flex; }
-            .report-sidebar { transform: translateX(-100%); }
-            .report-sidebar.open { transform: translateX(0); }
-            .sidebar-close-btn { display: block !important; }
-            .topbar { flex-direction: row; gap: 8px; }
-            .filters { flex-direction: column; }
-            .filter-group { width: 100%; }
-            .filter-input { width: 100%; min-width: unset; }
-        }
-        @media(max-width:576px) {
-            .page { padding: 12px; }
-            .topbar h4 { font-size: 16px; }
-            .topbar p { font-size: 11px; }
-            .btn-export { padding: 8px 14px; font-size: 12px; }
-            .stat-card h3 { font-size: 22px; }
-            .stat-card p { font-size: 11px; }
-            .stats-row { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-            .report-card { padding: 16px; border-radius: 16px; }
+        .status-not-started { color: #9CA3AF; font-weight: 600; }
+        .date-group-header {
+            margin-top: 14px; margin-bottom: 6px; padding: 8px 14px;
+            background: var(--bg-page); border-radius: var(--radius-sm);
+            font-size: 12px; font-weight: 600; color: var(--text-primary);
+            border-left: 3px solid var(--primary); display: inline-flex; align-items: center; gap: 6px;
         }
     </style>
 </head>
 <body>
-    <!-- Sidebar Overlay (mobile) -->
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleReportSidebar()"></div>
-
-    <!-- Sidebar -->
-    <nav class="report-sidebar" id="reportSidebar">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;">
-            <h4 style="color:#fff;font-size:15px;margin:0;"><i class="bi bi-mortarboard me-2"></i>College Admin</h4>
-            <button onclick="toggleReportSidebar()" class="sidebar-close-btn" id="sidebarCloseBtn" aria-label="Close menu" style="background:none;border:none;color:#94a3b8;font-size:22px;cursor:pointer;padding:4px 8px;">&times;</button>
-        </div>
-        <a href="dashboard.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-grid me-2"></i>Dashboard</div></a>
-        <a href="users.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-people me-2"></i>Users</div></a>
-        <a href="attendance.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-check2-square me-2"></i>Attendance</div></a>
-        <a href="bus.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-bus-front me-2"></i>Bus Monitoring</div></a>
-        <a href="routes.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-signpost-split me-2"></i>Routes</div></a>
-        <a href="reports.html"><div class="nav-item active" style="color:#fff;background:#2563eb;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;font-weight:600;"><i class="bi bi-bar-chart me-2"></i>Reports</div></a>
-        <a href="notifications.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-bell me-2"></i>Notifications</div></a>
-        <a href="support.html"><div class="nav-item" style="color:#94a3b8;padding:10px 14px;border-radius:10px;margin-bottom:4px;font-size:13px;"><i class="bi bi-headset me-2"></i>Support</div></a>
-    </nav>
-
-    <div class="page">
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <h4><i class="bi bi-mortarboard me-2"></i>College Admin</h4>
+        <a href="dashboard.html"><div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div></a>
+        <a href="users.html"><div class="nav-item"><i class="bi bi-people"></i>Users</div></a>
+        <a href="attendance.html"><div class="nav-item"><i class="bi bi-check2-square"></i>Attendance</div></a>
+        <a href="bus.html"><div class="nav-item"><i class="bi bi-bus-front"></i>Bus Monitoring</div></a>
+        <a href="routes.html"><div class="nav-item"><i class="bi bi-signpost-split"></i>Routes</div></a>
+        <a href="bus-pass.html"><div class="nav-item"><i class="bi bi-credit-card-2-front"></i>Bus Pass</div></a>
+        <a href="notifications.html"><div class="nav-item"><i class="bi bi-bell"></i>Notifications</div></a>
+        <a href="support.html"><div class="nav-item"><i class="bi bi-headset"></i>Support</div></a>
+        <a href="reports.html"><div class="nav-item active"><i class="bi bi-bar-chart"></i>Reports</div></a>
+        <div class="nav-item mt-4" onclick="logout()" style="color:#f87171;cursor:pointer"><i class="bi bi-box-arrow-left"></i>Logout</div>
+    </div>
+    <div class="main">
+        <!-- Topbar -->
         <div class="topbar">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <button class="mobile-menu-btn" id="menuToggle" onclick="toggleReportSidebar()" aria-label="Toggle menu"><i class="bi bi-list"></i></button>
-                <div><h4>ðŸ“Š Reports & Analytics</h4><p>Bus-wise trip reports, attendance, and exports</p></div>
-            </div>
-            <div class="d-flex gap-2" style="flex-wrap:wrap;">
-                <button class="btn-export" onclick="exportPDF()"><i class="bi bi-file-pdf me-1"></i>Export PDF</button>
-                <button class="btn-export btn-export-excel" onclick="exportExcel()"><i class="bi bi-file-excel me-1"></i>Export Excel</button>
+            <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
+            <div><h5 class="fw-bold mb-0">Reports & Analytics</h5><small class="text-muted">Bus-wise trip reports, attendance, and exports</small></div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-primary btn-sm" onclick="exportPDF()"><i class="bi bi-file-pdf me-1"></i>Export PDF</button>
+                <button class="btn btn-success btn-sm" onclick="exportExcel()"><i class="bi bi-file-excel me-1"></i>Export Excel</button>
             </div>
         </div>
 
-        <!-- Stats Cards -->
-        <div class="stats-row" id="statsRow">
-            <div class="stat-card"><div class="stat-icon">ðŸšŒ</div><h3 id="sTotalTrips">-</h3><p>Today's Trips</p></div>
-            <div class="stat-card"><div class="stat-icon">ðŸ“</div><h3 id="sTotalDist">-</h3><p>Total Distance (KM)</p></div>
-            <div class="stat-card"><div class="stat-icon">ðŸ‘¥</div><h3 id="sTotalPass">-</h3><p>Today's Passengers</p></div>
-            <div class="stat-card"><div class="stat-icon">ðŸŸ¢</div><h3 id="sRunning">-</h3><p>Running Buses</p></div>
-            <div class="stat-card"><div class="stat-icon">âœ…</div><h3 id="sCompleted">-</h3><p>Completed Trips</p></div>
+        <!-- Stats Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl col-md-4 col-6">
+                <div class="stat-card"><div class="stat-icon" style="background:#dbeafe;color:#2563eb"><i class="bi bi-signpost-split"></i></div><div class="stat-value" id="sTotalTrips">-</div><div class="stat-label">Today's Trips</div></div>
+            </div>
+            <div class="col-xl col-md-4 col-6">
+                <div class="stat-card"><div class="stat-icon" style="background:#e0e7ff;color:#4f46e5"><i class="bi bi-speedometer2"></i></div><div class="stat-value" id="sTotalDist">-</div><div class="stat-label">Total Distance (KM)</div></div>
+            </div>
+            <div class="col-xl col-md-4 col-6">
+                <div class="stat-card"><div class="stat-icon" style="background:#fef3c7;color:#d97706"><i class="bi bi-people-fill"></i></div><div class="stat-value" id="sTotalPass">-</div><div class="stat-label">Today's Passengers</div></div>
+            </div>
+            <div class="col-xl col-md-6 col-6">
+                <div class="stat-card"><div class="stat-icon" style="background:#dcfce7;color:#16a34a"><i class="bi bi-bus-front"></i></div><div class="stat-value" id="sRunning">-</div><div class="stat-label">Running Buses</div></div>
+            </div>
+            <div class="col-xl col-md-6 col-6">
+                <div class="stat-card"><div class="stat-icon" style="background:#ccfbf1;color:#0d9488"><i class="bi bi-check-circle"></i></div><div class="stat-value" id="sCompleted">-</div><div class="stat-label">Completed Trips</div></div>
+            </div>
         </div>
 
         <!-- Filters -->
-        <div class="filters">
-            <div class="filter-group">
-                <label>Start Date</label>
-                <input type="date" class="filter-input" id="fStartDate">
+        <div class="section-box mb-4">
+            <h6 class="fw-bold mb-3"><i class="bi bi-funnel me-2"></i>Report Filters</h6>
+            <div class="row g-2 align-items-end">
+                <div class="col-md-2 col-6">
+                    <label class="form-label">Start Date</label>
+                    <input type="date" class="form-control form-control-sm" id="fStartDate">
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label">End Date</label>
+                    <input type="date" class="form-control form-control-sm" id="fEndDate">
+                </div>
+                <div class="col-md-2 col-6">
+                    <label class="form-label">Bus</label>
+                    <select class="form-select form-select-sm" id="fBus"><option value="">All Buses</option></select>
+                </div>
+                <div class="col-md-2 col-6" id="instFilterWrap" style="display:none">
+                    <label class="form-label">Institution</label>
+                    <select class="form-select form-select-sm" id="fInst">
+                        <option value="">All</option>
+                        <option value="college">College</option>
+                        <option value="school">School</option>
+                    </select>
+                </div>
+                <div class="col-md-2 col-6">
+                    <button class="btn btn-primary btn-sm w-100" onclick="loadReport()"><i class="bi bi-search me-1"></i>Apply</button>
+                </div>
             </div>
-            <div class="filter-group">
-                <label>End Date</label>
-                <input type="date" class="filter-input" id="fEndDate">
-            </div>
-            <div class="filter-group">
-                <label>Bus</label>
-                <select class="filter-input" id="fBus"><option value="">All Buses</option></select>
-            </div>
-            <div class="filter-group" id="instFilterWrap" style="display:none">
-                <label>Institution</label>
-                <select class="filter-input" id="fInst">
-                    <option value="">All</option>
-                    <option value="college">College</option>
-                    <option value="school">School</option>
-                </select>
-            </div>
-            <button class="btn-export" onclick="loadReport()" style="align-self:end;">Apply Filters</button>
         </div>
 
         <!-- Report Content -->
-        <div id="reportContent"><div class="loading"><i class="bi bi-arrow-repeat spin"></i> Loading report...</div></div>
+        <div id="reportContent">
+            <div class="section-box">
+                <div class="empty-state">
+                    <i class="bi bi-arrow-repeat"></i>
+                    <p>Loading report...</p>
+                </div>
+            </div>
+        </div>
     </div>
 
-<script>
-// â”€â”€ Sidebar toggle (mobile) â”€â”€
-function toggleReportSidebar() {
-    var sb = document.getElementById('reportSidebar');
-    var ov = document.getElementById('sidebarOverlay');
-    var isOpen = sb.classList.toggle('open');
-    ov.classList.toggle('open', isOpen);
-}
-// On resize: if desktop, remove open state
-window.addEventListener('resize', function() {
-    if (window.innerWidth > 991) {
-        document.getElementById('reportSidebar').classList.remove('open');
-        document.getElementById('sidebarOverlay').classList.remove('open');
+    <script src="../shared/admin-common.js"></script>
+    <script>
+    // ── Auth ─────────────────────────────────────────────────────────────────
+    const inst = localStorage.getItem("institution") || "college";
+    const isSuperAdmin = (inst === "all");
+
+    // Format YYYY-MM-DD → "15 Aug 2026"
+    function formatTripDate(dateStr) {
+        if (!dateStr || dateStr === 'Unknown Date') return dateStr || '-';
+        try {
+            const parts = dateStr.split('-');
+            if (parts.length !== 3) return dateStr;
+            const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+            const day = parseInt(parts[2], 10);
+            const monthIdx = parseInt(parts[1], 10) - 1;
+            const year = parts[0];
+            if (monthIdx < 0 || monthIdx > 11) return dateStr;
+            return `${day} ${months[monthIdx]} ${year}`;
+        } catch (e) { return dateStr; }
     }
-});
 
-const API = "https://bustracker.satpudaengineeringcollege.com/api";
-const token = localStorage.getItem("token");
-const role = localStorage.getItem("role");
-const inst = localStorage.getItem("institution") || "college";
-const isSuperAdmin = (inst === "all");
-function headers() { return { "Content-Type": "application/json", "Authorization": token }; }
-function logout() { localStorage.removeItem("token"); localStorage.removeItem("institution"); window.location.href = "../index.html"; }
-
-// Format YYYY-MM-DD â†’ "15 Aug 2026" (readable date)
-function formatTripDate(dateStr) {
-    if (!dateStr || dateStr === 'Unknown Date') return dateStr || '-';
-    try {
-        const parts = dateStr.split('-');
-        if (parts.length !== 3) return dateStr;
-        const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-        const day = parseInt(parts[2], 10);
-        const monthIdx = parseInt(parts[1], 10) - 1;
-        const year = parts[0];
-        if (monthIdx < 0 || monthIdx > 11) return dateStr;
-        return `${day} ${months[monthIdx]} ${year}`;
-    } catch (e) { return dateStr; }
-}
-
-// Show institution filter for super admin
-if (isSuperAdmin) {
-    document.getElementById("instFilterWrap").style.display = "block";
-}
-
-// Set default date to today
-document.getElementById("fStartDate").value = new Date().toISOString().split("T")[0];
-document.getElementById("fEndDate").value = new Date().toISOString().split("T")[0];
-
-// Helper: get selected institution for API calls
-function getSelectedInst() {
+    // Show institution filter for super admin
     if (isSuperAdmin) {
-        return document.getElementById("fInst").value || "all";
+        document.getElementById("instFilterWrap").style.display = "block";
     }
-    return inst;
-}
 
-let reportData = null;
+    // Set default dates to today
+    document.getElementById("fStartDate").value = new Date().toISOString().split("T")[0];
+    document.getElementById("fEndDate").value = new Date().toISOString().split("T")[0];
 
-async function loadStats() {
-    try {
-        const selectedInst = getSelectedInst();
-        const resp = await fetch(`${API}/admin/reports/dashboard-stats?institution=${selectedInst}`, { headers: headers() });
-        if (!resp.ok) {
-            if (resp.status === 401) { logout(); return; }
-            throw new Error(`HTTP ${resp.status}`);
+    function getSelectedInst() {
+        if (isSuperAdmin) return document.getElementById("fInst").value || "all";
+        return inst;
+    }
+
+    let reportData = null;
+
+    async function loadStats() {
+        try {
+            const selectedInst = getSelectedInst();
+            const resp = await fetch(`${API}/admin/reports/dashboard-stats?institution=${selectedInst}`, { headers: headers() });
+            if (!resp.ok) {
+                if (resp.status === 401) { logout(); return; }
+                throw new Error(`HTTP ${resp.status}`);
+            }
+            const data = await resp.json();
+            if (data.success) {
+                document.getElementById("sTotalTrips").textContent = data.totalTrips || 0;
+                document.getElementById("sTotalDist").textContent = data.totalDistance || "0.0";
+                document.getElementById("sTotalPass").textContent = data.totalPassengers || 0;
+                document.getElementById("sRunning").textContent = data.runningBuses || 0;
+                document.getElementById("sCompleted").textContent = data.completedTrips || 0;
+            }
+        } catch (e) { console.error("Stats error:", e); }
+    }
+
+    async function loadBusFilter() {
+        try {
+            const selectedInst = getSelectedInst();
+            const resp = await fetch(`${API}/admin/routes?institution=${selectedInst}`, { headers: headers() });
+            if (!resp.ok) return;
+            const data = await resp.json();
+            if (data.success) {
+                const select = document.getElementById("fBus");
+                const buses = [...new Set(data.routes.map(r => r.busId))].sort();
+                buses.forEach(b => { select.innerHTML += `<option value="${b}">${b}</option>`; });
+            }
+        } catch (e) {}
+    }
+
+    async function loadReport() {
+        const startDate = document.getElementById("fStartDate").value;
+        const endDate = document.getElementById("fEndDate").value;
+        const busId = document.getElementById("fBus").value;
+        const container = document.getElementById("reportContent");
+        container.innerHTML = '<div class="section-box"><div class="empty-state"><i class="bi bi-arrow-repeat"></i><p>Loading report...</p></div></div>';
+
+        try {
+            let url = `${API}/admin/reports/bus?institution=${getSelectedInst()}`;
+            if (startDate) url += `&startDate=${startDate}`;
+            if (endDate) url += `&endDate=${endDate}`;
+            if (busId) url += `&busId=${busId}`;
+
+            const resp = await fetch(url, { headers: headers() });
+            if (!resp.ok) {
+                if (resp.status === 401) { logout(); return; }
+                throw new Error(`Server returned ${resp.status}`);
+            }
+            const data = await resp.json();
+            if (!data.success) throw new Error(data.error || "Failed");
+
+            reportData = data;
+
+            if (!data.report || data.report.length === 0) {
+                container.innerHTML = '<div class="section-box"><div class="empty-state"><i class="bi bi-inbox"></i><p>No data found for selected filters</p><small>Try adjusting the date range or bus filter</small></div></div>';
+                return;
+            }
+
+            let html = '';
+            for (const bus of data.report) {
+                html += `<div class="section-box" style="margin-bottom:20px">`;
+                // Bus header
+                html += `<div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3 pb-2" style="border-bottom:1px solid var(--border-light)">`;
+                html += `<h6 class="fw-bold mb-0"><i class="bi bi-bus-front me-2" style="color:var(--primary)"></i>${bus.busId}</h6>`;
+                html += `<div class="d-flex gap-3 flex-wrap">`;
+                html += `<span style="font-size:13px;color:var(--text-secondary)">Trips: <strong style="color:var(--text-primary)">${bus.totalTrips}</strong></span>`;
+                html += `<span style="font-size:13px;color:var(--text-secondary)">Distance: <strong style="color:var(--text-primary)">${bus.totalDistance} KM</strong></span>`;
+                if (bus.totalPassengers !== undefined) html += `<span style="font-size:13px;color:var(--text-secondary)">Passengers: <strong style="color:var(--text-primary)">${bus.totalPassengers}</strong></span>`;
+                html += `</div></div>`;
+
+                // Trips table grouped by date
+                if (bus.trips && bus.trips.length > 0) {
+                    const sortedTrips = [...bus.trips].sort((a, b) => {
+                        if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
+                        return (a.startTime || '').localeCompare(b.startTime || '');
+                    });
+
+                    const tripsByDate = {};
+                    sortedTrips.forEach(t => {
+                        const d = t.date || 'Unknown Date';
+                        if (!tripsByDate[d]) tripsByDate[d] = [];
+                        tripsByDate[d].push(t);
+                    });
+
+                    for (const [dateKey, dateTrips] of Object.entries(tripsByDate)) {
+                        const formattedDate = formatTripDate(dateKey);
+                        html += `<div class="date-group-header"><i class="bi bi-calendar3"></i>${formattedDate}</div>`;
+                        html += `<div class="table-responsive-wrap"><table class="table"><thead><tr><th>#</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Duration</th><th>Distance</th><th>Status</th></tr></thead><tbody>`;
+                        dateTrips.forEach((t, i) => {
+                            const statusClass = t.status === 'running' ? 'status-running' : t.status === 'completed' ? 'status-completed' : 'status-not-started';
+                            html += `<tr><td>${i+1}</td><td>${formattedDate}</td><td>${t.startTime || '-'}</td><td>${t.endTime || '-'}</td><td>${t.duration ? t.duration + ' min' : '-'}</td><td>${t.distance ? t.distance + ' KM' : '-'}</td><td class="${statusClass}">${t.status || '-'}</td></tr>`;
+                        });
+                        html += `</tbody></table></div>`;
+                    }
+                }
+
+                // Boardings table
+                if (bus.boardings && bus.boardings.length > 0) {
+                    html += `<h6 style="font-size:13px;color:var(--text-secondary);margin:16px 0 8px;font-weight:600"><i class="bi bi-person-check me-1"></i>Boarding Details</h6>`;
+                    html += `<div class="table-responsive-wrap"><table class="table"><thead><tr><th>Student</th><th>City</th><th>Boarding Time</th><th>Date</th><th>Type</th></tr></thead><tbody>`;
+                    bus.boardings.forEach(b => {
+                        html += `<tr><td>${b.name}</td><td>${b.city}</td><td>${b.boardingTime || '-'}</td><td>${b.date}</td><td>${b.userType}</td></tr>`;
+                    });
+                    html += `</tbody></table></div>`;
+                }
+
+                html += `</div>`;
+            }
+            container.innerHTML = html;
+        } catch (e) {
+            container.innerHTML = `<div class="section-box"><div class="empty-state"><i class="bi bi-exclamation-triangle" style="color:#dc2626"></i><p style="color:#dc2626">Error: ${e.message}</p><small>Please try again or check your connection</small></div></div>`;
         }
-        const data = await resp.json();
-        if (data.success) {
-            document.getElementById("sTotalTrips").textContent = data.totalTrips || 0;
-            document.getElementById("sTotalDist").textContent = data.totalDistance || "0.0";
-            document.getElementById("sTotalPass").textContent = data.totalPassengers || 0;
-            document.getElementById("sRunning").textContent = data.runningBuses || 0;
-            document.getElementById("sCompleted").textContent = data.completedTrips || 0;
-        }
-    } catch (e) { console.error("Stats error:", e); }
-}
+    }
 
-async function loadBusFilter() {
-    try {
-        const selectedInst = getSelectedInst();
-        const resp = await fetch(`${API}/admin/routes?institution=${selectedInst}`, { headers: headers() });
-        if (!resp.ok) return;
-        const data = await resp.json();
-        if (data.success) {
-            const select = document.getElementById("fBus");
-            const buses = [...new Set(data.routes.map(r => r.busId))].sort();
-            buses.forEach(b => { select.innerHTML += `<option value="${b}">${b}</option>`; });
-        }
-    } catch (e) {}
-}
+    function exportPDF() {
+        if (!reportData || !reportData.report || reportData.report.length === 0) { alert("No data to export"); return; }
+        const { jsPDF } = window.jspdf;
+        const doc = new jsPDF();
+        const today = new Date().toLocaleDateString("en-IN");
+        const startDate = document.getElementById("fStartDate").value;
+        const endDate = document.getElementById("fEndDate").value;
 
-async function loadReport() {
-    const startDate = document.getElementById("fStartDate").value;
-    const endDate = document.getElementById("fEndDate").value;
-    const busId = document.getElementById("fBus").value;
-    const container = document.getElementById("reportContent");
-    container.innerHTML = '<div class="loading"><i class="bi bi-arrow-repeat"></i> Loading report...</div>';
+        doc.setFontSize(18);
+        doc.setFont("helvetica", "bold");
+        doc.text("SCEP Bus Tracking Application", 14, 20);
+        doc.setFontSize(14);
+        doc.text("Bus Report", 14, 30);
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 38);
+        doc.text(`Generated: ${today}`, 14, 44);
 
-    try {
-        let url = `${API}/admin/reports/bus?institution=${getSelectedInst()}`;
-        if (startDate) url += `&startDate=${startDate}`;
-        if (endDate) url += `&endDate=${endDate}`;
-        if (busId) url += `&busId=${busId}`;
+        let yPos = 55;
 
-        const resp = await fetch(url, { headers: headers() });
-        if (!resp.ok) {
-            if (resp.status === 401) { logout(); return; }
-            throw new Error(`Server returned ${resp.status}`);
-        }
-        const data = await resp.json();
-        if (!data.success) throw new Error(data.error || "Failed");
+        for (const bus of reportData.report) {
+            if (yPos > 250) { doc.addPage(); yPos = 20; }
+            doc.setFontSize(12);
+            doc.setFont("helvetica", "bold");
+            doc.text(`${bus.busId} — Trips: ${bus.totalTrips} | Distance: ${bus.totalDistance} KM`, 14, yPos);
+            yPos += 8;
 
-        reportData = data;
-
-        if (!data.report || data.report.length === 0) {
-            container.innerHTML = '<div class="empty"><i class="bi bi-inbox" style="font-size:48px;display:block;margin-bottom:12px;"></i>No data found for selected filters</div>';
-            return;
-        }
-
-        let html = '';
-        for (const bus of data.report) {
-            html += `<div class="report-card">`;
-            html += `<div class="bus-header"><h5><i class="bi bi-bus-front me-2"></i>${bus.busId}</h5>`;
-            html += `<div class="bus-summary">`;
-            html += `<span>Trips: <strong>${bus.totalTrips}</strong></span>`;
-            html += `<span>Distance: <strong>${bus.totalDistance} KM</strong></span>`;
-            if (bus.totalPassengers !== undefined) html += `<span>Passengers: <strong>${bus.totalPassengers}</strong></span>`;
-            html += `</div></div>`;
-
-            // Trips table â€” grouped by date (newest first)
             if (bus.trips.length > 0) {
-                // Sort trips: newest date first, then by startTime within same date
                 const sortedTrips = [...bus.trips].sort((a, b) => {
                     if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
                     return (a.startTime || '').localeCompare(b.startTime || '');
                 });
-
-                // Group by date
-                const tripsByDate = {};
-                sortedTrips.forEach(t => {
-                    const d = t.date || 'Unknown Date';
-                    if (!tripsByDate[d]) tripsByDate[d] = [];
-                    tripsByDate[d].push(t);
+                const tripRows = sortedTrips.map((t, i) => [i+1, formatTripDate(t.date||''), t.startTime||'-', t.endTime||'-', t.duration?t.duration+'min':'-', t.distance?t.distance+'KM':'-', t.status||'-']);
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['#', 'Date', 'Start', 'End', 'Duration', 'Distance', 'Status']],
+                    body: tripRows,
+                    theme: 'grid',
+                    headStyles: { fillColor: [79, 70, 229], fontSize: 9 },
+                    bodyStyles: { fontSize: 8 },
+                    margin: { left: 14, right: 14 },
                 });
-
-                html += `<h6 style="font-size:13px;color:#64748b;margin:12px 0 8px;">Trip History</h6>`;
-                for (const [dateKey, dateTrips] of Object.entries(tripsByDate)) {
-                    // Date header
-                    const formattedDate = formatTripDate(dateKey);
-                    html += `<div style="margin-top:14px;margin-bottom:6px;padding:6px 12px;background:#f1f5f9;border-radius:8px;font-size:12px;font-weight:600;color:#334155;border-left:3px solid #2563eb;">ðŸ“… ${formattedDate}</div>`;
-                    html += `<div class="report-table-wrap"><table class="trip-table"><thead><tr><th>#</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Duration</th><th>Distance</th><th>Status</th></tr></thead><tbody>`;
-                    dateTrips.forEach((t, i) => {
-                        const statusClass = t.status === 'running' ? 'status-running' : t.status === 'completed' ? 'status-completed' : 'status-not-started';
-                        html += `<tr><td>${i+1}</td><td>${formattedDate}</td><td>${t.startTime || '-'}</td><td>${t.endTime || '-'}</td><td>${t.duration ? t.duration + ' min' : '-'}</td><td>${t.distance ? t.distance + ' KM' : '-'}</td><td class="${statusClass}">${t.status || '-'}</td></tr>`;
-                    });
-                    html += `</tbody></table></div>`;
-                }
+                yPos = doc.lastAutoTable.finalY + 10;
             }
 
-            // Boardings table (visible to College Admin + Super Admin)
             if (bus.boardings && bus.boardings.length > 0) {
-                html += `<h6 style="font-size:13px;color:#64748b;margin:16px 0 8px;">Boarding Details</h6>`;
-                html += `<div class="report-table-wrap"><table class="trip-table"><thead><tr><th>Student</th><th>City</th><th>Boarding Time</th><th>Date</th><th>Type</th></tr></thead><tbody>`;
-                bus.boardings.forEach(b => {
-                    html += `<tr><td>${b.name}</td><td>${b.city}</td><td>${b.boardingTime || '-'}</td><td>${b.date}</td><td>${b.userType}</td></tr>`;
+                if (yPos > 240) { doc.addPage(); yPos = 20; }
+                const boardRows = bus.boardings.map(b => [b.name, b.city, b.boardingTime||'-', b.date, b.userType]);
+                doc.autoTable({
+                    startY: yPos,
+                    head: [['Student', 'City', 'Boarding Time', 'Date', 'Type']],
+                    body: boardRows,
+                    theme: 'striped',
+                    headStyles: { fillColor: [22, 163, 74], fontSize: 9 },
+                    bodyStyles: { fontSize: 8 },
+                    margin: { left: 14, right: 14 },
                 });
-                html += `</tbody></table></div>`;
+                yPos = doc.lastAutoTable.finalY + 15;
             }
-
-            html += `</div>`;
         }
-        container.innerHTML = html;
-    } catch (e) {
-        container.innerHTML = `<div class="empty" style="color:#ef4444;">Error: ${e.message}</div>`;
+
+        const pageCount = doc.internal.getNumberOfPages();
+        for (let i = 1; i <= pageCount; i++) {
+            doc.setPage(i);
+            doc.setFontSize(8);
+            doc.setFont("helvetica", "italic");
+            doc.text("Generated from SCEP Bus Tracking Application", 14, 290);
+            doc.text(`Page ${i} of ${pageCount}`, 180, 290);
+        }
+
+        doc.save(`Bus_Report_${startDate}_to_${endDate}.pdf`);
     }
-}
 
-function exportPDF() {
-    if (!reportData || !reportData.report || reportData.report.length === 0) { alert("No data to export"); return; }
-    const { jsPDF } = window.jspdf;
-    const doc = new jsPDF();
-    const today = new Date().toLocaleDateString("en-IN");
-    const startDate = document.getElementById("fStartDate").value;
-    const endDate = document.getElementById("fEndDate").value;
+    function exportExcel() {
+        if (!reportData || !reportData.report || reportData.report.length === 0) { alert("No data to export"); return; }
+        const wb = XLSX.utils.book_new();
+        const startDate = document.getElementById("fStartDate").value;
+        const endDate = document.getElementById("fEndDate").value;
 
-    // Header
-    doc.setFontSize(18);
-    doc.setFont("helvetica", "bold");
-    doc.text("SCEP Bus Tracking Application", 14, 20);
-    doc.setFontSize(14);
-    doc.text("Bus Report", 14, 30);
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Date Range: ${startDate} to ${endDate}`, 14, 38);
-    doc.text(`Generated: ${today}`, 14, 44);
+        const summaryRows = reportData.report.map(b => ({
+            "Bus": b.busId,
+            "Driver": b.driver || "-",
+            "Total Trips": b.totalTrips,
+            "Total Distance (KM)": parseFloat(b.totalDistance),
+            "Total Passengers": b.totalPassengers ?? "-",
+        }));
+        const summaryWS = XLSX.utils.json_to_sheet(summaryRows);
+        summaryWS["!cols"] = [{wch:10},{wch:15},{wch:12},{wch:18},{wch:16}];
+        XLSX.utils.book_append_sheet(wb, summaryWS, "Summary");
 
-    let yPos = 55;
-
-    for (const bus of reportData.report) {
-        if (yPos > 250) { doc.addPage(); yPos = 20; }
-        doc.setFontSize(12);
-        doc.setFont("helvetica", "bold");
-        doc.text(`${bus.busId} â€” Trips: ${bus.totalTrips} | Distance: ${bus.totalDistance} KM`, 14, yPos);
-        yPos += 8;
-
-        // Trips table
-        if (bus.trips.length > 0) {
-            // Sort: newest date first, then by startTime
+        for (const bus of reportData.report) {
+            const rows = [];
             const sortedTrips = [...bus.trips].sort((a, b) => {
                 if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
                 return (a.startTime || '').localeCompare(b.startTime || '');
             });
-            const tripRows = sortedTrips.map((t, i) => [i+1, formatTripDate(t.date||''), t.startTime||'-', t.endTime||'-', t.duration?t.duration+'min':'-', t.distance?t.distance+'KM':'-', t.status||'-']);
-            doc.autoTable({
-                startY: yPos,
-                head: [['#', 'Date', 'Start', 'End', 'Duration', 'Distance', 'Status']],
-                body: tripRows,
-                theme: 'grid',
-                headStyles: { fillColor: [37, 99, 235], fontSize: 9 },
-                bodyStyles: { fontSize: 8 },
-                margin: { left: 14, right: 14 },
+            sortedTrips.forEach((t, i) => {
+                rows.push({
+                    "Trip #": i + 1,
+                    "Date": formatTripDate(t.date || ''),
+                    "Start Time": t.startTime || "-",
+                    "End Time": t.endTime || "-",
+                    "Duration (min)": t.duration || "-",
+                    "Distance (KM)": t.distance || "-",
+                    "Status": t.status || "-",
+                });
             });
-            yPos = doc.lastAutoTable.finalY + 10;
+            if (rows.length > 0) {
+                const ws = XLSX.utils.json_to_sheet(rows);
+                ws["!cols"] = [{wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12}];
+                XLSX.utils.book_append_sheet(wb, ws, bus.busId.replace(/[^\w]/g, ""));
+            }
+
+            if (bus.boardings && bus.boardings.length > 0) {
+                const bRows = bus.boardings.map(b => ({
+                    "Student": b.name,
+                    "City": b.city,
+                    "Bus": b.busId,
+                    "Boarding Time": b.boardingTime || "-",
+                    "Date": b.date,
+                    "Type": b.userType,
+                }));
+                const bws = XLSX.utils.json_to_sheet(bRows);
+                bws["!cols"] = [{wch:20},{wch:15},{wch:10},{wch:14},{wch:12},{wch:10}];
+                XLSX.utils.book_append_sheet(wb, bws, bus.busId.replace(/[^\w]/g, "") + "_Board");
+            }
         }
 
-        // Boardings
-        if (bus.boardings && bus.boardings.length > 0) {
-            if (yPos > 240) { doc.addPage(); yPos = 20; }
-            const boardRows = bus.boardings.map(b => [b.name, b.city, b.boardingTime||'-', b.date, b.userType]);
-            doc.autoTable({
-                startY: yPos,
-                head: [['Student', 'City', 'Boarding Time', 'Date', 'Type']],
-                body: boardRows,
-                theme: 'striped',
-                headStyles: { fillColor: [22, 163, 74], fontSize: 9 },
-                bodyStyles: { fontSize: 8 },
-                margin: { left: 14, right: 14 },
-            });
-            yPos = doc.lastAutoTable.finalY + 15;
-        }
+        XLSX.writeFile(wb, `Bus_Report_${startDate}_to_${endDate}.xlsx`);
     }
 
-    // Footer
-    const pageCount = doc.internal.getNumberOfPages();
-    for (let i = 1; i <= pageCount; i++) {
-        doc.setPage(i);
-        doc.setFontSize(8);
-        doc.setFont("helvetica", "italic");
-        doc.text("Generated from SCEP Bus Tracking Application", 14, 290);
-        doc.text(`Page ${i} of ${pageCount}`, 180, 290);
-    }
-
-    doc.save(`Bus_Report_${startDate}_to_${endDate}.pdf`);
-}
-
-function exportExcel() {
-    if (!reportData || !reportData.report || reportData.report.length === 0) { alert("No data to export"); return; }
-    const wb = XLSX.utils.book_new();
-    const startDate = document.getElementById("fStartDate").value;
-    const endDate = document.getElementById("fEndDate").value;
-
-    // Summary sheet
-    const summaryRows = reportData.report.map(b => ({
-        "Bus": b.busId,
-        "Driver": b.driver || "-",
-        "Total Trips": b.totalTrips,
-        "Total Distance (KM)": parseFloat(b.totalDistance),
-        "Total Passengers": b.totalPassengers ?? "-",
-    }));
-    const summaryWS = XLSX.utils.json_to_sheet(summaryRows);
-    summaryWS["!cols"] = [{wch:10},{wch:15},{wch:12},{wch:18},{wch:16}];
-    XLSX.utils.book_append_sheet(wb, summaryWS, "Summary");
-
-    // Detail sheets per bus
-    for (const bus of reportData.report) {
-        const rows = [];
-        // Sort trips: newest date first, then by start time
-        const sortedTrips = [...bus.trips].sort((a, b) => {
-            if (a.date && b.date && a.date !== b.date) return b.date.localeCompare(a.date);
-            return (a.startTime || '').localeCompare(b.startTime || '');
-        });
-        // Add trips
-        sortedTrips.forEach((t, i) => {
-            rows.push({
-                "Trip #": i + 1,
-                "Date": formatTripDate(t.date || ''),
-                "Start Time": t.startTime || "-",
-                "End Time": t.endTime || "-",
-                "Duration (min)": t.duration || "-",
-                "Distance (KM)": t.distance || "-",
-                "Status": t.status || "-",
-            });
-        });
-        if (rows.length > 0) {
-            const ws = XLSX.utils.json_to_sheet(rows);
-            ws["!cols"] = [{wch:8},{wch:14},{wch:14},{wch:14},{wch:14},{wch:14},{wch:12}];
-            XLSX.utils.book_append_sheet(wb, ws, bus.busId.replace(/[^\w]/g, ""));
-        }
-
-        // Boardings sheet
-        if (bus.boardings && bus.boardings.length > 0) {
-            const bRows = bus.boardings.map(b => ({
-                "Student": b.name,
-                "City": b.city,
-                "Bus": b.busId,
-                "Boarding Time": b.boardingTime || "-",
-                "Date": b.date,
-                "Type": b.userType,
-            }));
-            const bws = XLSX.utils.json_to_sheet(bRows);
-            bws["!cols"] = [{wch:20},{wch:15},{wch:10},{wch:14},{wch:12},{wch:10}];
-            XLSX.utils.book_append_sheet(wb, bws, bus.busId.replace(/[^\w]/g, "") + "_Boarding");
-        }
-    }
-
-    XLSX.writeFile(wb, `Bus_Report_${startDate}_to_${endDate}.xlsx`);
-}
-
-// Init â€” parallel load (stats + bus filter load together, then report after UI is ready)
-Promise.all([loadStats(), loadBusFilter()]).then(() => {
-    // Load report only after filters are populated (lazy â€” after UI interactive)
-    requestAnimationFrame(() => loadReport());
-});
-</script>
+    // ── Init ─────────────────────────────────────────────────────────────────
+    Promise.all([loadStats(), loadBusFilter()]).then(() => {
+        requestAnimationFrame(() => loadReport());
+    });
+    </script>
 </body>
 </html>

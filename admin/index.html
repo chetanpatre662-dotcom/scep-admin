@@ -12,10 +12,13 @@
   @keyframes fadeIn { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
   .glow-text { background: linear-gradient(90deg, #2563eb, #60a5fa, #22c55e); -webkit-background-clip: text; -webkit-text-fill-color: transparent; animation: glowMove 3s infinite linear; background-size: 200% 100%; }
   @keyframes glowMove { 0% { background-position: 0% 50%; } 100% { background-position: 200% 50%; } }
+  @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:.5; } }
+  .pulse-dot { animation: pulse 1.5s infinite; }
 </style>
 </head>
 <body class="flex items-center justify-center min-h-screen px-4">
-  <div class="w-full max-w-md glass rounded-2xl p-6 sm:p-8 fade">
+  <!-- Login Form -->
+  <div id="loginView" class="w-full max-w-md glass rounded-2xl p-6 sm:p-8 fade">
     <div class="text-center mb-5">
       <h1 class="text-3xl sm:text-4xl font-extrabold glow-text">SCEP BUS ADMIN</h1>
       <p class="text-gray-600 text-sm mt-1">Bus Management Control Panel</p>
@@ -28,14 +31,41 @@
     </div>
     <p class="text-center text-xs text-gray-400 mt-6">© SCEP Bus Tracking Application</p>
   </div>
+
+  <!-- Verification Waiting Screen -->
+  <div id="verificationView" class="w-full max-w-md glass rounded-2xl p-6 sm:p-8 fade" style="display:none">
+    <div class="text-center mb-4">
+      <div class="w-16 h-16 bg-amber-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <svg class="w-8 h-8 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m0 0v2m0-2h2m-2 0H10m5-7V7a5 5 0 00-10 0v4a2 2 0 00-2 2v6a2 2 0 002 2h10a2 2 0 002-2v-6a2 2 0 00-2-2z"></path></svg>
+      </div>
+      <h2 class="text-xl font-bold text-gray-800">Verification Required</h2>
+      <p class="text-gray-600 text-sm mt-2">Your credentials are correct.<br>College Administration must verify your account before you can access Bus Pass.</p>
+    </div>
+    <div class="bg-gray-50 rounded-lg p-4 space-y-2 text-sm">
+      <div class="flex justify-between"><span class="text-gray-500">Request ID:</span><span class="font-mono font-bold text-gray-800" id="vReqId">—</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Status:</span><span class="font-semibold" id="vStatus"><span class="pulse-dot inline-block w-2 h-2 bg-amber-500 rounded-full mr-1"></span>Pending</span></div>
+      <div class="flex justify-between"><span class="text-gray-500">Expires:</span><span class="text-gray-700" id="vExpiry">—</span></div>
+    </div>
+    <p class="text-center text-xs text-gray-400 mt-4" id="vPollMsg">Checking status automatically...</p>
+    <div class="mt-4 flex gap-2">
+      <button onclick="backToLogin()" class="flex-1 bg-gray-200 text-gray-700 p-2.5 rounded-lg font-semibold text-sm hover:bg-gray-300 transition">Back to Login</button>
+      <button onclick="checkVerificationStatus()" class="flex-1 bg-blue-500 text-white p-2.5 rounded-lg font-semibold text-sm hover:bg-blue-600 transition">Check Status</button>
+    </div>
+    <p class="text-center text-xs text-gray-400 mt-4">© SCEP Bus Tracking Application</p>
+  </div>
+
 <script>
+const API_BASE = "https://bustracker.satpudaengineeringcollege.com/api";
+let pendingRequestId = null;
+let pollInterval = null;
+
 async function login() {
   const username = document.getElementById("username").value;
   const password = document.getElementById("password").value;
   const msg = document.getElementById("msg");
   msg.style.color = "gray"; msg.innerText = "Checking...";
   try {
-    const res = await fetch("https://bustracker.satpudaengineeringcollege.com/api/admin/login", {
+    const res = await fetch(`${API_BASE}/admin/login`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password })
     });
@@ -64,21 +94,93 @@ async function login() {
       } else {
         path = "college/dashboard.html";
       }
-      console.log("ROLE:", data.role, "INSTITUTION:", data.institution, "REDIRECT:", path);
       setTimeout(() => { window.location.href = path; }, 600);
-    } else { msg.style.color = "red"; msg.innerText = "Invalid username or password"; }
+    } else if (data.requiresVerification) {
+      // Bus Pass Admin account requires verification
+      msg.innerText = "";
+      showVerificationView(data);
+    } else {
+      msg.style.color = "red"; msg.innerText = data.error || "Invalid username or password";
+    }
   } catch (err) { msg.style.color = "red"; msg.innerText = "Server not reachable"; }
 }
 
+function showVerificationView(data) {
+  document.getElementById("loginView").style.display = "none";
+  document.getElementById("verificationView").style.display = "block";
+  document.getElementById("vReqId").innerText = data.requestId || "—";
+
+  if (data.status === "revoked") {
+    document.getElementById("vStatus").innerHTML = '<span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>Revoked';
+    document.getElementById("vPollMsg").innerText = "Account has been revoked. Contact College Administration.";
+    document.getElementById("vExpiry").innerText = "—";
+    return;
+  }
+
+  document.getElementById("vStatus").innerHTML = '<span class="pulse-dot inline-block w-2 h-2 bg-amber-500 rounded-full mr-1"></span>Pending';
+  if (data.expiresAt) {
+    const exp = new Date(data.expiresAt);
+    document.getElementById("vExpiry").innerText = exp.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+  }
+  pendingRequestId = data.requestId;
+  startPolling();
+}
+
+function startPolling() {
+  if (pollInterval) clearInterval(pollInterval);
+  pollInterval = setInterval(checkVerificationStatus, 5000); // Poll every 5 seconds
+}
+
+async function checkVerificationStatus() {
+  if (!pendingRequestId) return;
+  try {
+    const res = await fetch(`${API_BASE}/api/bus-pass/admin-verification/status/${pendingRequestId}`);
+    const data = await res.json();
+    if (!data.success) {
+      document.getElementById("vPollMsg").innerText = data.error || "Error checking status";
+      return;
+    }
+
+    if (data.status === "APPROVED" && data.token) {
+      // Approved! Store token and redirect
+      clearInterval(pollInterval);
+      localStorage.setItem("token", data.token);
+      localStorage.setItem("institution", data.institution || "buspass");
+      localStorage.setItem("role", data.role || "bus_pass_admin");
+      document.getElementById("vStatus").innerHTML = '<span class="inline-block w-2 h-2 bg-green-500 rounded-full mr-1"></span>Approved!';
+      document.getElementById("vPollMsg").innerText = "Redirecting to Bus Pass dashboard...";
+      setTimeout(() => { window.location.href = "bus-pass/dashboard.html"; }, 1000);
+    } else if (data.status === "REJECTED") {
+      clearInterval(pollInterval);
+      document.getElementById("vStatus").innerHTML = '<span class="inline-block w-2 h-2 bg-red-500 rounded-full mr-1"></span>Rejected';
+      document.getElementById("vPollMsg").innerText = "Your request was rejected. You can try again.";
+    } else if (data.status === "EXPIRED") {
+      clearInterval(pollInterval);
+      document.getElementById("vStatus").innerHTML = '<span class="inline-block w-2 h-2 bg-gray-500 rounded-full mr-1"></span>Expired';
+      document.getElementById("vPollMsg").innerText = "Request expired. Please login again to create a new request.";
+    } else if (data.status === "CONSUMED") {
+      clearInterval(pollInterval);
+      document.getElementById("vStatus").innerHTML = '<span class="inline-block w-2 h-2 bg-gray-500 rounded-full mr-1"></span>Already Used';
+      document.getElementById("vPollMsg").innerText = "This request was already used. Please login again.";
+    }
+    // PENDING — keep polling
+  } catch (e) {
+    document.getElementById("vPollMsg").innerText = "Connection issue. Retrying...";
+  }
+}
+
+function backToLogin() {
+  if (pollInterval) clearInterval(pollInterval);
+  pendingRequestId = null;
+  document.getElementById("verificationView").style.display = "none";
+  document.getElementById("loginView").style.display = "block";
+  document.getElementById("msg").innerText = "";
+}
+
 // Session auto-redirect DISABLED for security.
-// Admin must always log in fresh. Token is used for API calls only after manual login.
-// Clear any stale session on login page load to prevent confusion.
 (function() {
   const t = localStorage.getItem("token");
-  if (!t) return; // No session, show login normally
-  // If user deliberately navigated to login page, do NOT redirect.
-  // Only redirect if they came from a dashboard (document.referrer check)
-  // Otherwise, always show login form. This prevents the "opens dashboard" issue.
+  if (!t) return;
 })();
 </script>
 </body>

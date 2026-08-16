@@ -108,6 +108,20 @@ if(!token||!token.includes(".")||(role!=="bus_pass_admin"&&localStorage.getItem(
 function headers(){return{"Content-Type":"application/json","Authorization":token}}
 function logout(){localStorage.clear();window.location.replace("../index.html")}
 
+// Backend verification check — ensures account is still verified server-side
+(async function checkBackendAuth(){
+    try{
+        const r=await fetch(`${API}/api/bus-pass/students`,{headers:headers()});
+        if(r.status===401||r.status===403){
+            const d=await r.json().catch(()=>({}));
+            document.documentElement.style.display="none";
+            localStorage.clear();
+            window.location.replace("../index.html");
+            return;
+        }
+    }catch(e){}
+})();
+
 function toast(msg,type="success"){const c=document.getElementById("toasts");const el=document.createElement("div");el.className="toast-msg";el.style.background=type==="success"?"#10b981":type==="error"?"#ef4444":"#4f46e5";el.innerHTML=`<i class="bi bi-${type==='success'?'check-circle':'x-circle'} me-2"></i>${msg}`;c.appendChild(el);setTimeout(()=>{el.style.opacity="0";el.style.transition="opacity .3s";setTimeout(()=>el.remove(),300)},3000)}
 
 let allStudents=[];

@@ -52,6 +52,7 @@ const ADMIN_CONFIG = {
     { id: "attendance",    label: "Attendance",    icon: "bi-check2-square",  href: "attendance.html",    feature: "attendance" },
     { id: "bus",           label: "Bus Monitoring", icon: "bi-bus-front",      href: "bus.html",           feature: "busTracking" },
     { id: "routes",        label: "Routes",        icon: "bi-signpost-split", href: "routes.html",        feature: "routes" },
+    { id: "bus-pass",      label: "Bus Pass",      icon: "bi-credit-card-2-front", href: "bus-pass.html", feature: "busPass" },
     { id: "notifications", label: "Notifications", icon: "bi-bell",           href: "notifications.html", feature: "notifications" },
     { id: "complaints",    label: "Complaints",    icon: "bi-chat-dots",      href: "complaints.html",    feature: "complaints" },
     { id: "reports",       label: "Reports",       icon: "bi-bar-chart",      href: "reports.html",       feature: "reports" },
@@ -66,6 +67,7 @@ const ADMIN_CONFIG = {
       attendance: true,
       busTracking: true,
       routes: true,
+      busPass: true,
       notifications: true,
       complaints: true,
       reports: true,
@@ -76,6 +78,7 @@ const ADMIN_CONFIG = {
       attendance: false,   // attendance is college-only
       busTracking: true,
       routes: true,
+      busPass: false,      // bus pass is college-only
       notifications: true,
       complaints: true,
       reports: true,
@@ -86,6 +89,7 @@ const ADMIN_CONFIG = {
       attendance: true,
       busTracking: true,
       routes: true,
+      busPass: true,
       notifications: true,
       complaints: true,
       reports: true,
