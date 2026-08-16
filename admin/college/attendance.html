@@ -1,47 +1,104 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-    <script>if(!localStorage.getItem("token")||localStorage.getItem("token").split(".").length!==3){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}</script>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <script>if (!localStorage.getItem("token") || localStorage.getItem("token").split(".").length !== 3) { document.documentElement.style.display = "none"; localStorage.clear(); window.location.replace("../index.html") }</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>College Admin - Attendance</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+        rel="stylesheet">
     <link rel="stylesheet" href="../shared/admin-styles.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        .report-chip{display:inline-block;padding:6px 16px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #e2e8f0;transition:.2s;margin-right:6px}
-        .report-chip.active{background:#2563eb;color:#fff;border-color:#2563eb}
-        .report-chip:hover:not(.active){background:#f1f5f9}
-        .badge-present{background:#dcfce7;color:#166534}
-        .badge-absent{background:#fee2e2;color:#991b1b}
-        .badge-exit{background:#fef3c7;color:#92400e}
+        .report-chip {
+            display: inline-block;
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1.5px solid #e2e8f0;
+            transition: .2s;
+            margin-right: 6px
+        }
+
+        .report-chip.active {
+            background: #2563eb;
+            color: #fff;
+            border-color: #2563eb
+        }
+
+        .report-chip:hover:not(.active) {
+            background: #f1f5f9
+        }
+
+        .badge-present {
+            background: #dcfce7;
+            color: #166534
+        }
+
+        .badge-absent {
+            background: #fee2e2;
+            color: #991b1b
+        }
+
+        .badge-exit {
+            background: #fef3c7;
+            color: #92400e
+        }
     </style>
 </head>
+
 <body>
     <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
         <h4><i class="bi bi-mortarboard me-2"></i>College Admin</h4>
-        <a href="dashboard.html"><div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div></a>
-        <a href="users.html"><div class="nav-item"><i class="bi bi-people"></i>Users</div></a>
-        <a href="attendance.html"><div class="nav-item active"><i class="bi bi-check2-square"></i>Attendance</div></a>
-        <a href="bus.html"><div class="nav-item"><i class="bi bi-bus-front"></i>Bus Monitoring</div></a>
-        <a href="routes.html"><div class="nav-item"><i class="bi bi-signpost-split"></i>Routes</div></a>
-        <a href="notifications.html"><div class="nav-item"><i class="bi bi-bell"></i>Notifications</div></a>
-        <a href="support.html"><div class="nav-item"><i class="bi bi-headset"></i>Support</div></a>
-        <a href="reports.html"><div class="nav-item"><i class="bi bi-bar-chart"></i>Reports</div></a>
-        <div class="nav-item mt-4" onclick="logout()" style="color:#f87171;cursor:pointer"><i class="bi bi-box-arrow-left"></i>Logout</div>
+        <a href="dashboard.html">
+            <div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div>
+        </a>
+        <a href="users.html">
+            <div class="nav-item"><i class="bi bi-people"></i>Users</div>
+        </a>
+        <a href="attendance.html">
+            <div class="nav-item active"><i class="bi bi-check2-square"></i>Attendance</div>
+        </a>
+        <a href="bus.html">
+            <div class="nav-item"><i class="bi bi-bus-front"></i>Bus Monitoring</div>
+        </a>
+        <a href="routes.html">
+            <div class="nav-item"><i class="bi bi-signpost-split"></i>Routes</div>
+        </a>
+        <a href="notifications.html">
+            <div class="nav-item"><i class="bi bi-bell"></i>Notifications</div>
+        </a>
+        <a href="support.html">
+            <div class="nav-item"><i class="bi bi-headset"></i>Support</div>
+        </a>
+        <a href="reports.html">
+            <div class="nav-item"><i class="bi bi-bar-chart"></i>Reports</div>
+        </a>
+        <div class="nav-item mt-4" onclick="logout()" style="color:#f87171;cursor:pointer"><i
+                class="bi bi-box-arrow-left"></i>Logout</div>
     </div>
     <div class="main">
         <!-- Topbar -->
         <div class="topbar">
-            <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
-            <div><h5 class="fw-bold mb-0">Attendance Management</h5><small class="text-muted">College Bus Attendance Records</small></div>
+            <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+            </div>
+            <div>
+                <h5 class="fw-bold mb-0">Attendance Management</h5><small class="text-muted">College Bus Attendance
+                    Records</small>
+            </div>
             <div class="d-flex gap-2 align-items-center">
-                <button class="btn btn-danger btn-sm" onclick="exportAttendancePDF()"><i class="bi bi-file-pdf me-1"></i>PDF</button>
-                <button class="btn btn-success btn-sm" onclick="exportAttendanceExcel()"><i class="bi bi-file-excel me-1"></i>Excel</button>
+                <button class="btn btn-danger btn-sm" onclick="exportAttendancePDF()"><i
+                        class="bi bi-file-pdf me-1"></i>PDF</button>
+                <button class="btn btn-success btn-sm" onclick="exportAttendanceExcel()"><i
+                        class="bi bi-file-excel me-1"></i>Excel</button>
                 <span class="badge bg-primary admin-box px-3 py-2">College Admin</span>
             </div>
         </div>
@@ -68,10 +125,12 @@
                 </div>
                 <div class="col-md-2" id="monthPickerWrap" style="display:none">
                     <label class="form-label small fw-medium mb-1">Select Month</label>
-                    <input type="month" id="monthFilter" class="form-control form-control-sm" onchange="loadAttendance()">
+                    <input type="month" id="monthFilter" class="form-control form-control-sm"
+                        onchange="loadAttendance()">
                 </div>
                 <div class="col-md-2 d-flex align-items-end">
-                    <button class="btn btn-primary btn-sm w-100" onclick="loadAttendance()"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                    <button class="btn btn-primary btn-sm w-100" onclick="loadAttendance()"><i
+                            class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
                 </div>
             </div>
         </div>
@@ -81,7 +140,8 @@
             <div class="row g-2 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label small fw-medium mb-1">Search Student</label>
-                    <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Name or ID..." oninput="applyFilters()">
+                    <input type="text" id="searchInput" class="form-control form-control-sm" placeholder="Name or ID..."
+                        oninput="applyFilters()">
                 </div>
                 <div class="col-md-2">
                     <label class="form-label small fw-medium mb-1">Bus</label>
@@ -132,7 +192,8 @@
                             <th>Branch</th>
                             <th>Year</th>
                             <th>Bus</th>
-                            <th>City</th>
+                            <th>Login City</th>
+                            <th>Boarding City</th>
                             <th>Boarding Time</th>
                             <th>Arrival Time</th>
                             <th>Status</th>
@@ -149,7 +210,7 @@
     <script>
         if (!verifyInstitution("college")) throw "unauthorized";
 
-        const BUSES = ["BUS-2","BUS-3","BUS-7","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
+        const BUSES = ["BUS-2", "BUS-3", "BUS-7", "BUS-9", "BUS-10", "BUS-11", "BUS-12", "BUS-13", "BUS-14", "BUS-15"];
         let allRecords = [];
         let allStudents = {}; // studentId → student doc (for city, branch, year lookups)
         let routesData = []; // route data for city lookups
@@ -158,8 +219,8 @@
         // Init date pickers
         document.getElementById("dateFilter").value = new Date().toISOString().split("T")[0];
         const now = new Date();
-        document.getElementById("weekFilter").value = `${now.getFullYear()}-W${String(getWeekNumber(now)).padStart(2,'0')}`;
-        document.getElementById("monthFilter").value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+        document.getElementById("weekFilter").value = `${now.getFullYear()}-W${String(getWeekNumber(now)).padStart(2, '0')}`;
+        document.getElementById("monthFilter").value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
         // Populate bus filter
         document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + BUSES.map(b => `<option value="${b}">${b}</option>`).join("");
@@ -245,7 +306,7 @@
                 const daysInMonth = new Date(yr, mo, 0).getDate();
                 const dates = [];
                 for (let i = 1; i <= daysInMonth; i++) {
-                    dates.push(`${yr}-${String(mo).padStart(2,'0')}-${String(i).padStart(2,'0')}`);
+                    dates.push(`${yr}-${String(mo).padStart(2, '0')}-${String(i).padStart(2, '0')}`);
                 }
                 return { dates, label: `${monthVal}` };
             }
@@ -315,43 +376,59 @@
             renderTable(filtered);
         }
 
-        // ── Render Table ─────────────────────────────────────────────
+        // ── Render Table — Grouped by Date ─────────────────────────
         function renderTable(records) {
             const tbody = document.getElementById("attBody");
             if (!records.length) {
-                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No attendance records found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No attendance records found</td></tr>';
                 return;
             }
-            tbody.innerHTML = records.map(r => {
-                const student = allStudents[r.studentId] || {};
-                const city = student.city || "—";
-                const branch = r.branch || student.branch || "—";
-                const year = r.academicYear || student.year || "—";
-                const yearLabel = year === "1" ? "1st" : year === "2" ? "2nd" : year === "3" ? "3rd" : year === "4" ? "4th" : year;
 
-                const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
-                const at = r.arrivalTime ? new Date(r.arrivalTime._seconds ? r.arrivalTime._seconds * 1000 : r.arrivalTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
+            // Group by date (newest first)
+            const byDate = {};
+            records.forEach(r => {
+                const d = r.date || 'Unknown';
+                if (!byDate[d]) byDate[d] = [];
+                byDate[d].push(r);
+            });
+            const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
-                let statusBadge;
-                if (r.exited) {
-                    statusBadge = '<span class="badge badge-exit px-2 py-1">Exit</span>';
-                } else if (r.present) {
-                    statusBadge = '<span class="badge badge-present px-2 py-1">Present</span>';
-                } else {
-                    statusBadge = '<span class="badge badge-absent px-2 py-1">Absent</span>';
-                }
+            let html = '';
+            sortedDates.forEach(dateKey => {
+                const dateRecords = byDate[dateKey];
+                const presentCount = dateRecords.filter(r => r.present).length;
+                const pct = dateRecords.length > 0 ? Math.round((presentCount / dateRecords.length) * 100) : 0;
+                const formattedDate = formatAttDate(dateKey);
 
-                return `<tr>
-                    <td class="fw-semibold">${r.studentName || r.studentId || "—"}</td>
-                    <td class="small">${branch}</td>
-                    <td class="small">${yearLabel}</td>
-                    <td><span class="badge bg-secondary">${r.busId || "—"}</span></td>
-                    <td class="small">${city}</td>
-                    <td class="small">${bt}</td>
-                    <td class="small">${at}</td>
-                    <td>${statusBadge}</td>
-                </tr>`;
-            }).join("");
+                html += `<tr><td colspan="9" style="background:#eef2ff;padding:12px 14px;font-weight:700;font-size:13px;color:#1e293b;border-left:4px solid #2563eb;">📅 ${formattedDate} &nbsp;&nbsp;<span style="font-weight:500;color:#64748b;font-size:12px;">Attendance: <strong style="color:#16a34a;">${pct}%</strong> (${presentCount}/${dateRecords.length})</span></td></tr>`;
+                dateRecords.forEach(r => {
+                    const student = allStudents[r.studentId] || {};
+                    const loginCity = student.city || r.city || "—";
+                    const boardingCity = r.boardingCity || "Not available";
+                    const branch = r.branch || student.branch || "—";
+                    const year = r.academicYear || student.year || "—";
+                    const yearLabel = year === "1" ? "1st" : year === "2" ? "2nd" : year === "3" ? "3rd" : year === "4" ? "4th" : year;
+                    const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                    const at = r.arrivalTime ? new Date(r.arrivalTime._seconds ? r.arrivalTime._seconds * 1000 : r.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                    let statusBadge;
+                    if (r.exited) statusBadge = '<span class="badge badge-exit px-2 py-1">Exit</span>';
+                    else if (r.present) statusBadge = '<span class="badge badge-present px-2 py-1">Present</span>';
+                    else statusBadge = '<span class="badge badge-absent px-2 py-1">Absent</span>';
+                    html += `<tr><td class="fw-semibold">${r.studentName || r.studentId || "—"}</td><td class="small">${branch}</td><td class="small">${yearLabel}</td><td><span class="badge bg-secondary">${r.busId || "—"}</span></td><td class="small">${loginCity}</td><td class="small">${boardingCity}</td><td class="small">${bt}</td><td class="small">${at}</td><td>${statusBadge}</td></tr>`;
+                });
+            });
+            tbody.innerHTML = html;
+        }
+
+        // Format YYYY-MM-DD to "15 Aug 2026"
+        function formatAttDate(ds) {
+            if (!ds || ds === 'Unknown') return ds;
+            try {
+                const p = ds.split('-');
+                if (p.length !== 3) return ds;
+                const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+                return `${parseInt(p[2],10)} ${months[parseInt(p[1],10)-1]} ${p[0]}`;
+            } catch(e) { return ds; }
         }
 
         // ── Init ─────────────────────────────────────────────────────
@@ -363,11 +440,8 @@
 
         // ── Export PDF ───────────────────────────────────────────────
         function exportAttendancePDF() {
-            const search = document.getElementById("searchInput").value.toLowerCase();
             const busF = document.getElementById("busFilter").value;
             const { label } = getDateRange();
-
-            // Get currently filtered records
             const filtered = getFilteredRecords();
             if (filtered.length === 0) { alert("No records to export"); return; }
 
@@ -377,7 +451,7 @@
             // Header
             doc.setFontSize(16);
             doc.setFont("helvetica", "bold");
-            doc.text("SCEP Bus Tracking System", 14, 18);
+            doc.text("SCEP Bus Tracking Application", 14, 18);
             doc.setFontSize(13);
             doc.text("Attendance Report", 14, 26);
             doc.setFontSize(10);
@@ -388,29 +462,45 @@
             doc.text(`Generated: ${new Date().toLocaleDateString("en-IN")}`, 100, 40);
             doc.text(`Total Records: ${filtered.length}`, 14, 46);
 
-            // Table
-            const rows = filtered.map(r => {
-                const student = allStudents[r.studentId] || {};
-                const city = student.city || "—";
-                const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
-                return [
-                    r.studentName || r.studentId || "—",
-                    city,
-                    r.busId || "—",
-                    bt,
-                    r.date || "—",
-                ];
-            });
+            // Group by date (newest first)
+            const byDate = {};
+            filtered.forEach(r => { const d = r.date || 'Unknown'; if (!byDate[d]) byDate[d] = []; byDate[d].push(r); });
+            const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
-            doc.autoTable({
-                startY: 52,
-                head: [["Student Name", "City", "Bus", "Boarding Time", "Date"]],
-                body: rows,
-                theme: "grid",
-                headStyles: { fillColor: [37, 99, 235], fontSize: 9, fontStyle: "bold" },
-                bodyStyles: { fontSize: 8 },
-                alternateRowStyles: { fillColor: [248, 250, 252] },
-                margin: { left: 14, right: 14 },
+            let yPos = 54;
+            sortedDates.forEach(dateKey => {
+                const dateRecords = byDate[dateKey];
+                const presentCount = dateRecords.filter(r => r.present).length;
+                const pct = dateRecords.length > 0 ? Math.round((presentCount / dateRecords.length) * 100) : 0;
+                const formattedDate = formatAttDate(dateKey);
+
+                if (yPos > 250) { doc.addPage(); yPos = 20; }
+                doc.setFontSize(11);
+                doc.setFont("helvetica", "bold");
+                doc.text(`${formattedDate}  —  Attendance: ${pct}% (${presentCount}/${dateRecords.length})`, 14, yPos);
+                yPos += 6;
+
+                const rows = dateRecords.map(r => {
+                    const student = allStudents[r.studentId] || {};
+                    const loginCity = student.city || r.city || "—";
+                    const boardingCity = r.boardingCity || "Not available";
+                    const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                    const at = r.arrivalTime ? new Date(r.arrivalTime._seconds ? r.arrivalTime._seconds * 1000 : r.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                    const status = r.present ? "Present" : r.exited ? "Exited" : "Absent";
+                    return [r.studentName || r.studentId || "—", loginCity, boardingCity, r.busId || "—", bt, at, status];
+                });
+
+                doc.autoTable({
+                    startY: yPos,
+                    head: [["Student", "Login City", "Boarding City", "Bus", "Boarding", "Arrival", "Status"]],
+                    body: rows,
+                    theme: "grid",
+                    headStyles: { fillColor: [37, 99, 235], fontSize: 9, fontStyle: "bold" },
+                    bodyStyles: { fontSize: 8 },
+                    alternateRowStyles: { fillColor: [248, 250, 252] },
+                    margin: { left: 14, right: 14 },
+                });
+                yPos = doc.lastAutoTable.finalY + 12;
             });
 
             // Footer
@@ -419,11 +509,11 @@
                 doc.setPage(i);
                 doc.setFontSize(8);
                 doc.setFont("helvetica", "italic");
-                doc.text("Generated from SCEP Bus Tracking System", 14, 288);
+                doc.text("Generated from SCEP Bus Tracking Application", 14, 288);
                 doc.text(`Page ${i} of ${pageCount}`, 180, 288);
             }
 
-            doc.save(`Attendance_${label.replace(/\s/g,"_")}.pdf`);
+            doc.save(`Attendance_${label.replace(/\s/g, "_")}.pdf`);
         }
 
         // ── Export Excel ─────────────────────────────────────────────
@@ -433,26 +523,42 @@
             const { label } = getDateRange();
             const busF = document.getElementById("busFilter").value;
 
-            const rows = filtered.map(r => {
-                const student = allStudents[r.studentId] || {};
-                const city = student.city || "—";
-                const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
-                return {
-                    "Student Name": r.studentName || r.studentId || "—",
-                    "City": city,
-                    "Bus Number": r.busId || "—",
-                    "Boarding Time": bt,
-                    "Boarding Date": r.date || "—",
-                    "Branch": r.branch || student.branch || "—",
-                    "Status": r.present ? "Present" : r.exited ? "Exited" : "Absent",
-                };
-            });
+            // Group by date (newest first)
+            const byDate = {};
+            filtered.forEach(r => { const d = r.date || 'Unknown'; if (!byDate[d]) byDate[d] = []; byDate[d].push(r); });
+            const sortedDates = Object.keys(byDate).sort((a, b) => b.localeCompare(a));
 
             const wb = XLSX.utils.book_new();
-            const ws = XLSX.utils.json_to_sheet(rows);
-            ws["!cols"] = [{wch:22},{wch:14},{wch:10},{wch:14},{wch:12},{wch:16},{wch:10}];
+            // Build a single sheet with date sections
+            const sheetData = [];
+            sortedDates.forEach(dateKey => {
+                const dateRecords = byDate[dateKey];
+                const presentCount = dateRecords.filter(r => r.present).length;
+                const pct = dateRecords.length > 0 ? Math.round((presentCount / dateRecords.length) * 100) : 0;
+                const formattedDate = formatAttDate(dateKey);
+
+                // Date heading row
+                sheetData.push([`${formattedDate}  —  Attendance: ${pct}% (${presentCount}/${dateRecords.length})`]);
+                // Header row
+                sheetData.push(["Student Name", "Login City", "Boarding City", "Bus", "Branch", "Boarding Time", "Arrival Time", "Status"]);
+                // Data rows
+                dateRecords.forEach(r => {
+                    const student = allStudents[r.studentId] || {};
+                    const loginCity = student.city || r.city || "—";
+                    const boardingCity = r.boardingCity || "Not available";
+                    const bt = r.boardingTime ? new Date(r.boardingTime._seconds ? r.boardingTime._seconds * 1000 : r.boardingTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                    const at = r.arrivalTime ? new Date(r.arrivalTime._seconds ? r.arrivalTime._seconds * 1000 : r.arrivalTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : "—";
+                    const status = r.present ? "Present" : r.exited ? "Exited" : "Absent";
+                    sheetData.push([r.studentName || r.studentId || "—", loginCity, boardingCity, r.busId || "—", r.branch || student.branch || "—", bt, at, status]);
+                });
+                // Blank separator
+                sheetData.push([]);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(sheetData);
+            ws["!cols"] = [{ wch: 22 }, { wch: 14 }, { wch: 16 }, { wch: 10 }, { wch: 16 }, { wch: 14 }, { wch: 14 }, { wch: 10 }];
             XLSX.utils.book_append_sheet(wb, ws, "Attendance");
-            XLSX.writeFile(wb, `Attendance_${label.replace(/\s/g,"_")}_${busF === "all" ? "AllBuses" : busF}.xlsx`);
+            XLSX.writeFile(wb, `Attendance_${label.replace(/\s/g, "_")}_${busF === "all" ? "AllBuses" : busF}.xlsx`);
         }
 
         // ── Helper: Get currently filtered records ───────────────────
@@ -480,4 +586,5 @@
         }
     </script>
 </body>
+
 </html>

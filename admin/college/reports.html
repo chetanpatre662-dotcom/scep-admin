@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <script>if(!localStorage.getItem("token")||localStorage.getItem("token").split(".").length!==3){document.documentElement.style.display="none";localStorage.clear();window.location.replace("../index.html")}</script>
@@ -112,7 +112,7 @@
         <div class="topbar">
             <div style="display:flex;align-items:center;gap:12px;">
                 <button class="mobile-menu-btn" id="menuToggle" onclick="toggleReportSidebar()" aria-label="Toggle menu"><i class="bi bi-list"></i></button>
-                <div><h4>📊 Reports & Analytics</h4><p>Bus-wise trip reports, attendance, and exports</p></div>
+                <div><h4>ðŸ“Š Reports & Analytics</h4><p>Bus-wise trip reports, attendance, and exports</p></div>
             </div>
             <div class="d-flex gap-2" style="flex-wrap:wrap;">
                 <button class="btn-export" onclick="exportPDF()"><i class="bi bi-file-pdf me-1"></i>Export PDF</button>
@@ -122,11 +122,11 @@
 
         <!-- Stats Cards -->
         <div class="stats-row" id="statsRow">
-            <div class="stat-card"><div class="stat-icon">🚌</div><h3 id="sTotalTrips">-</h3><p>Today's Trips</p></div>
-            <div class="stat-card"><div class="stat-icon">📍</div><h3 id="sTotalDist">-</h3><p>Total Distance (KM)</p></div>
-            <div class="stat-card"><div class="stat-icon">👥</div><h3 id="sTotalPass">-</h3><p>Today's Passengers</p></div>
-            <div class="stat-card"><div class="stat-icon">🟢</div><h3 id="sRunning">-</h3><p>Running Buses</p></div>
-            <div class="stat-card"><div class="stat-icon">✅</div><h3 id="sCompleted">-</h3><p>Completed Trips</p></div>
+            <div class="stat-card"><div class="stat-icon">ðŸšŒ</div><h3 id="sTotalTrips">-</h3><p>Today's Trips</p></div>
+            <div class="stat-card"><div class="stat-icon">ðŸ“</div><h3 id="sTotalDist">-</h3><p>Total Distance (KM)</p></div>
+            <div class="stat-card"><div class="stat-icon">ðŸ‘¥</div><h3 id="sTotalPass">-</h3><p>Today's Passengers</p></div>
+            <div class="stat-card"><div class="stat-icon">ðŸŸ¢</div><h3 id="sRunning">-</h3><p>Running Buses</p></div>
+            <div class="stat-card"><div class="stat-icon">âœ…</div><h3 id="sCompleted">-</h3><p>Completed Trips</p></div>
         </div>
 
         <!-- Filters -->
@@ -159,7 +159,7 @@
     </div>
 
 <script>
-// ── Sidebar toggle (mobile) ──
+// â”€â”€ Sidebar toggle (mobile) â”€â”€
 function toggleReportSidebar() {
     var sb = document.getElementById('reportSidebar');
     var ov = document.getElementById('sidebarOverlay');
@@ -182,7 +182,7 @@ const isSuperAdmin = (inst === "all");
 function headers() { return { "Content-Type": "application/json", "Authorization": token }; }
 function logout() { localStorage.removeItem("token"); localStorage.removeItem("institution"); window.location.href = "../index.html"; }
 
-// Format YYYY-MM-DD → "15 Aug 2026" (readable date)
+// Format YYYY-MM-DD â†’ "15 Aug 2026" (readable date)
 function formatTripDate(dateStr) {
     if (!dateStr || dateStr === 'Unknown Date') return dateStr || '-';
     try {
@@ -287,7 +287,7 @@ async function loadReport() {
             if (bus.totalPassengers !== undefined) html += `<span>Passengers: <strong>${bus.totalPassengers}</strong></span>`;
             html += `</div></div>`;
 
-            // Trips table — grouped by date (newest first)
+            // Trips table â€” grouped by date (newest first)
             if (bus.trips.length > 0) {
                 // Sort trips: newest date first, then by startTime within same date
                 const sortedTrips = [...bus.trips].sort((a, b) => {
@@ -307,7 +307,7 @@ async function loadReport() {
                 for (const [dateKey, dateTrips] of Object.entries(tripsByDate)) {
                     // Date header
                     const formattedDate = formatTripDate(dateKey);
-                    html += `<div style="margin-top:14px;margin-bottom:6px;padding:6px 12px;background:#f1f5f9;border-radius:8px;font-size:12px;font-weight:600;color:#334155;border-left:3px solid #2563eb;">📅 ${formattedDate}</div>`;
+                    html += `<div style="margin-top:14px;margin-bottom:6px;padding:6px 12px;background:#f1f5f9;border-radius:8px;font-size:12px;font-weight:600;color:#334155;border-left:3px solid #2563eb;">ðŸ“… ${formattedDate}</div>`;
                     html += `<div class="report-table-wrap"><table class="trip-table"><thead><tr><th>#</th><th>Date</th><th>Start Time</th><th>End Time</th><th>Duration</th><th>Distance</th><th>Status</th></tr></thead><tbody>`;
                     dateTrips.forEach((t, i) => {
                         const statusClass = t.status === 'running' ? 'status-running' : t.status === 'completed' ? 'status-completed' : 'status-not-started';
@@ -346,7 +346,7 @@ function exportPDF() {
     // Header
     doc.setFontSize(18);
     doc.setFont("helvetica", "bold");
-    doc.text("SCEP Bus Tracking System", 14, 20);
+    doc.text("SCEP Bus Tracking Application", 14, 20);
     doc.setFontSize(14);
     doc.text("Bus Report", 14, 30);
     doc.setFontSize(10);
@@ -360,7 +360,7 @@ function exportPDF() {
         if (yPos > 250) { doc.addPage(); yPos = 20; }
         doc.setFontSize(12);
         doc.setFont("helvetica", "bold");
-        doc.text(`${bus.busId} — Trips: ${bus.totalTrips} | Distance: ${bus.totalDistance} KM`, 14, yPos);
+        doc.text(`${bus.busId} â€” Trips: ${bus.totalTrips} | Distance: ${bus.totalDistance} KM`, 14, yPos);
         yPos += 8;
 
         // Trips table
@@ -406,7 +406,7 @@ function exportPDF() {
         doc.setPage(i);
         doc.setFontSize(8);
         doc.setFont("helvetica", "italic");
-        doc.text("Generated from SCEP Bus Tracking System", 14, 290);
+        doc.text("Generated from SCEP Bus Tracking Application", 14, 290);
         doc.text(`Page ${i} of ${pageCount}`, 180, 290);
     }
 
@@ -476,9 +476,9 @@ function exportExcel() {
     XLSX.writeFile(wb, `Bus_Report_${startDate}_to_${endDate}.xlsx`);
 }
 
-// Init — parallel load (stats + bus filter load together, then report after UI is ready)
+// Init â€” parallel load (stats + bus filter load together, then report after UI is ready)
 Promise.all([loadStats(), loadBusFilter()]).then(() => {
-    // Load report only after filters are populated (lazy — after UI interactive)
+    // Load report only after filters are populated (lazy â€” after UI interactive)
     requestAnimationFrame(() => loadReport());
 });
 </script>

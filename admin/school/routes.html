@@ -21,6 +21,7 @@
         .bus-preview-card{background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px;transition:.2s;height:420px;display:flex;flex-direction:column;overflow:hidden}
         .bus-preview-card:hover{box-shadow:0 3px 12px rgba(37,99,235,.08);border-color:#2563eb}
         .bus-preview-card .route-scroll{flex:1;overflow-y:auto;overflow-x:hidden;scrollbar-width:thin}
+        @media(max-width:576px){#viewModal .modal-dialog{margin:12px;max-width:calc(100vw - 24px)}#viewModal .modal-body{padding:16px}}
     </style>
 </head>
 <body>
@@ -154,10 +155,10 @@
 
     <!-- View Route Modal -->
     <div class="modal fade" id="viewModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content border-0" style="border-radius:16px">
+        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+            <div class="modal-content border-0" style="border-radius:16px;max-height:90vh;">
                 <div class="modal-header border-0 bg-light p-3"><h6 class="modal-title fw-bold"><i class="bi bi-eye me-2 text-primary"></i>Route Details</h6><button class="btn-close" data-bs-dismiss="modal"></button></div>
-                <div class="modal-body p-4" id="viewBody"></div>
+                <div class="modal-body p-4" id="viewBody" style="overflow-y:auto;"></div>
             </div>
         </div>
     </div>
@@ -346,9 +347,9 @@
                     <p><strong>Status:</strong> <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></p>
                     <hr>
                     <h6 class="small fw-bold">Stops (${cities.length})</h6>
-                    <table class="table table-sm table-bordered"><thead><tr><th>#</th><th>City</th><th>Lat</th><th>Lng</th></tr></thead><tbody>
-                    ${cities.map((c,i) => `<tr><td>${i+1}</td><td>${c.name||"-"}</td><td>${c.lat??"-"}</td><td>${c.lng??"-"}</td></tr>`).join("")}
-                    </tbody></table>`;
+                    <div style="overflow-x:auto;width:100%;-webkit-overflow-scrolling:touch;"><table class="table table-sm table-bordered" style="min-width:320px;"><thead><tr><th>#</th><th>City</th><th>Lat</th><th>Lng</th></tr></thead><tbody>
+                    ${cities.map((c,i) => `<tr><td>${i+1}</td><td style="word-break:break-word;">${c.name||"-"}</td><td style="font-size:11px;">${c.lat??"-"}</td><td style="font-size:11px;">${c.lng??"-"}</td></tr>`).join("")}
+                    </tbody></table></div>`;
                 new bootstrap.Modal(document.getElementById("viewModal")).show();
             } catch (e) { alert("Failed to load"); }
         }
