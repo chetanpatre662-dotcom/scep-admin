@@ -40,12 +40,12 @@
         .ticket-search input:focus { border-color: var(--primary); box-shadow: 0 0 0 4px color-mix(in srgb, var(--primary) 10%, transparent); background: var(--bg-card); }
         .ticket-search input::placeholder { color: var(--text-muted); }
         .ticket-search i { position: absolute; left: 13px; top: 50%; transform: translateY(-50%); color: var(--text-muted); font-size: 14px; }
-        .ticket-filters { display: flex; gap: 6px; padding: 12px 20px; border-bottom: 1px solid var(--border-light); overflow-x: auto; scrollbar-width: none; }
+        .ticket-filters { display: flex; gap: 6px; padding: 12px 20px; border-bottom: 1px solid var(--border-light); overflow-x: auto; white-space: nowrap; scrollbar-width: none; -webkit-overflow-scrolling: touch; }
         .ticket-filters::-webkit-scrollbar { display: none; }
         .ticket-filters .chip {
             padding: 6px 14px; border-radius: 20px; font-size: 11.5px; font-weight: 600;
             cursor: pointer; white-space: nowrap; border: 1.5px solid var(--border);
-            color: var(--text-secondary); transition: all .2s; background: transparent; user-select: none;
+            color: var(--text-secondary); transition: all .2s; background: transparent; user-select: none; flex-shrink: 0;
         }
         .ticket-filters .chip.active { background: var(--gradient-main); color: var(--text-on-primary); border-color: transparent; box-shadow: 0 3px 10px color-mix(in srgb, var(--primary) 30%, transparent); }
         .ticket-filters .chip:hover:not(.active) { background: color-mix(in srgb, var(--primary) 6%, white); border-color: color-mix(in srgb, var(--primary) 30%, transparent); color: var(--primary); }
@@ -115,17 +115,62 @@
         .status-badge.resolved { background: color-mix(in srgb, #10B981 10%, white); color: #065f46; }
         .status-badge.closed { background: var(--bg-page); color: var(--text-secondary); }
 
+        /* ── Mobile Profile Bottom Sheet ── */
+        .profile-sheet-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.5); z-index: 1200; backdrop-filter: blur(4px); }
+        .profile-sheet-overlay.active { display: block; }
+        .profile-sheet { position: fixed; bottom: 0; left: 0; right: 0; z-index: 1201; background: var(--bg-card); border-radius: 20px 20px 0 0; padding: 0; max-height: 75vh; overflow-y: auto; transform: translateY(100%); transition: transform .3s cubic-bezier(.4,0,.2,1); box-shadow: 0 -8px 40px rgba(0,0,0,.15); }
+        .profile-sheet.active { transform: translateY(0); }
+        .profile-sheet-handle { width: 40px; height: 4px; background: var(--border); border-radius: 4px; margin: 12px auto 0; }
+        .profile-sheet-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 12px; border-bottom: 1px solid var(--border-light); }
+        .profile-sheet-header h6 { font-size: 15px; font-weight: 700; color: var(--text-primary); margin: 0; }
+        .profile-sheet-close { background: none; border: none; font-size: 22px; color: var(--text-secondary); cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background .15s; }
+        .profile-sheet-close:hover { background: var(--bg-page); }
+        .profile-sheet-body { padding: 16px 20px 24px; }
+        .profile-sheet-body .profile-field { margin-bottom: 14px; }
+        .profile-sheet-body .profile-field .label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; font-weight: 600; letter-spacing: .5px; }
+        .profile-sheet-body .profile-field .value { font-size: 14px; color: var(--text-primary); font-weight: 500; margin-top: 3px; }
+
         /* ── Responsive ── */
         @media (max-width: 1200px) { .profile-panel { display: none; } }
         @media (max-width: 991px) {
             .support-layout { flex-direction: column; height: auto; min-height: unset; gap: 16px; }
-            .ticket-list-panel { width: 100%; max-height: 260px; }
+            .ticket-list-panel { width: 100%; max-height: none; }
+            .ticket-list { max-height: 300px; }
             .chat-panel { min-height: 360px; height: 60vh; max-height: 500px; }
         }
+        @media (max-width: 767px) {
+            /* Stats: 4 in a row — full width, compact cards */
+            .stats-row-mobile { display: grid !important; grid-template-columns: repeat(4, 1fr); gap: 10px; width: 100%; }
+            .stats-row-mobile > * { max-width: 100%; width: 100%; padding: 0; flex: unset; }
+            .stats-row-mobile .stat-card { padding: 10px 6px; border-radius: 12px; text-align: center; }
+            .stats-row-mobile .stat-icon { width: 30px; height: 30px; font-size: 13px; border-radius: 8px; margin: 0 auto 6px; }
+            .stats-row-mobile .stat-value { font-size: 17px; font-weight: 700; letter-spacing: -.3px; margin: 2px 0; }
+            .stats-row-mobile .stat-label { font-size: 10.5px; font-weight: 500; margin-top: 2px; white-space: normal; line-height: 1.2; }
+
+            /* Master-detail */
+            .support-layout { gap: 0; margin-top: 16px; }
+            .ticket-list-panel { width: 100%; max-height: none; border-radius: var(--radius-lg); }
+            .ticket-list { max-height: 50vh; }
+            .chat-panel { display: none; min-height: 100vh; height: auto; max-height: none; border-radius: 0; position: fixed; inset: 0; z-index: 1100; flex-direction: column; }
+            .chat-panel.mobile-active { display: flex; }
+            .ticket-list-panel.mobile-hidden { display: none; }
+            .mobile-chat-back { display: flex !important; align-items: center; gap: 8px; padding: 14px 16px; background: var(--bg-card); border-bottom: 1px solid var(--border-light); cursor: pointer; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+            .mobile-chat-back i { font-size: 18px; color: var(--primary); }
+
+            /* Chat header tappable */
+            .chat-header .info { cursor: pointer; }
+            .chat-header .info::after { content: '\f235'; font-family: 'bootstrap-icons'; font-size: 10px; color: var(--text-muted); margin-left: 6px; }
+
+            /* Hide inline profile panel */
+            .profile-panel { display: none !important; }
+        }
         @media (max-width: 576px) {
-            .support-layout { gap: 12px; margin-top: 16px; }
-            .ticket-list-panel { max-height: 220px; }
-            .chat-panel { min-height: 300px; height: 55vh; }
+            .support-layout { margin-top: 12px; }
+            .stats-row-mobile { gap: 8px; }
+            .stats-row-mobile .stat-card { padding: 8px 4px; border-radius: 10px; }
+            .stats-row-mobile .stat-icon { width: 26px; height: 26px; font-size: 11px; border-radius: 7px; margin-bottom: 5px; }
+            .stats-row-mobile .stat-value { font-size: 15px; }
+            .stats-row-mobile .stat-label { font-size: 9.5px; line-height: 1.15; }
             .chat-messages { padding: 14px 12px; }
             .msg { max-width: 85%; padding: 10px 14px; font-size: 12.5px; }
             .chat-input { padding: 12px; gap: 8px; }
@@ -171,7 +216,7 @@
         </div>
 
         <!-- Stats Row -->
-        <div class="row g-3">
+        <div class="row g-3 stats-row-mobile">
             <div class="col-xl-3 col-md-6 col-6">
                 <div class="stat-card"><div class="stat-icon" style="background:#e0f2fe;color:#0284c7"><i class="bi bi-chat-dots-fill"></i></div><div class="stat-value" id="sTotal">-</div><div class="stat-label">Total Tickets</div></div>
             </div>
@@ -210,7 +255,10 @@
             </div>
 
             <!-- Chat Panel -->
-            <div class="chat-panel">
+            <div class="chat-panel" id="chatPanel">
+                <div class="mobile-chat-back" id="mobileChatBack" style="display:none" onclick="closeMobileChat()">
+                    <i class="bi bi-arrow-left"></i> Back to Conversations
+                </div>
                 <div class="chat-empty" id="chatEmpty">
                     <i class="bi bi-chat-square-text"></i>
                     <p>Select a ticket to view conversation</p>
@@ -225,16 +273,96 @@
                 </div>
             </div>
 
-            <!-- Profile Panel -->
+            <!-- Profile Panel (desktop only) -->
             <div class="profile-panel" id="profilePanel" style="display:none">
                 <div id="profileContent"></div>
             </div>
+        </div>
+
+        <!-- Mobile Profile Bottom Sheet -->
+        <div class="profile-sheet-overlay" id="profileSheetOverlay" onclick="closeProfileSheet()"></div>
+        <div class="profile-sheet" id="profileSheet">
+            <div class="profile-sheet-handle"></div>
+            <div class="profile-sheet-header">
+                <h6>Student Details</h6>
+                <button class="profile-sheet-close" onclick="closeProfileSheet()">&times;</button>
+            </div>
+            <div class="profile-sheet-body" id="profileSheetBody"></div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../shared/admin-common.js"></script>
     <script src="../shared/support-common.js"></script>
-    <script>initSupport("school");</script>
+    <script>
+    initSupport("school");
+
+    // ── Mobile Master-Detail Navigation ──────────────────────────────────────
+    function isMobileView() { return window.innerWidth < 768; }
+
+    function openMobileChat() {
+        if (!isMobileView()) return;
+        const listPanel = document.querySelector('.ticket-list-panel');
+        const chatPanel = document.getElementById('chatPanel');
+        if (listPanel) listPanel.classList.add('mobile-hidden');
+        if (chatPanel) chatPanel.classList.add('mobile-active');
+        window.history.pushState({ chatOpen: true }, '');
+    }
+
+    function closeMobileChat() {
+        const listPanel = document.querySelector('.ticket-list-panel');
+        const chatPanel = document.getElementById('chatPanel');
+        if (listPanel) listPanel.classList.remove('mobile-hidden');
+        if (chatPanel) chatPanel.classList.remove('mobile-active');
+    }
+
+    // Hook into supportCtrl.openTicket to trigger mobile view
+    const _origOpenTicket = window.supportCtrl?.openTicket;
+    if (_origOpenTicket) {
+        window.supportCtrl.openTicket = function(ticketId) {
+            _origOpenTicket(ticketId);
+            openMobileChat();
+        };
+    }
+
+    // Browser back button / Android hardware back
+    window.addEventListener('popstate', function(e) {
+        if (isMobileView() && document.getElementById('chatPanel')?.classList.contains('mobile-active')) {
+            closeMobileChat();
+        }
+    });
+
+    // On resize, reset mobile classes if switching to desktop
+    window.addEventListener('resize', function() {
+        if (!isMobileView()) {
+            document.querySelector('.ticket-list-panel')?.classList.remove('mobile-hidden');
+            document.getElementById('chatPanel')?.classList.remove('mobile-active');
+        }
+    });
+
+    // ── Mobile Profile Bottom Sheet ─────────────────────────────────────────
+    function openProfileSheet() {
+        if (!isMobileView()) return;
+        const profileContent = document.getElementById('profileContent');
+        const sheetBody = document.getElementById('profileSheetBody');
+        if (profileContent && sheetBody) {
+            sheetBody.innerHTML = profileContent.innerHTML;
+        }
+        document.getElementById('profileSheetOverlay').classList.add('active');
+        document.getElementById('profileSheet').classList.add('active');
+    }
+
+    function closeProfileSheet() {
+        document.getElementById('profileSheetOverlay').classList.remove('active');
+        document.getElementById('profileSheet').classList.remove('active');
+    }
+
+    // Make chat header tappable on mobile to open profile sheet
+    document.addEventListener('click', function(e) {
+        if (!isMobileView()) return;
+        const infoEl = e.target.closest('.chat-header .info');
+        if (infoEl) openProfileSheet();
+    });
+    </script>
 </body>
 </html>
