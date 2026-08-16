@@ -6,6 +6,38 @@ function getToken() { return localStorage.getItem("token") || ""; }
 function getInstitution() { return localStorage.getItem("institution") || "college"; }
 function headers() { return { "Content-Type": "application/json", "Authorization": getToken() }; }
 
+// ── Global RTO Bus Number Mapping ───────────────────────────────────────────
+// Unified mapping: busId → RTO registration number
+// Loaded once, available globally via getBusDisplayName()
+let _globalRtoMapping = null; // null = not yet loaded, {} = loaded but empty
+
+async function loadGlobalRtoMapping() {
+  if (_globalRtoMapping !== null) return _globalRtoMapping;
+  try {
+    const res = await fetch(`${API}/admin/rto-mapping`, { headers: headers() });
+    const data = await res.json();
+    _globalRtoMapping = (data.success && data.mapping) ? data.mapping : {};
+  } catch (e) {
+    _globalRtoMapping = {};
+  }
+  return _globalRtoMapping;
+}
+
+/**
+ * Get bus display name with RTO number.
+ * @param {string} busId - e.g. "BUS-1", "BUS-02", "BUS-15"
+ * @returns {string} - e.g. "BUS-1 - MP50 ZL2578" or "BUS-1" if no RTO
+ */
+function getBusDisplayName(busId) {
+  if (!busId) return busId || "";
+  if (!_globalRtoMapping) return busId; // not loaded yet, return plain
+  const rto = _globalRtoMapping[busId];
+  return rto ? `${busId} - ${rto}` : busId;
+}
+
+// Auto-load RTO mapping when admin-common.js is initialized (non-blocking)
+if (getToken()) loadGlobalRtoMapping();
+
 // ── Security — Immediate Auth Gate (blocks page render) ─────────────────────
 // Call this at the TOP of every dashboard <script> to prevent content flash.
 function requireAuth(expectedInstitution) {

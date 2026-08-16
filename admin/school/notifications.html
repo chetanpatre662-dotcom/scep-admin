@@ -154,7 +154,7 @@
                 if (!list.length) { document.getElementById("notifHistory").innerHTML = '<p class="text-muted small">No notifications sent yet</p>'; return; }
                 document.getElementById("notifHistory").innerHTML = list.slice(0, 20).map(n => {
                     const date = n.createdAt ? new Date(n.createdAt._seconds ? n.createdAt._seconds * 1000 : n.createdAt).toLocaleString() : "—";
-                    const audienceBadge = n.audienceType === "BUS" ? `<span class="badge bg-info">${n.busId}</span>` : '<span class="badge bg-primary">All</span>';
+                    const audienceBadge = n.audienceType === "BUS" ? `<span class="badge bg-info">${getBusDisplayName(n.busId)}</span>` : '<span class="badge bg-primary">All</span>';
                     return `<div class="d-flex justify-content-between align-items-start border-bottom py-2">
                         <div><div class="fw-semibold small">${n.title || "—"}</div><div class="text-muted" style="font-size:11px">${n.message || ""}</div></div>
                         <div class="text-end">${audienceBadge}<div class="text-muted" style="font-size:10px">${date}</div></div>

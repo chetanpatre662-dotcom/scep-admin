@@ -196,10 +196,10 @@
 
         // ── Init ─────────────────────────────────────────────────────
         function populateBusSelects() {
-            const opts = BUSES.map(b => `<option value="${b}">${b}</option>`).join("");
+            const opts = BUSES.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
             document.getElementById("cBusSelect").innerHTML = opts;
             document.getElementById("eBusSelect").innerHTML = opts;
-            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + opts;
+            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + BUSES.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
         }
         populateBusSelects();
 
@@ -243,7 +243,7 @@
                 const end = cities[cities.length-1]?.name || "—";
                 return `<tr>
                     <td class="fw-semibold">${r.routeName||"-"}</td>
-                    <td><span class="badge bg-secondary">${r.busId||"-"}</span></td>
+                    <td><span class="badge bg-secondary">${getBusDisplayName(r.busId||"-")}</span></td>
                     <td class="small">${start}</td><td class="small">${end}</td>
                     <td>${cities.length}</td>
                     <td><span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></td>
@@ -269,7 +269,7 @@
                 }).join("");
                 return `<div class="col-xl-4 col-md-6"><div class="bus-preview-card">
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="fw-bold small">${r.busId}</span>
+                        <span class="fw-bold small">${getBusDisplayName(r.busId)}</span>
                         <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}" style="font-size:10px">${r.status}</span>
                     </div>
                     <div class="small text-muted mb-2">${r.routeName} · ${cities.length} stops</div>
@@ -343,7 +343,7 @@
                 const cities = r.cities || [];
                 document.getElementById("viewBody").innerHTML = `
                     <p><strong>Route:</strong> ${r.routeName}</p>
-                    <p><strong>Bus:</strong> ${r.busId}</p>
+                    <p><strong>Bus:</strong> ${getBusDisplayName(r.busId)}</p>
                     <p><strong>Status:</strong> <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></p>
                     <hr>
                     <h6 class="small fw-bold">Stops (${cities.length})</h6>

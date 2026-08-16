@@ -204,7 +204,7 @@
             const buses = [...new Set(records.map(r => r.busId).filter(Boolean))].sort();
             const sel = document.getElementById("attBusFilter");
             const current = sel.value;
-            sel.innerHTML = '<option value="all">All Buses</option>' + buses.map(b => `<option value="${b}">${b}</option>`).join("");
+            sel.innerHTML = '<option value="all">All Buses</option>' + buses.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
             sel.value = current || "all";
         }
 
@@ -255,7 +255,7 @@
                     // Bus feed
                     document.getElementById("busFeed").innerHTML = buses.slice(0, 5).map(b => `
                         <div class="d-flex justify-content-between align-items-center mb-2 small">
-                            <span class="fw-medium">${b.busId}</span>
+                            <span class="fw-medium">${getBusDisplayName(b.busId)}</span>
                             <span class="text-muted">${b.currentCity||'—'} → ${b.nextCity||'—'}</span>
                             <span class="badge ${b.tripActive?'bg-success':'bg-secondary'}">${b.tripActive?'Moving':'Idle'}</span>
                         </div>
@@ -288,7 +288,7 @@
                 else statusBadge = '<span class="badge bg-secondary">Idle</span>';
                 const lastUp = b.timestamp ? new Date(b.timestamp).toLocaleTimeString([], {hour:'2-digit',minute:'2-digit'}) : "—";
                 return `<tr class="bus-status-row">
-                    <td class="fw-semibold">${b.busId}</td>
+                    <td class="fw-semibold">${getBusDisplayName(b.busId)}</td>
                     <td>${b.driver || "N/A"}</td>
                     <td><span class="badge bg-info">${onboard}</span></td>
                     <td>${Math.round(b.speed || 0)} km/h</td>
@@ -359,7 +359,7 @@
             buses.forEach(bus => {
                 const newPos = { lat: Number(bus.lat), lng: Number(bus.lng) };
                 const icon = (bus.busId === activeBusId) ? blueIcon() : redIcon();
-                const infoHtml = `<div style="padding:8px;font-family:Poppins"><strong>${bus.busId}</strong><br>
+                const infoHtml = `<div style="padding:8px;font-family:Poppins"><strong>${getBusDisplayName(bus.busId)}</strong><br>
                     <small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small></div>`;
                 if (markerMap[bus.busId]) {
                     // Smooth animate to new position
@@ -426,7 +426,7 @@
                 const hasMarker = !!markerMap[bus.busId];
                 return `<div class="bus-list-item${isActive ? ' active' : ''}" data-bus-id="${bus.busId}" onclick="focusBus('${bus.busId}')">
                     <div>
-                        <div class="bus-id">${bus.busId}</div>
+                        <div class="bus-id">${getBusDisplayName(bus.busId)}</div>
                         <div class="bus-route">${bus.route || bus.currentCity || '—'}</div>
                     </div>
                     <div class="d-flex align-items-center gap-2">

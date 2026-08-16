@@ -440,7 +440,7 @@
                 const cities = r.cities || [];
                 document.getElementById("viewBody").innerHTML = `
                     <p><strong>Route:</strong> ${r.routeName}</p>
-                    <p><strong>Bus:</strong> ${r.busId}</p>
+                    <p><strong>Bus:</strong> ${getBusDisplayName(r.busId)}</p>
                     <p><strong>Status:</strong> <span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></p>
                     <hr>
                     <h6 class="small fw-bold">Stops (${cities.length})</h6>

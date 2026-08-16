@@ -124,7 +124,7 @@
         function populateFilters() {
             // Bus
             const buses = [...new Set(allUsers.map(u => u.busId).filter(Boolean))].sort((a,b) => (parseInt(a.replace(/\D/g,''))||0) - (parseInt(b.replace(/\D/g,''))||0));
-            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + buses.map(b => `<option value="${b}">${b}</option>`).join("");
+            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + buses.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
             // City
             const cities = [...new Set(allUsers.map(u => u.city).filter(Boolean))].sort();
             document.getElementById("cityFilter").innerHTML = '<option value="all">All</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join("");
@@ -178,7 +178,7 @@
                     <td class="fw-semibold">${u.name||"-"}</td>
                     <td>${roleBadge}</td>
                     <td class="small">${u.mobile||"-"}</td>
-                    <td><span class="badge bg-secondary">${u.busId||"-"}</span></td>
+                    <td><span class="badge bg-secondary">${getBusDisplayName(u.busId||"-")}</span></td>
                     <td class="small">${u.city||"-"}</td>
                     <td class="small">${u.branch||"-"}</td>
                     <td class="small">${yearLabel}</td>

@@ -537,7 +537,7 @@
             (buses || []).forEach(bus => {
                 const btn = document.createElement("button");
                 btn.className = "map-bus-btn" + (bus.busId === activeBusId ? " active" : "");
-                btn.id = `btn-${bus.busId}`; btn.innerText = bus.busId;
+                btn.id = `btn-${bus.busId}`; btn.innerText = getBusDisplayName(bus.busId);
                 btn.onclick = () => focusBus(bus.busId);
                 wrap.appendChild(btn);
             });
@@ -550,7 +550,7 @@
                 const icon = (bus.busId === activeBusId) ? blueIcon() : redIcon();
                 updateBusTrail(bus.busId, bus.lat, bus.lng);
                 const infoHtml = `<div style="padding:10px;font-family:Poppins,sans-serif">
-                    <h5 style="margin:0 0 6px">${bus.busId}</h5>
+                    <h5 style="margin:0 0 6px">${getBusDisplayName(bus.busId)}</h5>
                     <p style="margin:2px 0"><b>Driver:</b> ${bus.driver || "N/A"}</p>
                     <p style="margin:2px 0"><b>Route:</b> ${bus.route || "N/A"}</p>
                     <p style="margin:2px 0"><b>Status:</b> ${bus.status || "N/A"}</p>

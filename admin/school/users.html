@@ -113,7 +113,7 @@
                 const nB = parseInt(b.replace(/\D/g,'')) || 0;
                 return nA - nB;
             });
-            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + buses.map(b => `<option value="${b}">${b}</option>`).join("");
+            document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + buses.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
 
             // City filter
             const cities = [...new Set(allUsers.map(u => u.city).filter(Boolean))].sort();
@@ -154,7 +154,7 @@
                     <td class="fw-semibold">${u.name||"-"}</td>
                     <td><span class="badge ${u.role==='faculty'?'bg-warning text-dark':'bg-info'}">${(u.role||"-").charAt(0).toUpperCase()+(u.role||"").slice(1)}</span></td>
                     <td class="small">${u.mobile||"-"}</td>
-                    <td><span class="badge bg-secondary">${u.busId||"-"}</span></td>
+                    <td><span class="badge bg-secondary">${getBusDisplayName(u.busId||"-")}</span></td>
                     <td class="small">${u.city||"-"}</td>
                     <td><button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.role||'parent'}','${u.id}','${(u.name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash"></i></button></td>
                 </tr>

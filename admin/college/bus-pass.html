@@ -84,7 +84,7 @@
                 <div class="skeleton-line" style="width:70%;height:20px;margin:8px 0"></div>
             </div>
         </div>
-
+        
         <!-- Filter & Table Section -->
         <div class="section-box">
             <div class="row g-2 align-items-center mb-3">
@@ -217,7 +217,7 @@
                 <td>${s.branch || "—"}</td>
                 <td>${(s.course || "—").toUpperCase()}</td>
                 <td>${s.year || "—"}</td>
-                <td><span class="bus-badge-cell">${s.busId || "—"}</span></td>
+                <td><span class="bus-badge-cell">${getBusDisplayName(s.busId || "—")}</span></td>
                 <td>${badge}</td>
                 <td>${actions}</td>
             </tr>`;

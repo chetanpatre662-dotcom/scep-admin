@@ -128,7 +128,7 @@
                     const busList = (buses.busReport||[]).map(b=>b.busId).sort();
                     const sel = document.getElementById("fBus");
                     const cur = sel.value;
-                    sel.innerHTML = '<option value="">All Buses</option>' + busList.map(b=>`<option value="${b}">${b}</option>`).join("");
+                    sel.innerHTML = '<option value="">All Buses</option>' + busList.map(b=>`<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
                     sel.value = cur;
                 }
 
@@ -148,7 +148,7 @@
                     renderChart("chartKm", "bar", kmMap);
 
                     document.getElementById("busTable").innerHTML = (buses.busReport||[]).map(b =>
-                        `<tr><td class="fw-semibold">${b.busId}</td><td>${b.routeName||"—"}</td><td>${b.totalStops}</td><td>${b.usersAssigned}</td><td>${b.avgKmPerDay} km</td><td>${b.totalKm30d} km</td></tr>`
+                        `<tr><td class="fw-semibold">${getBusDisplayName(b.busId)}</td><td>${b.routeName||"—"}</td><td>${b.totalStops}</td><td>${b.usersAssigned}</td><td>${b.avgKmPerDay} km</td><td>${b.totalKm30d} km</td></tr>`
                     ).join("") || '<tr><td colspan="6" class="text-center text-muted">No data</td></tr>';
                 }
             } catch (e) { console.error("Report load error:", e); }

@@ -171,13 +171,13 @@
                     document.getElementById("busStatusBody").innerHTML = buses.map(b => {
                         let st = b.tripActive ? '<span class="badge bg-primary">Moving</span>' : '<span class="badge bg-secondary">Idle</span>';
                         if (b.status === "At College") st = '<span class="badge bg-success">At School</span>';
-                        return `<tr><td class="fw-semibold">${b.busId}</td><td>${b.driver||"N/A"}</td><td>${Math.round(b.speed||0)} km/h</td><td>${st}</td><td>${b.currentCity||"—"}</td><td class="small text-muted">${b.route||"—"}</td></tr>`;
+                        return `<tr><td class="fw-semibold">${getBusDisplayName(b.busId)}</td><td>${b.driver||"N/A"}</td><td>${Math.round(b.speed||0)} km/h</td><td>${st}</td><td>${b.currentCity||"—"}</td><td class="small text-muted">${b.route||"—"}</td></tr>`;
                     }).join("");
 
                     // Live feed
                     document.getElementById("busFeed").innerHTML = buses.slice(0, 5).map(b => `
                         <div class="d-flex justify-content-between align-items-center mb-2 small">
-                            <span class="fw-medium">${b.busId}</span>
+                            <span class="fw-medium">${getBusDisplayName(b.busId)}</span>
                             <span class="text-muted">${b.currentCity||'—'} → ${b.nextCity||'—'}</span>
                             <span class="badge ${b.tripActive?'bg-success':'bg-secondary'}">${b.tripActive?'Moving':'Idle'}</span>
                         </div>`).join("") || '<p class="text-muted small">No buses active</p>';
@@ -185,7 +185,7 @@
                     // Trip summary cards
                     document.getElementById("tripSummary").innerHTML = buses.filter(b => b.tripActive).map(b => `
                         <div class="trip-card">
-                            <div class="d-flex justify-content-between"><span class="fw-bold small">${b.busId}</span><span class="badge bg-success" style="font-size:10px">Active</span></div>
+                            <div class="d-flex justify-content-between"><span class="fw-bold small">${getBusDisplayName(b.busId)}</span><span class="badge bg-success" style="font-size:10px">Active</span></div>
                             <div class="text-muted" style="font-size:11px">${b.currentCity||"—"} → ${b.nextCity||"—"} · ${Math.round(b.speed||0)} km/h</div>
                         </div>`).join("") || '<p class="text-muted small">No active trips</p>';
 
@@ -250,7 +250,7 @@
             buses.forEach(bus => {
                 const pos = {lat:Number(bus.lat),lng:Number(bus.lng)};
                 const icon = (bus.busId === activeBusId) ? blueIcon() : redIcon();
-                const html = `<div style="padding:8px;font-family:Poppins"><strong>${bus.busId}</strong><br><small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small></div>`;
+                const html = `<div style="padding:8px;font-family:Poppins"><strong>${getBusDisplayName(bus.busId)}</strong><br><small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small></div>`;
                 if (markerMap[bus.busId]) {
                     const old = markerMap[bus.busId].marker.getPosition();
                     if (old.lat() !== pos.lat || old.lng() !== pos.lng) animateMarker(markerMap[bus.busId].marker, old, pos, 1500);
@@ -295,7 +295,7 @@
                 const statusText = bus.status === "At College" ? "At School" : isMoving ? "Moving" : "Idle";
                 const statusColor = bus.status === "At College" ? "bg-success" : isMoving ? "bg-primary" : "bg-secondary";
                 return `<div class="bus-list-item${isActive?' active':''}" data-bus-id="${bus.busId}" onclick="focusBus('${bus.busId}')">
-                    <div><div class="bus-id">${bus.busId}</div><div class="bus-route">${bus.route||bus.currentCity||'—'}</div></div>
+                    <div><div class="bus-id">${getBusDisplayName(bus.busId)}</div><div class="bus-route">${bus.route||bus.currentCity||'—'}</div></div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge ${statusColor}" style="font-size:10px;padding:3px 8px;border-radius:6px">${statusText}</span>
                         <button class="locate-btn" onclick="event.stopPropagation();focusBus('${bus.busId}')" ${!markerMap[bus.busId]?'disabled':''}><i class="bi bi-geo-alt-fill me-1"></i>Locate</button>

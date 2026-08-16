@@ -108,6 +108,12 @@ if(!token||!token.includes(".")||(role!=="bus_pass_admin"&&localStorage.getItem(
 function headers(){return{"Content-Type":"application/json","Authorization":token}}
 function logout(){localStorage.clear();window.location.replace("../index.html")}
 
+// RTO Bus Display (self-contained for standalone bus-pass page)
+let _rtoMap=null;
+async function _loadRto(){try{const r=await fetch(`${API}/admin/rto-mapping`,{headers:headers()});const d=await r.json();_rtoMap=d.success?d.mapping||{}:{}}catch(e){_rtoMap={}}}
+function getBusDisplayName(id){if(!id||id==="—")return id||"";if(!_rtoMap)return id;const r=_rtoMap[id];return r?`${id} - ${r}`:id}
+_loadRto();
+
 // Backend verification check — ensures account is still verified server-side
 (async function checkBackendAuth(){
     try{
@@ -175,7 +181,7 @@ function render(list){
         if(s.status==="pending")actions=`<button class="btn-act btn-verify" onclick="verify('${s.id}',this)"><i class="bi bi-check-lg"></i>Verify</button>`;
         else if(s.status==="verified")actions=`<button class="btn-act btn-renew me-1" onclick="renew('${s.id}',this)"><i class="bi bi-arrow-repeat"></i>Renew</button><button class="btn-act btn-revoke" onclick="revoke('${s.id}',this)"><i class="bi bi-slash-circle"></i>Revoke</button>`;
         else actions=`<button class="btn-act btn-renew" onclick="renew('${s.id}',this)"><i class="bi bi-arrow-repeat"></i>Renew</button>`;
-        return `<tr><td class="name-cell">${s.name||"—"}</td><td><span class="roll-cell">${s.rollNumber||"—"}</span></td><td>${s.branch||"—"}</td><td>${(s.course||"—").toUpperCase()}</td><td>${s.year||"—"}</td><td><span class="bus-badge">${s.busId||"—"}</span></td><td>${badge}</td><td>${actions}</td></tr>`;
+        return `<tr><td class="name-cell">${s.name||"—"}</td><td><span class="roll-cell">${s.rollNumber||"—"}</span></td><td>${s.branch||"—"}</td><td>${(s.course||"—").toUpperCase()}</td><td>${s.year||"—"}</td><td><span class="bus-badge">${getBusDisplayName(s.busId||"—")}</span></td><td>${badge}</td><td>${actions}</td></tr>`;
     }).join("")||'<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--muted)">No students found</td></tr>';
 }
 
