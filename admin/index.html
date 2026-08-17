@@ -27,6 +27,7 @@
     <div class="space-y-4">
       <input id="username" type="text" placeholder="Username" class="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
       <input id="password" type="password" placeholder="Password" class="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400">
+      <input id="email" type="email" placeholder="Your Email (required for Bus Pass)" class="w-full p-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-400" style="display:none">
       <button onclick="login()" class="w-full bg-blue-500 text-white p-3 rounded-lg font-semibold hover:bg-blue-600 transition">Login</button>
       <p id="msg" class="text-center text-sm text-red-500"></p>
     </div>
@@ -66,9 +67,10 @@ async function login() {
   const msg = document.getElementById("msg");
   msg.style.color = "gray"; msg.innerText = "Checking...";
   try {
+    const email = document.getElementById("email").value.trim();
     const res = await fetch(`${API_BASE}/admin/login`, {
       method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, password })
+      body: JSON.stringify({ username, password, email })
     });
     const data = await res.json();
     if (data.success) {
@@ -96,6 +98,10 @@ async function login() {
         path = "college/dashboard.html";
       }
       setTimeout(() => { window.location.href = path; }, 600);
+    } else if (data.requiresEmail) {
+      // Show email field for Bus Pass admin login
+      document.getElementById("email").style.display = "block";
+      msg.style.color = "#d97706"; msg.innerText = "Email required for Bus Pass admin login";
     } else if (data.requiresVerification) {
       // Bus Pass Admin account requires verification
       msg.innerText = "";
