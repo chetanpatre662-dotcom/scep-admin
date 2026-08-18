@@ -785,6 +785,7 @@ button { cursor: pointer; border: none; font-family: inherit; }
         </a>
         <ul class="nav-links" id="navLinks">
             <li><a href="#about">About</a></li>
+            <li><a href="#live-tracking">Live Tracking</a></li>
             <li><a href="#features">Features</a></li>
             <li><a href="#screenshots">Screenshots</a></li>
             <li><a href="#download">Download</a></li>
@@ -860,6 +861,188 @@ button { cursor: pointer; border: none; font-family: inherit; }
         </div>
     </div>
 </section>
+
+<!-- =============================================
+     LIVE BUS TRACKING
+     ============================================= -->
+<section class="section" id="live-tracking">
+    <div class="container">
+        <span class="section-eyebrow reveal">Live Tracking</span>
+        <h2 class="section-title reveal">Live Bus Tracking</h2>
+        <p class="section-subtitle reveal">Track our college buses in real time on the map.</p>
+
+        <!-- Bus Selector: buttons on desktop, dropdown on mobile -->
+        <div class="track-bus-selector reveal" id="trackBusSelector">
+            <div class="track-bus-buttons" id="trackBusButtons">
+                <span class="track-status" id="trackStatus">Connecting...</span>
+            </div>
+            <select class="track-bus-dropdown" id="trackBusDropdown" onchange="selectTrackBus(this.value)">
+                <option value="">Select Bus</option>
+            </select>
+        </div>
+
+        <!-- Bus Info Strip -->
+        <div class="track-bus-info reveal" id="trackBusInfo" style="display:none">
+            <span id="trackBusName">—</span>
+            <span id="trackBusSpeed">—</span>
+            <span id="trackBusState">—</span>
+        </div>
+
+        <!-- Google Map -->
+        <div class="track-map-container reveal">
+            <div id="trackMap" style="width:100%;height:100%"></div>
+        </div>
+    </div>
+</section>
+
+<style>
+/* Live Bus Tracking Section */
+.track-bus-selector { display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+.track-bus-buttons { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.track-bus-dropdown { display:none; padding:10px 16px; border-radius:10px; border:1.5px solid var(--border); background:var(--card); color:var(--text); font-size:0.88rem; font-weight:600; font-family:inherit; }
+.track-bus-btn { padding:8px 18px; border-radius:10px; font-size:0.82rem; font-weight:600; background:var(--card); color:var(--text); border:1.5px solid var(--border); transition:all .2s; cursor:pointer; }
+.track-bus-btn:hover { border-color:var(--primary); color:var(--primary); background:var(--glow); }
+.track-bus-btn.active { background:linear-gradient(135deg,var(--blue),var(--blue-mid)); color:#fff; border-color:transparent; box-shadow:0 4px 14px rgba(37,99,235,.28); }
+.track-status { font-size:0.78rem; font-weight:500; color:var(--text-secondary); }
+.track-bus-info { display:flex; gap:16px; flex-wrap:wrap; align-items:center; margin-bottom:14px; padding:10px 18px; border-radius:12px; background:var(--card); border:1px solid var(--border); box-shadow:var(--shadow-sm); font-size:0.84rem; font-weight:600; color:var(--text); }
+.track-bus-info span:first-child { color:var(--primary); font-weight:700; }
+.track-map-container { width:100%; height:420px; border-radius:20px; overflow:hidden; border:1px solid var(--border); box-shadow:var(--shadow-md); background:var(--bg-alt); }
+@media(max-width:768px) {
+    .track-bus-buttons { display:none !important; }
+    .track-bus-dropdown { display:block; width:100%; }
+    .track-map-container { height:320px; border-radius:16px; }
+    .track-bus-info { font-size:0.78rem; padding:8px 14px; gap:10px; }
+}
+@media(max-width:480px) { .track-map-container { height:260px; } }
+</style>
+
+<script>
+(function(){
+    // ── Live Bus Tracking (WebSocket consumer) ──────────────────────────────
+    const WS_URL = "wss://bustracker.satpudaengineeringcollege.com/ws";
+    let trackWs = null;
+    let trackBuses = [];
+    let selectedTrackBus = null;
+    let trackMap = null;
+    let trackMarker = null;
+    let trackMapReady = false;
+
+    function connectTrackWs() {
+        try { trackWs = new WebSocket(WS_URL); } catch(_) { setTrackStatus("Offline"); return; }
+        trackWs.onopen = () => {
+            trackWs.send(JSON.stringify({ type: "join", institution: "college" }));
+            setTrackStatus("Live");
+        };
+        trackWs.onmessage = (e) => {
+            try {
+                const msg = JSON.parse(e.data);
+                if (msg.type === "update" || msg.type === "init") {
+                    trackBuses = msg.data || [];
+                    renderTrackBusButtons();
+                    updateTrackMarker();
+                }
+            } catch(_){}
+        };
+        trackWs.onerror = () => setTrackStatus("Offline");
+        trackWs.onclose = () => { setTrackStatus("Reconnecting..."); setTimeout(connectTrackWs, 4000); };
+    }
+
+    function setTrackStatus(s) {
+        const el = document.getElementById("trackStatus");
+        if (!el) return;
+        const colors = { Live:"#16a34a", Offline:"#dc2626", "Reconnecting...":"#d97706", "Connecting...":"#64748b" };
+        el.textContent = s === "Live" ? "● Live" : s;
+        el.style.color = colors[s] || "#64748b";
+    }
+
+    function renderTrackBusButtons() {
+        const btnContainer = document.getElementById("trackBusButtons");
+        const dropdown = document.getElementById("trackBusDropdown");
+        if (!btnContainer || !dropdown) return;
+        // Sort buses naturally
+        const sorted = [...trackBuses].sort((a,b) => {
+            const nA = parseInt((a.busId||"").replace(/\D/g,"")) || 0;
+            const nB = parseInt((b.busId||"").replace(/\D/g,"")) || 0;
+            return nA - nB;
+        });
+        // Buttons (desktop)
+        const statusEl = btnContainer.querySelector(".track-status");
+        btnContainer.innerHTML = "";
+        if (statusEl) btnContainer.appendChild(statusEl);
+        sorted.forEach(b => {
+            const btn = document.createElement("button");
+            btn.className = "track-bus-btn" + (b.busId === selectedTrackBus ? " active" : "");
+            btn.textContent = b.busId;
+            btn.onclick = () => selectTrackBus(b.busId);
+            btnContainer.appendChild(btn);
+        });
+        // Dropdown (mobile)
+        const cur = dropdown.value;
+        dropdown.innerHTML = '<option value="">Select Bus</option>' + sorted.map(b => `<option value="${b.busId}" ${b.busId===selectedTrackBus?"selected":""}>${b.busId}</option>`).join("");
+        // Auto-select first if none selected
+        if (!selectedTrackBus && sorted.length > 0) selectTrackBus(sorted[0].busId);
+    }
+
+    window.selectTrackBus = function(busId) {
+        if (!busId) return;
+        selectedTrackBus = busId;
+        // Highlight active button
+        document.querySelectorAll(".track-bus-btn").forEach(b => b.classList.toggle("active", b.textContent === busId));
+        document.getElementById("trackBusDropdown").value = busId;
+        updateTrackMarker();
+    };
+
+    function updateTrackMarker() {
+        if (!selectedTrackBus || !trackBuses.length) return;
+        const bus = trackBuses.find(b => b.busId === selectedTrackBus);
+        if (!bus || !bus.lat || !bus.lng) return;
+        // Info strip
+        const infoEl = document.getElementById("trackBusInfo");
+        if (infoEl) {
+            infoEl.style.display = "flex";
+            document.getElementById("trackBusName").textContent = bus.busId;
+            document.getElementById("trackBusSpeed").textContent = `${Math.round(bus.speed||0)} km/h`;
+            document.getElementById("trackBusState").textContent = bus.tripActive ? "● Moving" : bus.status || "Idle";
+            document.getElementById("trackBusState").style.color = bus.tripActive ? "#16a34a" : "#64748b";
+        }
+        // Map
+        if (!trackMapReady) return;
+        const pos = { lat: Number(bus.lat), lng: Number(bus.lng) };
+        if (trackMarker) {
+            trackMarker.setPosition(pos);
+        } else {
+            trackMarker = new google.maps.Marker({ position: pos, map: trackMap, title: bus.busId });
+        }
+        trackMap.panTo(pos);
+    }
+
+    // Init map
+    function initTrackMap() {
+        const el = document.getElementById("trackMap");
+        if (!el || trackMapReady) return;
+        trackMap = new google.maps.Map(el, { center: { lat: 21.825, lng: 80.151 }, zoom: 13, disableDefaultUI: true, zoomControl: true });
+        trackMapReady = true;
+        updateTrackMarker();
+    }
+
+    // Load Google Maps (reuse existing key)
+    function loadTrackMapScript() {
+        if (window.google && google.maps) { initTrackMap(); return; }
+        const s = document.createElement("script");
+        s.src = "https://maps.googleapis.com/maps/api/js?key=AIzaSyDdx_xK0a-HjRxXMnqV3quDpAAT90OOe8M&callback=_initTrackMapCb";
+        s.async = true; s.defer = true;
+        document.head.appendChild(s);
+    }
+    window._initTrackMapCb = initTrackMap;
+
+    // Start
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", () => { loadTrackMapScript(); connectTrackWs(); });
+    } else {
+        loadTrackMapScript(); connectTrackWs();
+    }
+})();
+</script>
 
 <!-- =============================================
      FEATURES
@@ -1145,6 +1328,7 @@ button { cursor: pointer; border: none; font-family: inherit; }
                 <h4>Quick Links</h4>
                 <ul>
                     <li><a href="#about">About</a></li>
+                    <li><a href="#live-tracking">Live Tracking</a></li>
                     <li><a href="#features">Features</a></li>
                     <li><a href="#screenshots">Screenshots</a></li>
                     <li><a href="#download">Download</a></li>
