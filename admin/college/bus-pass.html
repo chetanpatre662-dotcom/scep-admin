@@ -213,8 +213,8 @@
             else actions = `<button class="btn-act btn-renew" onclick="renewPass('${s.id}',this)"><i class="bi bi-arrow-repeat"></i>Renew</button>`;
 
             return `<tr>
-                <td><div style="display:flex;align-items:center;gap:10px">
-                    ${s.passPhotoUrl ? `<img src="${s.passPhotoUrl}" style="width:32px;height:32px;border-radius:50%;object-fit:cover;border:2px solid #e5e7eb" onerror="this.style.display='none'">` : `<div style="width:32px;height:32px;border-radius:50%;background:#f1f5f9;display:flex;align-items:center;justify-content:center"><i class="bi bi-person-fill" style="color:#94a3b8;font-size:14px"></i></div>`}
+                <td><div style="display:flex;align-items:center;gap:12px">
+                    ${s.passPhotoUrl ? `<img src="${s.passPhotoUrl}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:2px solid #e5e7eb;flex-shrink:0;cursor:pointer" onclick="openPhotoViewer('${s.passPhotoUrl.replace(/'/g,"\\'")}','${(s.name||'Student').replace(/'/g,"\\'")}')" onerror="this.outerHTML='<div style=\\'width:52px;height:52px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0\\'><i class=\\'bi bi-person-fill\\' style=\\'color:#94a3b8;font-size:20px\\'></i></div>'">` : `<div style="width:52px;height:52px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-person-fill" style="color:#94a3b8;font-size:20px"></i></div>`}
                     <span style="font-weight:600">${s.name || "—"}</span>
                 </div></td>
                 <td><span class="roll-cell">${s.rollNumber || "—"}</span></td>
@@ -373,6 +373,33 @@
             else { showToast(data.error || "Failed to revoke", "error"); }
         } catch (_) { showToast("Network error", "error"); }
     }
+
+    // ── Photo Viewer Modal ──────────────────────────────────────────────────
+    function openPhotoViewer(url, name) {
+        if (!url) return;
+        let overlay = document.getElementById('photoViewerOverlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'photoViewerOverlay';
+            overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px;cursor:pointer;backdrop-filter:blur(4px)';
+            overlay.onclick = function(e) { if (e.target === overlay) closePhotoViewer(); };
+            overlay.innerHTML = `
+                <button onclick="closePhotoViewer()" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:28px;width:44px;height:44px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center">&times;</button>
+                <img id="photoViewerImg" style="max-width:90vw;max-height:75vh;border-radius:12px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.4)">
+                <div id="photoViewerName" style="color:#fff;font-size:14px;font-weight:600;text-align:center"></div>`;
+            document.body.appendChild(overlay);
+        }
+        document.getElementById('photoViewerImg').src = url;
+        document.getElementById('photoViewerName').textContent = name || '';
+        overlay.style.display = 'flex';
+        document.addEventListener('keydown', _photoViewerEsc);
+    }
+    function closePhotoViewer() {
+        const overlay = document.getElementById('photoViewerOverlay');
+        if (overlay) overlay.style.display = 'none';
+        document.removeEventListener('keydown', _photoViewerEsc);
+    }
+    function _photoViewerEsc(e) { if (e.key === 'Escape') closePhotoViewer(); }
     </script>
 </body>
 </html>

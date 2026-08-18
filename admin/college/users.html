@@ -30,7 +30,10 @@
         <div class="topbar">
             <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
             <div><h5 class="fw-bold mb-0">Users Management</h5><small class="text-muted">Students & Faculty</small></div>
-            <span class="badge bg-primary px-3 py-2 admin-box">College Admin</span>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-primary btn-sm" onclick="downloadPDF()"><i class="bi bi-file-pdf me-1"></i>Download PDF</button>
+                <span class="badge bg-primary px-3 py-2 admin-box">College Admin</span>
+            </div>
         </div>
 
         <!-- Advanced Filter Bar -->
@@ -91,14 +94,16 @@
         <div class="section-box fade-up">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Year</th><th>Actions</th></tr></thead>
-                    <tbody id="usersBody"><tr><td colspan="8" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
+                    <thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Course</th><th>Year</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr><td colspan="9" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
                 </table>
             </div>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="../shared/admin-common.js"></script>
     <script>
         if (!verifyInstitution("college")) throw "unauthorized";
@@ -166,7 +171,7 @@
             updateChips();
 
             if (!filtered.length) {
-                document.getElementById("usersBody").innerHTML = `<tr><td colspan="8"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
+                document.getElementById("usersBody").innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
                 return;
             }
 
@@ -182,6 +187,7 @@
                     <td><span class="badge bg-secondary">${getBusDisplayName(u.busId||"-")}</span></td>
                     <td class="small">${u.city||"-"}</td>
                     <td class="small">${u.branch||"-"}</td>
+                    <td class="small">${(u.course||"-").toUpperCase()}</td>
                     <td class="small">${yearLabel}</td>
                     <td><button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.role||'student'}','${u.id}','${(u.name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash3"></i></button></td>
                 </tr>`;
@@ -219,6 +225,54 @@
                     renderTable();
                 } else { alert(data.error || "Delete failed"); }
             } catch (e) { alert("Network error"); }
+        }
+
+        function downloadPDF() {
+            if (!allUsers.length) { showToast("No users to export", "warning"); return; }
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF({ orientation: "landscape" });
+            const today = new Date().toLocaleDateString("en-IN");
+
+            doc.setFontSize(16);
+            doc.setFont("helvetica", "bold");
+            doc.text("SCEP College — Students & Faculty Report", 14, 18);
+            doc.setFontSize(10);
+            doc.setFont("helvetica", "normal");
+            doc.text(`Generated: ${today} | Total: ${allUsers.length}`, 14, 26);
+
+            const rows = allUsers.map((u, i) => [
+                i + 1,
+                u.name || "-",
+                (u.role || "-").charAt(0).toUpperCase() + (u.role || "").slice(1),
+                u.mobile || "-",
+                u.busId || "-",
+                u.city || "-",
+                u.branch || "-",
+                (u.course || "-").toUpperCase(),
+                YEAR_LABELS[u.year] || u.year || "-",
+            ]);
+
+            doc.autoTable({
+                startY: 32,
+                head: [["#", "Name", "Role", "Mobile", "Bus", "City", "Branch", "Course", "Year"]],
+                body: rows,
+                theme: "grid",
+                headStyles: { fillColor: [79, 70, 229], fontSize: 9, fontStyle: "bold" },
+                bodyStyles: { fontSize: 8 },
+                alternateRowStyles: { fillColor: [248, 250, 252] },
+                margin: { left: 10, right: 10 },
+                styles: { cellPadding: 3 },
+                didDrawPage: function(data) {
+                    // Footer
+                    doc.setFontSize(8);
+                    doc.setFont("helvetica", "italic");
+                    doc.text("SCEP Bus Tracking Application", 10, doc.internal.pageSize.height - 8);
+                    doc.text(`Page ${doc.internal.getNumberOfPages()}`, doc.internal.pageSize.width - 25, doc.internal.pageSize.height - 8);
+                },
+            });
+
+            doc.save("college-students-report.pdf");
+            showToast("PDF downloaded", "success");
         }
 
         loadUsers();
