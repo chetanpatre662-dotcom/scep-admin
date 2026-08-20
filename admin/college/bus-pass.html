@@ -99,6 +99,9 @@
                     <select class="form-select form-select-sm" id="fYear" onchange="applyFilter()"><option value="">All Years</option></select>
                 </div>
                 <div class="col-md-2">
+                    <select class="form-select form-select-sm" id="fCity" onchange="applyFilter()"><option value="">All Cities</option></select>
+                </div>
+                <div class="col-md-2">
                     <select class="form-select form-select-sm" id="fStatus" onchange="applyFilter()">
                         <option value="">All Status</option>
                         <option value="verified">Verified</option>
@@ -120,12 +123,13 @@
                             <th>Course</th>
                             <th>Year</th>
                             <th>Bus</th>
+                            <th>City</th>
                             <th>Status</th>
                             <th>Action</th>
                         </tr>
                     </thead>
                     <tbody id="tbody">
-                        <tr><td colspan="8"><div class="skeleton-line" style="width:100%;height:20px;margin:8px 0"></div><div class="skeleton-line" style="width:85%;height:20px;margin:8px 0"></div><div class="skeleton-line" style="width:92%;height:20px;margin:8px 0"></div></td></tr>
+                        <tr><td colspan="9"><div class="skeleton-line" style="width:100%;height:20px;margin:8px 0"></div><div class="skeleton-line" style="width:85%;height:20px;margin:8px 0"></div><div class="skeleton-line" style="width:92%;height:20px;margin:8px 0"></div></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -180,19 +184,23 @@
     function populateFilters() {
         const branches = [...new Set(allStudents.map(s => s.branch).filter(Boolean))].sort();
         const years = [...new Set(allStudents.map(s => s.year).filter(Boolean))].sort();
+        const cities = [...new Set(allStudents.map(s => (s.city||"").trim()).filter(Boolean))].sort((a,b) => a.toLowerCase().localeCompare(b.toLowerCase()));
         document.getElementById("fBranch").innerHTML = '<option value="">All Branches</option>' + branches.map(b => `<option>${b}</option>`).join("");
         document.getElementById("fYear").innerHTML = '<option value="">All Years</option>' + years.map(y => `<option>${y}</option>`).join("");
+        document.getElementById("fCity").innerHTML = '<option value="">All Cities</option>' + cities.map(c => `<option>${c}</option>`).join("");
     }
 
     function applyFilter() {
         const q = document.getElementById("fSearch").value.toLowerCase();
         const branch = document.getElementById("fBranch").value;
         const year = document.getElementById("fYear").value;
+        const city = document.getElementById("fCity").value;
         const status = document.getElementById("fStatus").value;
         const filtered = allStudents.filter(s => {
             if (q && !(s.name || "").toLowerCase().includes(q) && !(s.rollNumber || "").toLowerCase().includes(q)) return false;
             if (branch && s.branch !== branch) return false;
             if (year && s.year !== year) return false;
+            if (city && (s.city||"").trim() !== city) return false;
             if (status && s.status !== status) return false;
             return true;
         });
@@ -222,10 +230,11 @@
                 <td>${(s.course || "—").toUpperCase()}</td>
                 <td>${s.year || "—"}</td>
                 <td><span class="bus-badge-cell">${getBusDisplayName(s.busId || "—")}</span></td>
+                <td>${s.city || "—"}</td>
                 <td>${badge}</td>
                 <td>${actions}</td>
             </tr>`;
-        }).join("") || '<tr><td colspan="8" class="text-center text-muted py-5">No students found</td></tr>';
+        }).join("") || '<tr><td colspan="9" class="text-center text-muted py-5">No students found</td></tr>';
     }
 
     async function verifyPass(id, btn) {
