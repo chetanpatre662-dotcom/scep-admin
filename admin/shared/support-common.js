@@ -153,12 +153,17 @@ function initSupport(institution) {
   function connectWs() {
     if (isDestroyed) return;
     if (ws) { try { ws.close(); } catch (_) {} ws = null; }
-    try { ws = new WebSocket(WS_URL); } catch (_) { scheduleWsReconnect(); return; }
+    // Pass the admin JWT so the backend authenticates this socket (ws._isAdmin).
+    const tok = (typeof getToken === "function") ? getToken() : "";
+    const url = tok ? `${WS_URL}?token=${encodeURIComponent(tok)}` : WS_URL;
+    try { ws = new WebSocket(url); } catch (_) { scheduleWsReconnect(); return; }
 
     ws.onopen = () => {
       wsReconnectAttempts = 0;
       updateWsStatus("connected");
-      if (activeTicketId) wsJoinRoom(activeTicketId);
+      // Declare institution (also needed by bus tracking join semantics) + rejoin room
+      wsSend({ type: "join", institution: (typeof getInstitution === "function") ? getInstitution() : "college" });
+      if (activeTicketId) { wsJoinedTicketId = null; wsJoinRoom(activeTicketId); }
     };
     ws.onmessage = (event) => {
       try { handleWsEvent(JSON.parse(event.data)); } catch (_) {}
@@ -208,9 +213,22 @@ function initSupport(institution) {
     if (isDestroyed) return;
     const { type, ticketId, senderType } = data;
     switch (type) {
+      case "chat_message_ack":
+        // ACK for a reply we sent over WebSocket
+        if (data.clientMessageId) {
+          if (data.success) updateOptimisticStatus(data.clientMessageId, "sent");
+          else updateOptimisticStatus(data.clientMessageId, "failed");
+        }
+        debouncedLoadTickets();
+        break;
       case "ticket_message":
       case "ticket:message":
-        if (ticketId === activeTicketId) debouncedLoadMessages();
+        // Real-time append (no full GET reload) when the message is for the open ticket.
+        if (ticketId === activeTicketId && data.messageId && data.message) {
+          appendIncomingMessage(data);
+        } else if (ticketId === activeTicketId) {
+          debouncedLoadMessages(); // fallback for payloads without full message
+        }
         debouncedLoadTickets();
         break;
       case "ticket:unread":
@@ -483,11 +501,11 @@ function initSupport(institution) {
 
   function renderOptimisticMessage(msg) {
     const time = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
-    const statusHtml = msg.status === "sending"
-      ? '<span class="msg-status sending"><i class="bi bi-clock"></i> Sending</span>'
-      : msg.status === "failed"
+    const statusHtml = msg.status === "failed"
       ? `<span class="msg-status failed" onclick="supportCtrl._retrySend('${msg.id}')"><i class="bi bi-exclamation-circle"></i> Failed — tap to retry</span>`
-      : '<span class="msg-status sent"><i class="bi bi-check2"></i> Sent</span>';
+      : msg.status === "sent"
+        ? '<span class="msg-status sent"><i class="bi bi-check2"></i> Sent</span>'
+        : '<span class="msg-status sending"><i class="bi bi-clock"></i> Sending…</span>';
     return `<div class="msg admin optimistic" data-optimistic-id="${msg.id}">${msg.text}<div class="msg-meta">${time} ${statusHtml}</div></div>`;
   }
 
@@ -497,6 +515,36 @@ function initSupport(institution) {
     if (empty) empty.remove();
     // Append bubble
     dom.chatMessages.insertAdjacentHTML("beforeend", renderOptimisticMessage(msg));
+    dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
+  }
+
+  // ── Append a single incoming WS message directly (no full reload) ──
+  // Reconciles our own echoed admin messages via clientMessageId, and dedups
+  // by server messageId so reconnects/retries never duplicate.
+  function appendIncomingMessage(data) {
+    if (!dom.chatMessages) return;
+    const msgId = data.messageId;
+    const clientId = data.clientMessageId;
+
+    // If this is an echo of a reply WE sent, upgrade the optimistic bubble.
+    if (clientId) {
+      const optEl = dom.chatMessages.querySelector(`[data-optimistic-id="${clientId}"]`);
+      if (optEl) { updateOptimisticStatus(clientId, "sent"); return; }
+    }
+    // Dedup: skip if a bubble with this server id already exists.
+    if (dom.chatMessages.querySelector(`[data-msg-id="${msgId}"]`)) return;
+
+    // Remove empty state if present
+    const empty = dom.chatMessages.querySelector(".empty-state");
+    if (empty) empty.remove();
+
+    const isAdmin = data.senderType === "admin";
+    const secs = data.createdAtSeconds || Math.floor(Date.now() / 1000);
+    const time = new Date(secs * 1000).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    const senderName = data.senderName || (isAdmin ? "Admin" : "Student");
+    const safeText = String(data.message || "");
+    const html = `<div class="msg ${isAdmin ? "admin" : "user"}" data-msg-id="${msgId}">${!isAdmin ? `<div class="sender">${senderName}</div>` : ""}${safeText}<div class="msg-meta">${time}</div></div>`;
+    dom.chatMessages.insertAdjacentHTML("beforeend", html);
     dom.chatMessages.scrollTop = dom.chatMessages.scrollHeight;
   }
 
@@ -522,7 +570,7 @@ function initSupport(institution) {
     optimisticMessages = optimisticMessages.filter(m => m.id !== id);
   }
 
-  // ── Send Reply (optimistic — instant render, async confirmation) ──
+  // ── Send Reply (optimistic — instant render, WebSocket delivery) ──
   async function sendReply() {
     if (isDestroyed) return;
     const text = dom.replyInput.value.trim();
@@ -530,13 +578,25 @@ function initSupport(institution) {
 
     dom.replyInput.value = "";
 
-    // Create optimistic message and show immediately
+    // Client-generated id → optimistic bubble id AND server dedup key.
     const optId = `opt_${++optimisticCounter}_${Date.now()}`;
     const optMsg = { id: optId, text, status: "sending" };
     optimisticMessages.push(optMsg);
     appendOptimisticToDOM(optMsg);
 
-    // Send to backend in background
+    // ── Prefer WebSocket real-time delivery ──
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      wsSend({ type: "chat_message", ticketId: activeTicketId, clientMessageId: optId, senderName: "Admin", text });
+      // Safety net: if no ACK within 8s, mark failed for retry.
+      setTimeout(() => {
+        if (isDestroyed) return;
+        const m = optimisticMessages.find(x => x.id === optId);
+        if (m && m.status === "sending") updateOptimisticStatus(optId, "failed");
+      }, 8000);
+      return;
+    }
+
+    // ── Fallback: WebSocket unavailable → POST (still persists + broadcasts) ──
     try {
       const res = await fetch(`${API}/api/tickets/${activeTicketId}/messages`, {
         method: "POST",
@@ -545,23 +605,32 @@ function initSupport(institution) {
       });
       if (isDestroyed) return;
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      // Mark as sent
       updateOptimisticStatus(optId, "sent");
-      // Refresh ticket list to update lastMessage preview
       debouncedLoadTickets();
     } catch (e) {
-      // Mark as failed
       updateOptimisticStatus(optId, "failed");
     }
   }
 
-  // Retry a failed optimistic message
-  function retrySend(optId) {
-    const msg = optimisticMessages.find(m => m.id === optId);
-    if (!msg || msg.status !== "failed") return;
-    msg.status = "sending";
-    updateOptimisticStatus(optId, "sending");
-    // Re-send
+  // ── Retry a failed reply (reuses the same clientMessageId for dedup) ──
+  function retrySend(id) {
+    if (isDestroyed) return;
+    const msg = optimisticMessages.find(m => m.id === id);
+    if (!msg || !activeTicketId) return;
+    updateOptimisticStatus(id, "sending");
+
+    // ── Prefer WebSocket real-time delivery (same optId as dedup key) ──
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      wsSend({ type: "chat_message", ticketId: activeTicketId, clientMessageId: id, senderName: "Admin", text: msg.text });
+      setTimeout(() => {
+        if (isDestroyed) return;
+        const m = optimisticMessages.find(x => x.id === id);
+        if (m && m.status === "sending") updateOptimisticStatus(id, "failed");
+      }, 8000);
+      return;
+    }
+
+    // ── Fallback: POST (still persists + broadcasts) ──
     (async () => {
       try {
         const res = await fetch(`${API}/api/tickets/${activeTicketId}/messages`, {
@@ -569,11 +638,12 @@ function initSupport(institution) {
           headers: headers(),
           body: JSON.stringify({ senderId: "admin", senderType: "admin", senderName: "Admin", message: msg.text }),
         });
+        if (isDestroyed) return;
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        updateOptimisticStatus(optId, "sent");
+        updateOptimisticStatus(id, "sent");
         debouncedLoadTickets();
       } catch (_) {
-        updateOptimisticStatus(optId, "failed");
+        updateOptimisticStatus(id, "failed");
       }
     })();
   }
@@ -674,4 +744,4 @@ function initSupport(institution) {
   window.setFilter = setFilter;
   window.filterTickets = filterTickets;
   window.sendReply = sendReply;
-}
+};

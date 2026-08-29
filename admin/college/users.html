@@ -94,8 +94,8 @@
         <div class="section-box fade-up">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>Name</th><th>Role</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Course</th><th>Year</th><th>Actions</th></tr></thead>
-                    <tbody id="usersBody"><tr><td colspan="9" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
+                    <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Course</th><th>Year</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr><td colspan="10" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -171,7 +171,7 @@
             updateChips();
 
             if (!filtered.length) {
-                document.getElementById("usersBody").innerHTML = `<tr><td colspan="9"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
+                document.getElementById("usersBody").innerHTML = `<tr><td colspan="10"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
                 return;
             }
 
@@ -183,6 +183,7 @@
                 return `<tr>
                     <td class="fw-semibold">${u.name||"-"}</td>
                     <td>${roleBadge}</td>
+                    <td class="small text-muted">${u.email||"N/A"}</td>
                     <td class="small">${u.mobile||"-"}</td>
                     <td><span class="badge bg-secondary">${getBusDisplayName(u.busId||"-")}</span></td>
                     <td class="small">${u.city||"-"}</td>
@@ -244,6 +245,7 @@
                 i + 1,
                 u.name || "-",
                 (u.role || "-").charAt(0).toUpperCase() + (u.role || "").slice(1),
+                u.email || "N/A",
                 u.mobile || "-",
                 u.busId || "-",
                 u.city || "-",
@@ -254,7 +256,7 @@
 
             doc.autoTable({
                 startY: 32,
-                head: [["#", "Name", "Role", "Mobile", "Bus", "City", "Branch", "Course", "Year"]],
+                head: [["#", "Name", "Role", "Email", "Mobile", "Bus", "City", "Branch", "Course", "Year"]],
                 body: rows,
                 theme: "grid",
                 headStyles: { fillColor: [79, 70, 229], fontSize: 9, fontStyle: "bold" },
