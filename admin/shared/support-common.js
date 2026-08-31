@@ -19,7 +19,6 @@ function initSupport(institution) {
   let loadMessagesController = null;
   let loadTicketsController = null;
   let isDestroyed = false;
-  let isSending = false;
 
   // ── WebSocket state ──
   let ws = null;
@@ -116,20 +115,10 @@ function initSupport(institution) {
     if (el) el.remove();
   }
 
-  function setSendingState(sending) {
-    isSending = sending;
-    const btn = dom.replyInput?.parentElement?.querySelector("button");
-    if (!btn) return;
-    if (sending) {
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
-      btn.style.opacity = "0.7";
-    } else {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="bi bi-send-fill"></i>';
-      btn.style.opacity = "1";
-    }
-  }
+  // NOTE: The old blocking send-button spinner (setSendingState → spinner-border,
+  // disabled button) has been removed. Replies are now optimistic: the bubble
+  // renders instantly, the input clears immediately, and the send button stays
+  // responsive while the message is delivered over WebSocket in the background.
 
   // ═══════════════════════════════════════════════════════════════════════════
   // Network status detection
@@ -486,12 +475,19 @@ function initSupport(institution) {
     }
   }
 
-  // ── Polling (fallback — extended interval since WS handles realtime) ──
+  // ── Polling (recovery-only fallback) ──────────────────────────────────────
+  // WebSocket handles realtime delivery, so we do NOT poll while the socket is
+  // open. This timer only fetches when the WS is down (reconnect/recovery), and
+  // never runs a periodic GET during normal real-time operation. This keeps the
+  // "no GET polling after send" guarantee and prevents the optimistic bubble
+  // from being wiped by a full reload.
   function startPoll(ticketId) {
     clearInterval(pollTimer);
     pollTimer = setInterval(() => {
       if (isDestroyed) { clearInterval(pollTimer); return; }
-      if (activeTicketId === ticketId) loadMessages(ticketId);
+      if (activeTicketId !== ticketId) return;
+      const wsDown = !ws || ws.readyState !== WebSocket.OPEN;
+      if (wsDown) loadMessages(ticketId); // recover missed messages only
     }, 15000);
   }
 
