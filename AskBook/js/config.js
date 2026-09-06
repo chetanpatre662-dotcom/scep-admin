@@ -17,7 +17,7 @@ export const APP = {
   // Sub-brand / co-brand tag rendered as a refined badge next to the name.
   COLLEGE_SUB: 'SCEP',
   // Local college logo asset (app-root-relative; use resolvePath() for links).
-  COLLEGE_LOGO: '/assets/images/college_logo.png',
+  COLLEGE_LOGO: './assets/images/college_logo.png', 
   VERSION: '1.0.0-frontend',
 };
 
