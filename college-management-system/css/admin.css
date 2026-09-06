@@ -1,0 +1,61 @@
+/* =========================================================================
+   admin.css — Admin-specific styling
+   ========================================================================= */
+
+/* Admin accent = violet. Sidebar stays light; only accents differ. */
+/* Logo badge now holds the real PNG college logo — keep it transparent. */
+.role-admin .sidebar .sb-logo { background: transparent; }
+.role-admin .sidebar .sb-link.active { background: #ede9fe; color: #6d28d9; }
+.role-admin .sidebar .sb-link.active svg { color: #7c3aed; }
+.role-admin .sidebar .sb-link.sb-ai,
+.role-admin .sidebar .sb-link.sb-ai.active { background: linear-gradient(120deg, #6d28d9, #7c3aed); }
+.role-admin .avatar { background: #7c3aed; }
+.role-admin .welcome-banner { background: linear-gradient(120deg, #4c1d95, #7c3aed); }
+.role-admin .stat-card .stat-icon { background: #ede9fe; color: #6d28d9; }
+
+/* Course management accordion */
+.course-block {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  margin-bottom: var(--sp-4);
+}
+.course-block .cb-head {
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--gray-50);
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer;
+}
+.course-block .cb-head h3 { font-size: var(--fs-md); }
+.course-block .cb-body { padding: var(--sp-5); display: none; }
+.course-block.open .cb-body { display: block; }
+.course-block .cb-chevron { transition: transform var(--transition); }
+.course-block.open .cb-chevron { transform: rotate(180deg); }
+
+.pill-list { display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+.pill-list .pill {
+  padding: 6px 14px;
+  border-radius: var(--radius-full);
+  background: var(--brand-50);
+  color: var(--brand-700);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  border: 1px solid var(--brand-100);
+}
+
+.settings-grid { display: grid; grid-template-columns: 220px 1fr; gap: var(--sp-6); }
+.settings-nav .sn-link {
+  display: block;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  color: var(--gray-700);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.settings-nav .sn-link:hover { background: var(--gray-100); text-decoration: none; }
+.settings-nav .sn-link.active { background: #ede9fe; color: #6d28d9; }
+
+@media (max-width: 768px) {
+  .settings-grid { grid-template-columns: 1fr; }
+}

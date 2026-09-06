@@ -1,0 +1,259 @@
+/* =========================================================================
+   academic.css — "Academic Structure" explorer (Google Classroom / LMS style)
+   Scoped to .af-explorer so it never affects other admin pages.
+   Uses the existing violet/indigo design tokens from global.css.
+   ========================================================================= */
+
+.af-explorer { --af-accent: #6366f1; --af-accent-2: #7c3aed; }
+
+/* ---------- Breadcrumb bar ---------- */
+.af-breadcrumbs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 14px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  margin-bottom: var(--sp-4);
+  font-size: var(--fs-sm);
+}
+.af-breadcrumbs .af-crumb {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  color: var(--gray-600);
+  font-weight: 600;
+  transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+}
+.af-breadcrumbs .af-crumb:hover { background: var(--brand-50); color: var(--brand-700); text-decoration: none; }
+.af-breadcrumbs .af-crumb.current { color: var(--gray-900); cursor: default; background: transparent; }
+.af-breadcrumbs .af-crumb.current:hover { background: transparent; }
+.af-breadcrumbs .af-sep { display: inline-flex; color: var(--gray-300); }
+.af-breadcrumbs .af-sep svg { width: 15px; height: 15px; }
+
+/* ---------- Header action buttons ---------- */
+.af-actions { display: flex; align-items: center; gap: var(--sp-2); }
+.af-actions .btn { transition: background var(--transition), border-color var(--transition), box-shadow var(--transition), transform var(--transition); }
+.af-actions .btn-primary:hover { box-shadow: 0 6px 16px rgba(99, 102, 241, 0.35); transform: translateY(-1px); }
+.af-actions .btn-primary:active { transform: translateY(0); }
+
+/* ---------- Card grid ---------- */
+.af-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 20px;
+}
+
+/* ---------- Base card (Google Classroom vibe) ---------- */
+.af-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 14px;
+  overflow: hidden;
+  transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+}
+.af-card:focus-visible { outline: 2px solid var(--brand-500); outline-offset: 2px; }
+
+/* Folder cards (Course / Branch / Semester) are clickable to drill down. */
+.af-card.is-folder { cursor: pointer; }
+.af-card.is-folder:hover,
+.af-card.is-subject:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(15, 23, 42, 0.08);
+  border-color: var(--brand-200, #c7d2fe);
+}
+
+/* Header banner */
+.af-card-banner {
+  position: relative;
+  padding: 18px 18px 16px;
+  color: #fff;
+  min-height: 84px;
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.af-card-banner .af-ico {
+  width: 40px; height: 40px;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.22);
+  border-radius: 10px;
+  flex-shrink: 0;
+}
+.af-card-banner .af-ico svg { width: 22px; height: 22px; }
+.af-card-banner .af-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+  word-break: break-word;
+}
+.af-card-banner .af-title-sub { font-size: var(--fs-xs); opacity: 0.9; margin-top: 2px; }
+
+/* Banner themes per level */
+.af-banner-course  { background: linear-gradient(135deg, #6366f1, #7c3aed); }
+.af-banner-branch  { background: linear-gradient(135deg, #4f46e5, #6366f1); }
+.af-banner-sem     { background: linear-gradient(135deg, #7c3aed, #a855f7); }
+.af-banner-subject { background: linear-gradient(135deg, #0ea5e9, #6366f1); }
+
+/* Card body + chips */
+.af-card-body {
+  padding: 14px 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  flex: 1;
+  align-content: flex-start;
+}
+.af-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  background: var(--brand-50);
+  color: var(--brand-700);
+  border: 1px solid var(--brand-100);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.af-chip svg { width: 13px; height: 13px; }
+.af-card-desc { width: 100%; color: var(--gray-500); font-size: var(--fs-sm); line-height: 1.5; }
+
+/* Footer action strip */
+.af-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-top: 1px solid var(--gray-100);
+  background: var(--gray-50);
+}
+.af-open-hint {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: var(--fs-sm); font-weight: 600; color: var(--brand-600);
+}
+.af-open-hint svg { width: 15px; height: 15px; }
+.af-foot-actions { display: flex; align-items: center; gap: 4px; margin-left: auto; }
+
+/* Icon action buttons (Edit / Delete) */
+.af-iconbtn {
+  width: 32px; height: 32px;
+  display: grid; place-items: center;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--gray-500);
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition);
+}
+.af-iconbtn svg { width: 16px; height: 16px; }
+.af-iconbtn:hover { background: var(--gray-100); }
+.af-iconbtn.edit:hover  { color: var(--brand-600); background: var(--brand-50); border-color: var(--brand-100); }
+.af-iconbtn.delete:hover { color: #dc2626; background: #fef2f2; border-color: #fecaca; }
+
+/* 3-dot menu */
+.af-menu { position: relative; }
+.af-menu-toggle {
+  width: 32px; height: 32px; display: grid; place-items: center;
+  border: 1px solid transparent; border-radius: 8px; background: transparent;
+  color: var(--gray-500); cursor: pointer; transition: background var(--transition);
+}
+.af-menu-toggle:hover { background: var(--gray-100); }
+.af-menu-toggle svg { width: 18px; height: 18px; }
+.af-menu-pop {
+  position: absolute; right: 0; bottom: calc(100% + 6px);
+  min-width: 150px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 10px;
+  box-shadow: var(--shadow-lg);
+  padding: 6px;
+  display: none;
+  z-index: 20;
+}
+.af-menu.open .af-menu-pop { display: block; }
+.af-menu-item {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  border: none; background: transparent;
+  border-radius: 7px;
+  font-size: var(--fs-sm); font-weight: 500; color: var(--gray-700);
+  cursor: pointer; text-align: left;
+}
+.af-menu-item svg { width: 15px; height: 15px; color: var(--gray-500); }
+.af-menu-item:hover { background: var(--gray-100); }
+.af-menu-item.danger { color: #dc2626; }
+.af-menu-item.danger svg { color: #dc2626; }
+.af-menu-item.danger:hover { background: #fef2f2; }
+
+/* ---------- Empty state ---------- */
+.af-empty {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 56px 24px;
+  background: var(--white);
+  border: 1px dashed var(--gray-300);
+  border-radius: 16px;
+}
+.af-empty .af-empty-ico {
+  width: 72px; height: 72px; display: grid; place-items: center;
+  border-radius: 20px;
+  background: linear-gradient(135deg, var(--brand-50), #f5f3ff);
+  color: var(--brand-600);
+  margin-bottom: 18px;
+}
+.af-empty .af-empty-ico svg { width: 36px; height: 36px; }
+.af-empty h3 { font-size: 1.05rem; color: var(--gray-800); margin-bottom: 6px; }
+.af-empty p { color: var(--text-muted); font-size: var(--fs-sm); max-width: 380px; margin-bottom: 20px; line-height: 1.6; }
+
+/* ---------- Error state ---------- */
+.af-error {
+  grid-column: 1 / -1;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 48px 24px;
+  background: var(--white);
+  border: 1px solid var(--gray-200);
+  border-radius: 16px;
+}
+.af-error .af-error-ico { color: #dc2626; margin-bottom: 12px; }
+.af-error p { color: var(--gray-600); margin-bottom: 16px; }
+
+/* ---------- Skeleton cards (match real card dims) ---------- */
+.af-skel {
+  border: 1px solid var(--gray-200);
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--white);
+}
+.af-skel .af-skel-banner { height: 84px; }
+.af-skel .af-skel-body { padding: 14px 16px; display: flex; gap: 8px; }
+.af-skel .af-skel-foot { height: 52px; border-top: 1px solid var(--gray-100); }
+.af-shimmer {
+  background: linear-gradient(90deg, var(--gray-100) 25%, var(--gray-200) 37%, var(--gray-100) 63%);
+  background-size: 400% 100%;
+  animation: af-shimmer 1.3s ease infinite;
+}
+.af-skel .af-skel-chip { height: 20px; width: 72px; border-radius: var(--radius-full); }
+@keyframes af-shimmer { 0% { background-position: 100% 50%; } 100% { background-position: 0 50%; } }
+
+/* ---------- Bulk subject rows in modal ---------- */
+.af-subj-row .input-group { display: flex; gap: 8px; align-items: center; }
+.af-subj-row .input-group .input { flex: 1; }
+
+/* ---------- Responsive ---------- */
+@media (max-width: 560px) {
+  .af-grid { grid-template-columns: 1fr; }
+  .af-breadcrumbs { padding: 8px 10px; }
+}

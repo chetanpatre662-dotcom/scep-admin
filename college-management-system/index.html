@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Askbook · SCEP College Management</title>
+  <meta name="description" content="Askbook — the unified portal for faculty, students and administration at Satpuda College of Engineering and Polytechnic (SCEP)." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/global.css" />
+  <style>
+    /* Landing-only styles kept local to the page (small, page-specific). */
+    .landing {
+      min-height: 100vh;
+      background:
+        radial-gradient(1200px 600px at 80% -10%, rgba(37,99,168,0.12), transparent 60%),
+        linear-gradient(180deg, #f7f9fc, #eef2f8);
+      display: flex;
+      flex-direction: column;
+    }
+    .landing-nav {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: var(--sp-5) var(--sp-8);
+    }
+    .landing-nav .brand { display: flex; align-items: center; gap: var(--sp-3); }
+    .landing-nav .brand .logo {
+      width: 46px; height: 46px; border-radius: 12px;
+      background: transparent; display: grid; place-items: center;
+      overflow: hidden;
+    }
+    .landing-nav .brand .logo img { width: 100%; height: 100%; object-fit: contain; display: block; }
+    .landing-nav .brand .logo svg { width: 28px; height: 28px; max-width: 28px; max-height: 28px; color: var(--accent-500); }
+    .landing-nav .brand .name { font-weight: 700; color: var(--brand-900); line-height: 1.1; font-size: 1.1rem; }
+    .landing-nav .brand .sub { font-size: var(--fs-xs); color: var(--text-muted); }
+    .landing-nav .brand .scep-tag {
+      display: inline-block; font-size: 9px; font-weight: 700; letter-spacing: 0.14em;
+      text-transform: uppercase; color: var(--brand-600); background: var(--brand-50);
+      border: 1px solid var(--brand-200,#bfdbfe); padding: 1px 6px; border-radius: 999px; margin-left: 6px; vertical-align: middle;
+    }
+
+    .landing-main {
+      flex: 1;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      text-align: center; padding: var(--sp-8) var(--sp-6);
+    }
+    .landing-badge {
+      display: inline-flex; align-items: center; gap: var(--sp-2);
+      padding: 6px 16px; border-radius: var(--radius-full);
+      background: var(--white); border: 1px solid var(--border);
+      box-shadow: var(--shadow-sm); font-size: var(--fs-xs); font-weight: 600;
+      color: var(--brand-700); margin-bottom: var(--sp-5);
+    }
+    .landing-main h1 {
+      font-size: clamp(2rem, 5vw, 3.25rem); line-height: 1.1;
+      color: var(--brand-900); max-width: 780px; margin-bottom: var(--sp-4);
+    }
+    .landing-main h1 .accent { color: var(--brand-600); }
+    .landing-main .lede { max-width: 620px; color: var(--gray-600); font-size: var(--fs-lg); margin-bottom: var(--sp-8); }
+
+    .role-grid {
+      display: grid; grid-template-columns: repeat(3, 1fr);
+      gap: var(--sp-5); width: 100%; max-width: 920px;
+    }
+    .role-card {
+      background: var(--white); border: 1px solid var(--border);
+      border-radius: var(--radius-lg); padding: var(--sp-6);
+      box-shadow: var(--shadow-sm); text-align: left;
+      display: flex; flex-direction: column; gap: var(--sp-4);
+      transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
+    }
+    .role-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--brand-400); text-decoration: none; }
+    .role-card .rc-icon {
+      width: 56px; height: 56px; border-radius: 14px;
+      display: grid; place-items: center;
+    }
+    .role-card .rc-icon svg { width: 30px; height: 30px; max-width: 30px; max-height: 30px; }
+    .role-card.faculty .rc-icon { background: var(--brand-50); color: var(--brand-600); }
+    .role-card.student .rc-icon { background: var(--success-100); color: var(--success-600); }
+    .role-card.admin .rc-icon { background: #ede9fe; color: #6d28d9; }
+    .role-card h3 { font-size: var(--fs-xl); color: var(--gray-900); }
+    .role-card p { color: var(--text-muted); font-size: var(--fs-sm); flex: 1; }
+    .role-card .rc-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      font-weight: 700; font-size: var(--fs-sm); color: var(--brand-600);
+    }
+    .role-card.student .rc-cta { color: var(--success-600); }
+    .role-card.admin .rc-cta { color: #6d28d9; }
+    .role-card .rc-cta svg { width: 18px; height: 18px; transition: transform var(--transition); }
+    .role-card:hover .rc-cta svg { transform: translateX(4px); }
+
+    .landing-foot { padding: var(--sp-6); text-align: center; color: var(--text-muted); font-size: var(--fs-xs); }
+
+    @media (max-width: 760px) {
+      .role-grid { grid-template-columns: 1fr; }
+      .landing-nav { padding: var(--sp-4); }
+    }
+  </style>
+</head>
+<body>
+  <div class="landing">
+    <nav class="landing-nav">
+      <div class="brand">
+        <div class="logo" id="navLogo"></div>
+        <div>
+          <div class="name" id="collegeName">Askbook<span class="scep-tag">SCEP</span></div>
+          <div class="sub" id="collegeSub">Satpuda College of Engineering and Polytechnic</div>
+        </div>
+      </div>
+    </nav>
+    <main class="landing-main">
+      <span class="landing-badge" id="badge"></span>
+      <h1>One portal for your entire <span class="accent">engineering campus</span></h1>
+      <p class="lede">Manage classes, publish announcements, share question papers and stay connected — for faculty, students and administrators.</p>
+
+      <div class="role-grid" id="roleGrid"></div>
+    </main>
+
+    <footer class="landing-foot" id="foot"></footer>
+  </div>
+
+  <script type="module">
+    import { APP, ROUTES, resolvePath } from './js/config.js';
+    import { icon } from './js/common/icons.js';
+
+    // Use the real college logo asset instead of the SVG icon.
+    const logoEl = document.getElementById('navLogo');
+    const logoImg = document.createElement('img');
+    logoImg.src = APP.COLLEGE_LOGO;
+    logoImg.alt = APP.COLLEGE_NAME + ' logo';
+    logoImg.style.cssText = 'width:100%;height:100%;object-fit:contain;display:block';
+    logoEl.appendChild(logoImg);
+
+    // Dynamic names (already set in HTML but update via config for consistency)
+    document.getElementById('collegeName').firstChild.textContent = APP.COLLEGE_SHORT;
+    document.getElementById('collegeSub').textContent = 'Satpuda College of Engineering and Polytechnic';
+    document.getElementById('badge').innerHTML = icon('shield') + ' Secure role-based access';
+    document.getElementById('foot').textContent =
+      `${APP.COLLEGE_NAME} · SCEP · ${APP.NAME} v${APP.VERSION}`;
+
+    const roles = [
+      { key: 'faculty', title: 'Faculty', icon: 'user', href: ROUTES.FACULTY.LOGIN,
+        desc: 'Create classes, publish announcements and upload previous question papers.' },
+      { key: 'student', title: 'Student', icon: 'graduation', href: ROUTES.STUDENT.LOGIN,
+        desc: 'View your classes, read targeted announcements and access study material.' },
+      { key: 'admin', title: 'Admin', icon: 'settings', href: ROUTES.ADMIN.LOGIN,
+        desc: 'Oversee faculty, students, courses and institute-wide configuration.' },
+    ];
+
+    document.getElementById('roleGrid').innerHTML = roles.map((r) => `
+      <a class="role-card ${r.key}" href="${resolvePath(r.href)}">
+        <div class="rc-icon">${icon(r.icon)}</div>
+        <h3>${r.title}</h3>
+        <p>${r.desc}</p>
+        <span class="rc-cta">Continue as ${r.title} ${icon('arrowRight')}</span>
+      </a>
+    `).join('');
+  </script>
+</body>
+</html>

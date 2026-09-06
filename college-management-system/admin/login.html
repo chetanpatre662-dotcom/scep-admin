@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Login · Askbook SCEP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/auth.css" />
+  <style>
+    .auth-hero { background: linear-gradient(160deg, #4c1d95, #6d28d9); }
+    .auth-hero::after { background: radial-gradient(600px 300px at 85% -10%, rgba(255,255,255,0.07), transparent 60%); }
+    .role-pill { background: #ede9fe !important; color: #6d28d9 !important; }
+    .btn-primary { background: #6d28d9; }
+    .btn-primary:hover { background: #5b21b6; }
+    .auth-hero .hero-points svg, .auth-hero .logo-badge svg { color: #c4b5fd !important; }
+  </style>
+</head>
+<body>
+  <div class="auth-wrap">
+    <section class="auth-hero">
+      <div class="brand-row">
+        <div class="logo-badge" id="logoBadge"></div>
+        <div>
+          <div class="brand-name">
+            <span id="collegeName">Askbook</span>
+            <span class="brand-subbrand" id="collegeSub">SCEP</span>
+          </div>
+          <div class="brand-sub">Administration</div>
+        </div>
+      </div>
+      <div class="hero-content">
+        <h1>Run your institute with confidence.</h1>
+        <p>Oversee faculty, students, courses and system-wide configuration from a single control center.</p>
+        <ul class="hero-points" id="heroPoints"></ul>
+      </div>
+      <div class="hero-foot" id="heroFoot"></div>
+    </section>
+
+    <section class="auth-form-panel">
+      <div class="auth-card">
+        <span class="role-pill" id="rolePill"></span>
+        <h2>Administrator sign in</h2>
+        <p class="auth-desc">Restricted access. Authorized personnel only.</p>
+
+        <form id="loginForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="email">Email <span class="req">*</span></label>
+            <input class="input" id="email" name="email" type="email" autocomplete="username" placeholder="you@example.com" />
+            <div class="field-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="password">Password <span class="req">*</span></label>
+            <div class="input-group">
+              <input class="input" id="password" name="password" type="password" autocomplete="current-password" placeholder="••••••••" />
+              <button type="button" class="toggle-visibility" id="togglePw" aria-label="Show password"></button>
+            </div>
+            <div class="field-error"></div>
+          </div>
+          <div class="auth-options">
+            <label class="checkbox-row"><input type="checkbox" name="remember" /> Remember me</label>
+            <a href="#" id="forgotLink">Forgot password?</a>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Sign in</button>
+        </form>
+
+        <div class="auth-divider">or</div>
+        <button type="button" class="btn-google" id="googleBtn"></button>
+
+        <p class="auth-footer-link">Need an account? <a href="register.html">Register</a></p>
+        <p class="auth-footer-link"><a href="../index.html">Back to role selection</a></p>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { APP, ROLES, ROUTES } from '../js/config.js';
+    import { icon, googleIcon } from '../js/common/icons.js';
+    import { initLoginPage } from '../js/common/loginPage.js';
+
+    document.getElementById('logoBadge').innerHTML =
+      `<img src="../${APP.COLLEGE_LOGO.replace(/^\//, '')}" alt="${APP.COLLEGE_NAME} logo" />`;
+    document.getElementById('collegeName').textContent = APP.COLLEGE_SHORT;
+    document.getElementById('collegeSub').textContent = APP.COLLEGE_SUB;
+    document.getElementById('rolePill').innerHTML = icon('shield') + ' Admin';
+    document.getElementById('heroFoot').textContent = `${APP.COLLEGE_NAME} · ${APP.NAME}`;
+    document.getElementById('googleBtn').innerHTML = googleIcon() + ' Continue with Google';
+    document.getElementById('heroPoints').innerHTML = [
+      'Manage faculty accounts & access',
+      'Monitor student enrollment',
+      'Configure courses, branches & semesters',
+    ].map((t) => `<li>${icon('check')}<span>${t}</span></li>`).join('');
+
+    initLoginPage({ role: ROLES.ADMIN, dashboardUrl: ROUTES.ADMIN.DASHBOARD });
+  </script>
+</body>
+</html>

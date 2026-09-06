@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Admin Sign Up · Askbook SCEP</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="../css/global.css" />
+  <link rel="stylesheet" href="../css/auth.css" />
+  <style>
+    .auth-hero { background: linear-gradient(160deg, #4c1d95, #6d28d9); }
+    .auth-hero::after { background: radial-gradient(600px 300px at 85% -10%, rgba(255,255,255,0.07), transparent 60%); }
+    .role-pill { background: #ede9fe !important; color: #6d28d9 !important; }
+    .btn-primary { background: #6d28d9; }
+    .btn-primary:hover { background: #5b21b6; }
+    .auth-hero .hero-points svg, .auth-hero .logo-badge svg { color: #c4b5fd !important; }
+    .pending-options { display:flex; flex-direction:column; gap:12px; }
+    .pending-opt { border:1px solid var(--border); border-radius:10px; padding:14px 16px; }
+    .pending-opt-head { display:flex; align-items:flex-start; gap:12px; }
+    .pending-opt-icon svg { width:20px; height:20px; color:var(--brand-600); }
+    .pending-opt-title { font-weight:600; font-size:var(--fs-sm); }
+    .pending-opt-sub { font-size:var(--fs-xs); color:var(--text-muted); margin-top:2px; }
+    .pending-divider { text-align:center; color:var(--text-muted); font-size:var(--fs-xs); margin:2px 0; }
+    .approver-option input[type=radio] { accent-color:var(--brand-600); }
+  </style>
+</head>
+<body>
+  <div class="auth-wrap">
+    <section class="auth-hero">
+      <div class="brand-row">
+        <div class="logo-badge" id="logoBadge"></div>
+        <div>
+          <div class="brand-name">
+            <span id="collegeName">Askbook</span>
+            <span class="brand-subbrand" id="collegeSub">SCEP</span>
+          </div>
+          <div class="brand-sub">Administration</div>
+        </div>
+      </div>
+      <div class="hero-content">
+        <h1>Create your administrator account.</h1>
+        <p>Accounts require approval before dashboard access is granted — via OTP or the admin panel.</p>
+        <ul class="hero-points" id="heroPoints"></ul>
+      </div>
+      <div class="hero-foot" id="heroFoot"></div>
+    </section>
+
+    <section class="auth-form-panel">
+      <div class="auth-card">
+        <span class="role-pill" id="rolePill"></span>
+        <h2>Administrator sign up</h2>
+        <p class="auth-desc">Create your account. You'll need to complete approval before accessing the dashboard.</p>
+
+        <form id="registerForm" novalidate>
+          <div class="form-group">
+            <label class="form-label" for="name">Full name <span class="req">*</span></label>
+            <input class="input" id="name" name="name" type="text" autocomplete="name" placeholder="Your full name" />
+            <div class="field-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="email">Email <span class="req">*</span></label>
+            <input class="input" id="email" name="email" type="email" autocomplete="username" placeholder="you@example.com" />
+            <div class="field-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="mobileNumber">Mobile number <span class="req">*</span></label>
+            <div class="phone-input-group" style="display:flex;align-items:stretch">
+              <span class="phone-cc" style="display:flex;align-items:center;padding:0 10px;background:var(--gray-100,#f1f5f9);border:1px solid var(--border,#d1d5db);border-right:0;border-radius:8px 0 0 8px;font-weight:600;color:var(--text-muted,#64748b);white-space:nowrap">+91</span>
+              <input class="input" id="mobileNumber" name="mobileNumber" type="tel" inputmode="numeric"
+                autocomplete="tel-national" maxlength="10" placeholder="9876543210"
+                style="border-radius:0 8px 8px 0" aria-label="Mobile number (10 digits, +91 prefix is fixed)" />
+            </div>
+            <div class="text-muted" style="font-size:var(--fs-xs);margin-top:4px">
+              Enter your 10-digit mobile number. The <strong>+91</strong> code is added automatically (used for OTP delivery).
+            </div>
+            <div class="field-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="password">Password <span class="req">*</span></label>
+            <div class="input-group">
+              <input class="input" id="password" name="password" type="password" autocomplete="new-password" placeholder="At least 6 characters" />
+              <button type="button" class="toggle-visibility" id="togglePw" aria-label="Show password"></button>
+            </div>
+            <div class="field-error"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="confirm">Confirm password <span class="req">*</span></label>
+            <div class="input-group">
+              <input class="input" id="confirm" name="confirm" type="password" autocomplete="new-password" placeholder="Repeat password" />
+              <button type="button" class="toggle-visibility" id="toggleConfirm" aria-label="Show password"></button>
+            </div>
+            <div class="field-error"></div>
+          </div>
+          <button type="submit" class="btn btn-primary btn-block" id="submitBtn">Create admin account</button>
+        </form>
+
+        <div class="auth-divider">or</div>
+        <button type="button" class="btn-google" id="googleBtn"></button>
+
+        <!-- reCAPTCHA invisible container (needed by Firebase phone OTP) -->
+        <div id="recaptcha-container"></div>
+
+        <p class="auth-footer-link">Already have an account? <a href="login.html">Sign in</a></p>
+        <p class="auth-footer-link"><a href="../index.html">Back to role selection</a></p>
+      </div>
+    </section>
+  </div>
+
+  <script type="module">
+    import { APP, ROUTES, ROLES, resolvePath } from '../js/config.js';
+    import { icon, googleIcon } from '../js/common/icons.js';
+    import { $, esc } from '../js/common/dom.js';
+    import { toastSuccess, toastError } from '../js/common/toast.js';
+    import { validateForm, rules, clearErrors, setFieldError } from '../js/common/validation.js';
+    import { wirePhoneInputs, phoneForSubmit } from '../js/common/phoneInput.js';
+    import { renderPendingApproval } from '../js/common/pendingApproval.js';
+    import {
+      registerWithEmail,
+      loginWithGoogle,
+      isFirebaseConfigured,
+    } from '../js/services/authService.js';
+    import { applyForAdmin } from '../js/services/approvalService.js';
+
+    // Brand
+    document.getElementById('logoBadge').innerHTML = `<img src="../${APP.COLLEGE_LOGO.replace(/^\//, '')}" alt="${esc(APP.COLLEGE_NAME)} logo" />`;
+    document.getElementById('collegeName').textContent = APP.COLLEGE_SHORT;
+    document.getElementById('collegeSub').textContent = APP.COLLEGE_SUB;
+    document.getElementById('rolePill').innerHTML = icon('shield') + ' Admin';
+    document.getElementById('heroFoot').textContent = `${APP.COLLEGE_NAME} · ${APP.NAME}`;
+    document.getElementById('googleBtn').innerHTML = googleIcon() + ' Continue with Google';
+    document.getElementById('heroPoints').innerHTML = [
+      'Account is created immediately',
+      'Pending approval — no dashboard access yet',
+      'Get approved via OTP or admin panel',
+    ].map((t) => `<li>${icon('check')}<span>${t}</span></li>`).join('');
+
+    // Password toggles
+    const togglePw = $('#togglePw'); const pw = $('#password');
+    const toggleCf = $('#toggleConfirm'); const cf = $('#confirm');
+    [{ btn: togglePw, inp: pw }, { btn: toggleCf, inp: cf }].forEach(({ btn, inp }) => {
+      if (!btn || !inp) return;
+      btn.innerHTML = icon('eye');
+      btn.addEventListener('click', () => {
+        const show = inp.type === 'password';
+        inp.type = show ? 'text' : 'password';
+        btn.innerHTML = icon(show ? 'eyeOff' : 'eye');
+      });
+    });
+
+    // Wire the fixed-+91 phone input (numeric-only, max 10, paste-normalize).
+    wirePhoneInputs(document);
+
+    async function finishPending() {
+      // Submit the bare 10-digit number; backend adds +91 via normalizePhone.
+      const mobile = phoneForSubmit(form.elements['mobileNumber']?.value || '');
+      const r = await applyForAdmin(mobile || undefined);
+      if (!r.ok && r.status !== 409) {
+        toastError(r.error || 'Could not create admin account. Please try again.');
+        return false;
+      }
+      const card = document.querySelector('.auth-card');
+      renderPendingApproval(card, {
+        role: 'admin',
+        dashboardUrl: resolvePath(ROUTES.ADMIN.DASHBOARD),
+        rolePillColor: '#6d28d9',
+      });
+      return true;
+    }
+
+    function setLoading(btn, label) {
+      const orig = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner" style="border-color:rgba(255,255,255,.4);border-top-color:#fff"></span> ${label}`;
+      return () => { btn.disabled = false; btn.innerHTML = orig; };
+    }
+
+    // Email/password signup
+    const form = $('#registerForm');
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      clearErrors(form);
+      const ok = validateForm(form, {
+        name: [rules.required],
+        email: [rules.required, rules.email],
+        mobileNumber: [rules.required, rules.mobileIN],
+        password: [rules.required, rules.minLen(6)],
+        confirm: [rules.required],
+      });
+      if (!ok) return;
+      if (form.elements['password'].value !== form.elements['confirm'].value) {
+        setFieldError(form.elements['confirm'], 'Passwords do not match.');
+        return;
+      }
+      const restore = setLoading($('#submitBtn'), 'Creating account…');
+      const result = await registerWithEmail({
+        name: form.elements['name'].value,
+        email: form.elements['email'].value,
+        password: form.elements['password'].value,
+        remember: true,
+        role: ROLES.ADMIN,
+      });
+      if (!result.ok) { restore(); toastError(result.error || 'Registration failed.'); return; }
+      await finishPending();
+    });
+
+    // Google signup
+    document.getElementById('googleBtn').addEventListener('click', async () => {
+      const restore = setLoading(document.getElementById('googleBtn'), 'Connecting…');
+      document.getElementById('submitBtn').disabled = true;
+      const result = await loginWithGoogle({ remember: true, role: ROLES.ADMIN });
+      restore();
+      document.getElementById('submitBtn').disabled = false;
+      if (!result.ok) { toastError(result.error || 'Google sign-in failed.'); return; }
+      await finishPending();
+    });
+
+    if (!isFirebaseConfigured()) {
+      toastError('Firebase is not configured. Add your config to js/firebase/firebase-config.js.', 6000);
+    }
+  </script>
+</body>
+</html>
