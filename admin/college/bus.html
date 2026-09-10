@@ -200,6 +200,24 @@
         </div>
     </div>
 
+    <!-- Bus Rename Modal -->
+    <div id="busRenameModal" style="display:none;position:fixed;inset:0;z-index:9001;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+        <div style="background:#fff;border-radius:24px;padding:28px 24px;width:100%;max-width:420px;margin:16px;box-shadow:0 12px 40px rgba(0,0,0,.18);font-family:Poppins,sans-serif">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <h5 style="margin:0;font-weight:700;color:#0f172a">Rename Bus — <span id="renameCurrent" style="color:#2563eb"></span></h5>
+                <button onclick="closeRenameModal()" style="border:none;background:#f1f5f9;border-radius:8px;width:32px;height:32px;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center">×</button>
+            </div>
+            <p style="font-size:13px;color:#64748b;margin-bottom:16px">This will update GPS tracking, routes, all assigned users and notifications. Historical records keep the original ID.</p>
+            <label style="font-size:13px;font-weight:600;color:#64748b">New Bus Number / ID</label>
+            <input id="renameNewId" type="text" placeholder="e.g. 8 or BUS-8" style="width:100%;margin:6px 0 20px;padding:11px 14px;border:1px solid #e2e8f0;border-radius:10px;font-size:14px;outline:none;box-sizing:border-box;text-transform:uppercase">
+            <div id="renameMsg" style="font-size:13px;margin-bottom:10px;min-height:18px"></div>
+            <div style="display:flex;gap:10px;justify-content:flex-end">
+                <button onclick="closeRenameModal()" style="padding:10px 20px;border:1px solid #e2e8f0;border-radius:10px;background:#f8fafc;font-size:14px;font-weight:600;cursor:pointer">Cancel</button>
+                <button id="renameSaveBtn" onclick="saveRename()" style="padding:10px 24px;border:none;border-radius:10px;background:#d97706;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Rename</button>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../shared/admin-common.js"></script>
     <script>
@@ -375,9 +393,12 @@
                             <div class="bus-box"><span>Campus Arrival</span><h4>${bus.collegeArrivalTime ? new Date(bus.collegeArrivalTime).toLocaleTimeString() : "Not Reached"}</h4></div>
                             <div class="bus-box"><span>Last Update</span><h4>${bus.timestamp ? new Date(bus.timestamp).toLocaleTimeString() : "N/A"}</h4></div>
                         </div>
-                        <div style="margin-top:14px;text-align:right">
+                        <div style="margin-top:14px;text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
                             <button class="btn-bus-edit" onclick="openBusEdit('${bus.busId}','${(bus.driver||"").replace(/'/g,"\\'")}','${(bus.driverMobile||"").replace(/'/g,"\\'")}','${(bus.route||"").replace(/'/g,"\\'")}')">
                                 <i class="bi bi-pencil-square"></i> Edit Driver / Route
+                            </button>
+                            <button class="btn-bus-edit" style="background:#fef3c7;color:#92400e;" onclick="openRenameModal('${bus.busId}')">
+                                <i class="bi bi-arrow-left-right"></i> Rename Bus
                             </button>
                         </div>
                         <div class="trip-history-section" id="trips-${bus.busId}" style="margin-top:16px;border-top:1px solid #f1f5f9;padding-top:14px">
@@ -654,6 +675,46 @@
             } catch (e) { msg.style.color = "#dc2626"; msg.textContent = "❌ Network error"; btn.disabled = false; }
         }
         document.getElementById("busEditModal").addEventListener("click", function(e) { if (e.target === this) closeBusEdit(); });
+
+        // ── Bus Rename Modal ─────────────────────────────────────────
+        let _renameBusId = null;
+        function openRenameModal(busId) {
+            _renameBusId = busId;
+            document.getElementById("renameCurrent").textContent = busId;
+            document.getElementById("renameNewId").value = "";
+            document.getElementById("renameMsg").textContent = "";
+            document.getElementById("renameSaveBtn").disabled = false;
+            document.getElementById("busRenameModal").style.display = "flex";
+        }
+        function closeRenameModal() { document.getElementById("busRenameModal").style.display = "none"; _renameBusId = null; }
+
+        async function saveRename() {
+            if (!_renameBusId) return;
+            const rawNew = document.getElementById("renameNewId").value.trim().toUpperCase();
+            const newBusId = rawNew.startsWith("BUS-") ? rawNew : `BUS-${rawNew}`;
+            const msg = document.getElementById("renameMsg");
+            const btn = document.getElementById("renameSaveBtn");
+            if (!newBusId.match(/^BUS-\d+$/)) { msg.style.color="#dc2626"; msg.textContent="❌ Enter a valid bus number (e.g. 8 or BUS-8)"; return; }
+            if (!confirm(`Rename ${_renameBusId} → ${newBusId}?\n\nThis will update:\n• GPS tracking\n• Routes\n• All assigned users\n• Notifications\n\nHistorical records will keep the old ID.\n\nProceed?`)) return;
+            btn.disabled = true; msg.style.color="#64748b"; msg.textContent = "Renaming — this may take a few seconds…";
+            try {
+                const res = await fetch(`${API}/admin/buses/${encodeURIComponent(_renameBusId)}/rename`, {
+                    method: "POST", headers: headers(),
+                    body: JSON.stringify({ newBusId })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    msg.style.color="#16a34a";
+                    msg.textContent = `✅ Renamed to ${newBusId} | routes: ${data.routesUpdated}, users: ${(data.studentsUpdated||0)+(data.facultyUpdated||0)+(data.parentsUpdated||0)}, tokens: ${data.tokensTransferred||0}`;
+                    setTimeout(() => { closeRenameModal(); init(); loadRtoMapping(); }, 1500);
+                } else {
+                    msg.style.color="#dc2626";
+                    msg.textContent = "❌ " + (data.error || "Rename failed") + (data.completedSteps ? ` (completed: ${data.completedSteps.join(", ")})` : "");
+                    btn.disabled = false;
+                }
+            } catch (e) { msg.style.color="#dc2626"; msg.textContent = "❌ Network error"; btn.disabled = false; }
+        }
+        document.getElementById("busRenameModal").addEventListener("click", function(e) { if (e.target === this) closeRenameModal(); });
     </script>
 </body>
 </html>
