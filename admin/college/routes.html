@@ -84,7 +84,7 @@
         <div class="section-box">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light"><tr><th>Route Name</th><th>Bus</th><th>Start</th><th>End</th><th>Stops</th><th>Status</th><th>Actions</th></tr></thead>
+                    <thead class="table-light"><tr><th>Route Name</th><th>Bus</th><th>Driver Name</th><th>Driver Number</th><th>Start</th><th>End</th><th>Stops</th><th>Status</th><th>Actions</th></tr></thead>
                     <tbody id="routeTable"></tbody>
                 </table>
             </div>
@@ -169,6 +169,31 @@
         </div>
     </div>
 
+    <!-- Driver Details Modal (Add / Edit driver for a bus) -->
+    <div class="modal fade" id="driverModal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered modal-fullscreen-sm-down">
+            <div class="modal-content border-0" style="border-radius:16px">
+                <div class="modal-header border-0 bg-light p-3" style="border-radius:16px 16px 0 0">
+                    <h6 class="modal-title fw-bold"><i class="bi bi-person-badge me-2 text-primary"></i><span id="driverModalTitle">Driver Details</span></h6>
+                    <button class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body p-4">
+                    <p class="text-muted small mb-3">Driver details are stored against the bus assigned to this route. Updating here updates the bus record.</p>
+                    <div class="mb-2"><span class="badge bg-secondary" id="dBusLabel">-</span></div>
+                    <label class="form-label fw-medium small">Driver Name</label>
+                    <input type="text" class="form-control mb-3" id="dDriverName" placeholder="e.g. Rahul Sharma" autocomplete="off">
+                    <label class="form-label fw-medium small">Driver Phone Number</label>
+                    <input type="tel" class="form-control" id="dDriverMobile" placeholder="10-digit mobile number" inputmode="numeric" autocomplete="off" maxlength="10">
+                    <div id="driverModalErr" class="text-danger small mt-2" style="min-height:18px"></div>
+                </div>
+                <div class="modal-footer border-0 p-3">
+                    <button class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                    <button class="btn btn-primary" id="driverSaveBtn" onclick="saveDriver()"><i class="bi bi-check-lg me-1"></i>Save Driver</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- View Route Modal -->
     <div class="modal fade" id="viewModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
@@ -206,10 +231,30 @@
         if (!verifyInstitution("college")) throw "unauthorized";
 
         const INST = "college";
-        const BUSES = ["BUS-2","BUS-3","BUS-4","BUS-5","BUS-6","BUS-7","BUS-8","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
+        const BUSES = ["BUS-1","BUS-2","BUS-3","BUS-4","BUS-5","BUS-6","BUS-7","BUS-8","BUS-9","BUS-10","BUS-11","BUS-12","BUS-13","BUS-14","BUS-15"];
         let allRoutes = [];
         let editingId = null;
         let rtoMapping = {};
+        // busId → { driverName, driverMobile } — authoritative driver details live
+        // on the buses/{busId} Firestore doc (same source the mobile app reads).
+        let driverMap = {};
+
+        // ── Load driver details from the shared bus records ───────────
+        async function loadDrivers() {
+            try {
+                const res = await fetch(`${API}/admin/buses`, { headers: headers() });
+                const data = await res.json();
+                if (data.success) {
+                    driverMap = {};
+                    (data.buses || []).forEach(b => {
+                        driverMap[b.busId] = {
+                            driverName: (b.driverName || "").trim(),
+                            driverMobile: (b.driverMobile || "").trim(),
+                        };
+                    });
+                }
+            } catch (e) { console.error("Driver load error:", e); }
+        }
 
         // ── Load RTO Mapping ─────────────────────────────────────────
         async function loadRtoMapping() {
@@ -231,7 +276,7 @@
             document.getElementById("eBusSelect").innerHTML = opts;
             document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + BUSES.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
         }
-        loadRtoMapping().then(() => {
+        Promise.all([loadRtoMapping(), loadDrivers()]).then(() => {
             populateBusSelects();
             loadRoutes();
         });
@@ -273,14 +318,32 @@
                 const cities = r.cities || [];
                 const start = cities[0]?.name || "—";
                 const end = cities[cities.length-1]?.name || "—";
+                const d = driverMap[r.busId] || { driverName: "", driverMobile: "" };
+                const hasName = !!d.driverName;
+                const hasMobile = !!d.driverMobile;
+                const nameCell = hasName
+                    ? `<span class="fw-medium">${escapeHtml(d.driverName)}</span>`
+                    : `<span class="text-muted fst-italic">Not assigned</span>`;
+                const mobileCell = hasMobile
+                    ? `<a href="tel:${encodeURIComponent(d.driverMobile)}" class="text-decoration-none">${escapeHtml(d.driverMobile)}</a>`
+                    : `<span class="text-muted fst-italic">Not added</span>`;
+                const hasBus = !!r.busId;
+                const driverBtn = !hasBus
+                    ? ''
+                    : (hasName || hasMobile)
+                        ? `<button class="btn btn-sm btn-outline-info" onclick="openDriverModal('${r.busId}')" title="Edit Driver"><i class="bi bi-person-gear"></i></button>`
+                        : `<button class="btn btn-sm btn-outline-secondary" onclick="openDriverModal('${r.busId}')" title="Add Driver"><i class="bi bi-person-plus"></i> Add Driver</button>`;
                 return `<tr>
                     <td class="fw-semibold">${r.routeName||"-"}</td>
                     <td><span class="badge bg-secondary">${getBusDisplayName(r.busId||"-")}</span></td>
+                    <td class="small">${nameCell}</td>
+                    <td class="small">${mobileCell}</td>
                     <td class="small">${start}</td><td class="small">${end}</td>
                     <td>${cities.length}</td>
                     <td><span class="badge ${r.status==='Active'?'bg-success':'bg-danger'}">${r.status}</span></td>
                     <td>
                         <div class="d-flex gap-1 flex-wrap">
+                            ${driverBtn}
                             <button class="btn btn-sm btn-outline-primary" onclick="viewRoute('${r.id}')" title="View"><i class="bi bi-eye"></i></button>
                             <button class="btn btn-sm btn-outline-warning" onclick="editRoute('${r.id}')" title="Edit"><i class="bi bi-pencil"></i></button>
                             <button class="btn btn-sm btn-outline-success" onclick="sendToSchool('${r.id}')" title="Send to School"><i class="bi bi-send"></i></button>
@@ -288,7 +351,62 @@
                         </div>
                     </td>
                 </tr>`;
-            }).join("") || '<tr><td colspan="7" class="text-center text-muted">No routes found</td></tr>';
+            }).join("") || '<tr><td colspan="9" class="text-center text-muted">No routes found</td></tr>';
+        }
+
+        // ── Small HTML escaper for user-entered driver values ─────────
+        function escapeHtml(s) {
+            return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+        }
+
+        // ── Driver Add/Edit Modal ─────────────────────────────────────
+        let _driverBusId = null;
+        function openDriverModal(busId) {
+            _driverBusId = busId;
+            const d = driverMap[busId] || { driverName: "", driverMobile: "" };
+            document.getElementById("driverModalTitle").textContent =
+                (d.driverName || d.driverMobile) ? "Edit Driver Details" : "Add Driver Details";
+            document.getElementById("dBusLabel").textContent = getBusDisplayName(busId);
+            document.getElementById("dDriverName").value = d.driverName || "";
+            document.getElementById("dDriverMobile").value = d.driverMobile || "";
+            document.getElementById("driverModalErr").textContent = "";
+            const btn = document.getElementById("driverSaveBtn");
+            btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Driver';
+            new bootstrap.Modal(document.getElementById("driverModal")).show();
+        }
+
+        async function saveDriver() {
+            if (!_driverBusId) return;
+            const name = document.getElementById("dDriverName").value.trim();
+            const mobile = document.getElementById("dDriverMobile").value.trim();
+            const err = document.getElementById("driverModalErr");
+            // Validation — require both; phone follows the app's 10-digit convention.
+            if (!name) { err.textContent = "Driver name is required."; return; }
+            if (!/^\d{10}$/.test(mobile)) { err.textContent = "Enter a valid 10-digit phone number."; return; }
+            err.textContent = "";
+            const btn = document.getElementById("driverSaveBtn");
+            btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+            try {
+                // Reuse the existing bus-update endpoint (same one bus.html uses).
+                // Only driver fields are sent so unrelated bus fields are preserved.
+                const res = await fetch(`${API}/admin/bus/${encodeURIComponent(_driverBusId)}`, {
+                    method: "PUT", headers: headers(),
+                    body: JSON.stringify({ driverName: name, driverMobile: mobile }),
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    driverMap[_driverBusId] = { driverName: name, driverMobile: mobile };
+                    showToast("✅ Driver details saved", "success");
+                    bootstrap.Modal.getInstance(document.getElementById("driverModal"))?.hide();
+                    applyFilters(); // re-render table with updated driver info
+                } else {
+                    err.textContent = data.error || "Failed to save. Please try again.";
+                    btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Driver';
+                }
+            } catch (e) {
+                err.textContent = "Network error. Your entries are preserved — please retry.";
+                btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Driver';
+            }
         }
 
         // ── Preview ──────────────────────────────────────────────────
