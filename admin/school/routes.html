@@ -221,22 +221,99 @@
         // busId → { driverName, driverMobile } — authoritative driver details live
         // on the buses/{busId} Firestore doc (same source the mobile app reads).
         let driverMap = {};
+        let driversLoaded = false;   // true only after a successful, valid JSON load
+        let driversError = "";       // human-readable reason driver data is unavailable
 
         // ── Load driver details from the shared bus records ───────────
-        async function loadDrivers() {
+        // Robust against two distinct failure modes:
+        //   1. HTTP-level errors (401/403/non-OK, or an HTML 404/proxy page
+        //      instead of JSON) — reported immediately, NOT retried.
+        //   2. Transient browser/network errors where the fetch never completes
+        //      — most commonly `TypeError: Failed to fetch` caused by
+        //      net::ERR_NETWORK_CHANGED (Wi-Fi/cellular/VPN handover, adapter
+        //      sleep/wake). These are retried a few times with backoff.
+        // Never silently treats a failure as "no drivers". No tokens/PII logged.
+        const _DRIVER_RETRY_DELAYS = [600, 1500, 3000]; // ms backoff for transient errors
+
+        // One attempt. Returns { ok:true } on success, or
+        // { ok:false, transient:bool, message:string } on failure.
+        async function _fetchDriversOnce() {
+            let res;
             try {
-                const res = await fetch(`${API}/admin/buses`, { headers: headers() });
-                const data = await res.json();
-                if (data.success) {
-                    driverMap = {};
-                    (data.buses || []).forEach(b => {
-                        driverMap[b.busId] = {
-                            driverName: (b.driverName || "").trim(),
-                            driverMobile: (b.driverMobile || "").trim(),
-                        };
-                    });
+                res = await fetch(`${API}/admin/buses`, { headers: headers() });
+            } catch (e) {
+                // Request never reached a response — network-layer failure
+                // (ERR_NETWORK_CHANGED, offline, DNS/TLS). Treat as transient.
+                return {
+                    ok: false,
+                    transient: true,
+                    message: "Could not load driver details. Network changed or connection unstable — retrying…",
+                };
+            }
+
+            const ctype = (res.headers.get("content-type") || "").toLowerCase();
+
+            if (res.status === 401) {
+                return { ok: false, transient: false, message: "Your admin session has expired or is invalid. Please log in again to load driver details." };
+            }
+            if (res.status === 403) {
+                return { ok: false, transient: false, message: "Your account is not authorized to view driver details." };
+            }
+            if (res.status === 404) {
+                // JSON 404 = the app answered; HTML 404 = no backend route matched.
+                return { ok: false, transient: false, message: ctype.includes("application/json")
+                    ? "Driver details were not found on the server (HTTP 404)."
+                    : "Driver details API not found on the server (HTTP 404). The backend does not have GET /admin/buses deployed." };
+            }
+            if (res.status >= 500) {
+                return { ok: false, transient: false, message: "Server error while loading driver details (HTTP " + res.status + "). Please try again later." };
+            }
+            if (!res.ok) {
+                return { ok: false, transient: false, message: "Could not load driver details (server returned HTTP " + res.status + ")." };
+            }
+            if (!ctype.includes("application/json")) {
+                return { ok: false, transient: false, message: "Driver details endpoint is unavailable right now." };
+            }
+
+            let data;
+            try {
+                data = await res.json();
+            } catch (e) {
+                // Body ended/aborted mid-stream — transient network behaviour.
+                return { ok: false, transient: true, message: "Could not load driver details. Connection interrupted — retrying…" };
+            }
+
+            if (!data || data.success !== true || !Array.isArray(data.buses)) {
+                return { ok: false, transient: false, message: "Driver details response was not in the expected format." };
+            }
+
+            driverMap = {};
+            data.buses.forEach(b => {
+                if (!b || !b.busId) return;
+                driverMap[b.busId] = {
+                    driverName: (b.driverName || "").trim(),
+                    driverMobile: (b.driverMobile || "").trim(),
+                };
+            });
+            return { ok: true };
+        }
+
+        async function loadDrivers() {
+            driversLoaded = false;
+            driversError = "";
+            let last = null;
+            // Initial attempt + retries only for transient network failures.
+            for (let attempt = 0; attempt <= _DRIVER_RETRY_DELAYS.length; attempt++) {
+                last = await _fetchDriversOnce();
+                if (last.ok) { driversLoaded = true; driversError = ""; return; }
+                if (!last.transient) break; // permanent error — don't retry
+                if (attempt < _DRIVER_RETRY_DELAYS.length) {
+                    console.warn("Driver load: transient network error, retrying (attempt " + (attempt + 1) + ")");
+                    await new Promise(r => setTimeout(r, _DRIVER_RETRY_DELAYS[attempt]));
                 }
-            } catch (e) { console.error("Driver load error:", e); }
+            }
+            driversError = (last && last.message) || "Could not load driver details. Check your connection and refresh.";
+            console.warn("Driver load failed:", driversError);
         }
         let editingId = null;
 
@@ -290,18 +367,29 @@
                 const d = driverMap[r.busId] || { driverName: "", driverMobile: "" };
                 const hasName = !!d.driverName;
                 const hasMobile = !!d.driverMobile;
-                const nameCell = hasName
-                    ? `<span class="fw-medium">${escapeHtml(d.driverName)}</span>`
-                    : `<span class="text-muted fst-italic">Not assigned</span>`;
-                const mobileCell = hasMobile
-                    ? `<a href="tel:${encodeURIComponent(d.driverMobile)}" class="text-decoration-none">${escapeHtml(d.driverMobile)}</a>`
-                    : `<span class="text-muted fst-italic">Not added</span>`;
                 const hasBus = !!r.busId;
-                const driverBtn = !hasBus
-                    ? ''
-                    : (hasName || hasMobile)
-                        ? `<button class="btn btn-sm btn-outline-info" onclick="openDriverModal('${r.busId}')" title="Edit Driver"><i class="bi bi-person-gear"></i></button>`
-                        : `<button class="btn btn-sm btn-outline-secondary" onclick="openDriverModal('${r.busId}')" title="Add Driver"><i class="bi bi-person-plus"></i> Add Driver</button>`;
+                // When driver data could not be loaded, show a neutral indicator
+                // (not a misleading "Not assigned") and disable the Add/Edit control.
+                let nameCell, mobileCell, driverBtn;
+                if (!driversLoaded) {
+                    const warn = escapeHtml(driversError || "Driver details unavailable");
+                    nameCell = `<span class="text-muted" title="${warn}">—</span>`;
+                    mobileCell = `<span class="text-muted" title="${warn}">—</span>`;
+                    driverBtn = !hasBus ? '' :
+                        `<button class="btn btn-sm btn-outline-secondary" disabled title="${warn}"><i class="bi bi-person-exclamation"></i></button>`;
+                } else {
+                    nameCell = hasName
+                        ? `<span class="fw-medium">${escapeHtml(d.driverName)}</span>`
+                        : `<span class="text-muted fst-italic">Not assigned</span>`;
+                    mobileCell = hasMobile
+                        ? `<a href="tel:${encodeURIComponent(d.driverMobile)}" class="text-decoration-none">${escapeHtml(d.driverMobile)}</a>`
+                        : `<span class="text-muted fst-italic">Not added</span>`;
+                    driverBtn = !hasBus
+                        ? ''
+                        : (hasName || hasMobile)
+                            ? `<button class="btn btn-sm btn-outline-info" onclick="openDriverModal('${r.busId}')" title="Edit Driver"><i class="bi bi-person-gear"></i></button>`
+                            : `<button class="btn btn-sm btn-outline-secondary" onclick="openDriverModal('${r.busId}')" title="Add Driver"><i class="bi bi-person-plus"></i> Add Driver</button>`;
+                }
                 return `<tr>
                     <td class="fw-semibold">${r.routeName||"-"}</td>
                     <td><span class="badge bg-secondary">${getBusDisplayName(r.busId||"-")}</span></td>
@@ -331,6 +419,10 @@
         // ── Driver Add/Edit Modal ─────────────────────────────────────
         let _driverBusId = null;
         function openDriverModal(busId) {
+            if (!driversLoaded) {
+                showToast("⚠️ " + (driversError || "Driver details unavailable. Please refresh."), "warning");
+                return;
+            }
             _driverBusId = busId;
             const d = driverMap[busId] || { driverName: "", driverMobile: "" };
             document.getElementById("driverModalTitle").textContent =
@@ -362,14 +454,31 @@
                     method: "PUT", headers: headers(),
                     body: JSON.stringify({ driverName: name, driverMobile: mobile }),
                 });
-                const data = await res.json();
-                if (res.ok && data.success) {
+                // Parse JSON only when the server actually sent JSON (an HTML 404
+                // page would otherwise throw and be misreported as a network error).
+                const ctype = (res.headers.get("content-type") || "").toLowerCase();
+                let data = null;
+                if (ctype.includes("application/json")) {
+                    try { data = await res.json(); } catch (_) { data = null; }
+                }
+                if (res.ok && data && data.success === true) {
                     driverMap[_driverBusId] = { driverName: name, driverMobile: mobile };
                     showToast("✅ Driver details saved", "success");
                     bootstrap.Modal.getInstance(document.getElementById("driverModal"))?.hide();
                     applyFilters(); // re-render table with updated driver info
+                    // Re-read persisted values from the server; driverMap is only
+                    // replaced on a successful load, so a failed refresh is harmless.
+                    _fetchDriversOnce().then(r => { if (r.ok) applyFilters(); });
                 } else {
-                    err.textContent = data.error || "Failed to save. Please try again.";
+                    let msg;
+                    if (res.status === 401) msg = "Session expired or invalid. Please log in again (your entries are preserved).";
+                    else if (res.status === 403) msg = "Your account is not authorized to update driver details.";
+                    else if (res.status === 404) msg = data
+                        ? (data.error || "Bus not found on the server.")
+                        : "Driver update API not found on the server (HTTP 404). The backend does not have PUT /admin/bus/:busId deployed.";
+                    else if (res.status >= 500) msg = "Server error while saving (HTTP " + res.status + "). Please try again.";
+                    else msg = (data && data.error) || ("Failed to save (HTTP " + res.status + "). Please try again.");
+                    err.textContent = msg;
                     btn.disabled = false; btn.innerHTML = '<i class="bi bi-check-lg me-1"></i>Save Driver';
                 }
             } catch (e) {
@@ -584,7 +693,14 @@
         }
 
         // Load driver details first so the table shows them on initial render.
-        loadDrivers().then(loadRoutes);
+        loadDrivers().then(() => {
+            loadRoutes();
+            // Surface a non-blocking warning if driver details failed to load.
+            // Route data and all other actions keep working regardless.
+            if (!driversLoaded && driversError) {
+                showToast("⚠️ " + driversError, "warning");
+            }
+        });
     </script>
 </body>
 </html>
