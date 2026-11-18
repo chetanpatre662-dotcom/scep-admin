@@ -247,6 +247,7 @@
                     const buses = msg.data || [];
                     if (!buses.length) return;
                     liveBuses = buses;
+                    recordGpsFixes(buses);
                     updateConnectionStatus(true);
 
                     // Update active bus count
@@ -361,7 +362,7 @@
                 const newPos = { lat: Number(bus.lat), lng: Number(bus.lng) };
                 const icon = (bus.busId === activeBusId) ? blueIcon() : redIcon();
                 const infoHtml = `<div style="padding:8px;font-family:Poppins"><strong>${getBusDisplayName(bus.busId)}</strong><br>
-                    <small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small></div>`;
+                    <small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small><div style="margin-top:6px;font-size:12px"><span style="color:#64748b">GPS Last Update</span><br>${gpsAgeSpan(bus.busId)}</div></div>`;
                 if (markerMap[bus.busId]) {
                     // Smooth animate to new position
                     const oldPos = markerMap[bus.busId].marker.getPosition();

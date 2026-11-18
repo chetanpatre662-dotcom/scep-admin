@@ -29,8 +29,7 @@
 
         /* Content Cards */
         .content-card { background: #fff; border-radius: 28px; padding: 28px; box-shadow: 0 8px 30px rgba(15,23,42,.06); height: fit-content; }
-        .content-card-activity { background: #fff; border-radius: 28px; padding: 28px; box-shadow: 0 8px 30px rgba(15,23,42,.06); max-height: 900px; overflow-y: auto; }
-        .section-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #0f172a; }
+                .section-title { font-size: 20px; font-weight: 700; margin-bottom: 20px; color: #0f172a; }
 
         /* Map */
         #map { width: 100%; height: 520px; border-radius: 24px; margin-top: 20px; }
@@ -47,16 +46,10 @@
         .status-active { background: #16a34a; }
         .status-idle { background: #f59e0b; }
         .status-offline { background: #94a3b8; }
-        .bus-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+        .bus-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 14px; }
         .bus-box { background: #f8fafc; border-radius: 16px; padding: 16px; }
         .bus-box span { display: block; color: #64748b; font-size: 13px; margin-bottom: 4px; }
         .bus-box h4 { font-size: 15px; font-weight: 700; margin: 0; color: #0f172a; }
-
-        /* Activity */
-        .activity-item { display: flex; gap: 14px; margin-bottom: 20px; }
-        .activity-icon { width: 48px; height: 48px; background: #eef2ff; border-radius: 14px; display: flex; align-items: center; justify-content: center; color: #2563eb; font-size: 18px; flex-shrink: 0; }
-        .activity-text h5 { margin: 0; font-size: 14px; color: #0f172a; font-weight: 600; }
-        .activity-text p { margin: 0; color: #64748b; font-size: 12px; }
 
         /* Chart */
         .chart-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 14px; }
@@ -66,16 +59,15 @@
         .chart-container { height: 350px; }
 
         /* Main Grid */
-        .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 24px; margin-bottom: 25px; }
+        .main-grid { display: block; margin-bottom: 25px; }
 
         /* Edit Button */
         .btn-bus-edit { padding: 7px 16px; border: none; border-radius: 10px; background: #eff6ff; color: #2563eb; font-size: 13px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; transition: background .15s; }
         .btn-bus-edit:hover { background: #dbeafe; }
 
         /* Responsive */
-        @media(max-width:1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } .main-grid { grid-template-columns: 1fr; } }
-        @media(max-width:1024px) { .content-card-activity { display: none; } }
-        @media(max-width:768px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .bus-grid { grid-template-columns: 1fr; } #map { height: 380px; } .map-bus-btn { font-size: 12px; padding: 8px 12px; } }
+        @media(max-width:1200px) { .stats-grid { grid-template-columns: repeat(2, 1fr); } }
+        @media(max-width:768px) { .stats-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; } .bus-grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } #map { height: 380px; } .map-bus-btn { font-size: 12px; padding: 8px 12px; } }
         @media(max-width:480px) { #map { height: 320px; } .stats-grid { gap: 10px; } .stat-card-custom { padding: 18px 12px; border-radius: 18px; } .stat-card-custom h2 { font-size: 20px; } .stat-card-custom p { font-size: 12px; } .stat-icon-lg { width: 48px; height: 48px; font-size: 22px; border-radius: 14px; margin-bottom: 12px; } }
     </style>
 </head>
@@ -153,8 +145,7 @@
                     <small class="text-muted">Bus Wise Reports</small>
                 </div>
                 <div class="chart-buttons">
-                    <button class="chart-btn active" id="usersBtn">Total Enrolled Users</button>
-                    <button class="chart-btn" id="attendanceBtn">Today Attendance</button>
+                    <span class="chart-btn active" id="usersBtn">Total Enrolled Users</span>
                 </div>
             </div>
             <div class="chart-container">
@@ -162,17 +153,11 @@
             </div>
         </div>
 
-        <!-- Main Grid: Bus Cards + Activity -->
+        <!-- Bus Details (full width) -->
         <div class="main-grid mt-4">
-            <!-- Bus Cards (Left) -->
             <div class="content-card">
-                <h3 class="section-title">Live Bus Tracking</h3>
+                <h3 class="section-title">Bus Details</h3>
                 <div id="busContainer"></div>
-            </div>
-            <!-- Activity Panel (Right) -->
-            <div class="content-card-activity">
-                <h3 class="section-title">Recent Activity</h3>
-                <div id="activityContainer"></div>
             </div>
         </div>
     </div>
@@ -224,6 +209,25 @@
         if (!verifyInstitution("college")) throw "unauthorized";
 
         const API_URL = `${API}/admin/dashboard`;
+
+        // ?? Driver details: authoritative source is Firestore buses/{busId} (GET /admin/buses).
+        // The live /admin/dashboard + WebSocket payloads carry a server-side static driver
+        // map, so they must NOT be used for driver name/mobile.
+        let driverMap = {};
+        let driversLoaded = false;
+        async function loadDrivers() {
+            const r = await loadBusRecords(); // shared helper: GET /admin/buses
+            busRecords = r.map; busRecordsError = r.error;
+            if (r.error) { console.warn("Driver details unavailable:", r.error); return; }
+            const m = {};
+            Object.values(r.map).forEach(b => { m[b.busId] = { driverName: String(b.driverName || "").trim(), driverMobile: String(b.driverMobile || "").trim() }; });
+            driverMap = m; driversLoaded = true;
+        }
+        function _escHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c])); }
+        function _jsq(s) { return String(s).replace(/[\\'"<>&]/g, c => "\\x" + c.charCodeAt(0).toString(16).padStart(2, "0")); }
+        function driverNameOf(busId) { const d = driverMap[busId]; return _escHtml((d && d.driverName) || (driversLoaded ? "Not Available" : "Unavailable")); }
+        function driverMobileOf(busId) { const d = driverMap[busId]; return _escHtml((d && d.driverMobile) || (driversLoaded ? "Not Available" : "Unavailable")); }
+        function rawDriverField(busId, f) { const d = driverMap[busId]; return _jsq((d && d[f]) || ""); }
         let dashboardData = null;
         let chart;
         let map;
@@ -235,6 +239,9 @@
         let busTrails = {};
         const MAX_TRAIL_POINTS = 5;
         let rtoMapping = {}; // unified RTO mapping
+        // Authoritative bus records (Firestore buses/{busId}) - driver name/mobile, registration no.
+        let busRecords = {}, busRecordsError = null;
+        async function refreshBusRecords() { await loadDrivers(); }
 
         // ── Load RTO Mapping ─────────────────────────────────────────
         async function loadRtoMapping() {
@@ -274,6 +281,7 @@
         let _firstLoad = true;
         async function init() {
             try {
+                await loadDrivers();
                 const res = await fetch(API_URL, { headers: headers() });
                 if (!res.ok) {
                     if (res.status === 401) { logout(); return; }
@@ -284,14 +292,14 @@
                 // Guard: only update if we got valid bus data
                 if (!newData || !newData.buses || !newData.buses.length) {
                     // On first load with no data, still update stats
-                    if (_firstLoad && newData) { dashboardData = newData; loadStats(); loadActivities(); _firstLoad = false; }
+                    if (_firstLoad && newData) { dashboardData = newData; loadStats(); _firstLoad = false; }
                     return;
                 }
                 dashboardData = newData;
+                recordGpsFixes(newData.buses);
                 loadStats();
                 loadBusCards();
                 loadAllTrips();
-                loadActivities();
                 if (_firstLoad) { renderChart("users"); _firstLoad = false; }
                 if (!mapReady && typeof google !== "undefined" && google.maps) { initMap(); }
                 else if (mapReady) { renderBusButtons(dashboardData.buses); updateMarkers(dashboardData.buses); }
@@ -317,6 +325,7 @@
                     const res = JSON.parse(event.data);
                     if (res.type === "update" || res.type === "init") {
                         const buses = res.data;
+                        recordGpsFixes(buses);
                         // Update dashboardData.buses with live WebSocket data for consistency
                         if (dashboardData && buses.length > 0) {
                             dashboardData.buses = buses;
@@ -380,21 +389,9 @@
                         <i class="bi bi-chevron-down" id="arrow-${index}" style="font-size:20px;transition:.3s;flex-shrink:0;${isExpanded?'transform:rotate(180deg)':''}"></i>
                     </div>
                     <div id="bus-content-${index}" style="display:${isExpanded?'block':'none'};margin-top:18px">
-                        <div class="bus-grid">
-                            <div class="bus-box"><span>RTO Number</span><h4>${rtoMapping[bus.busId] || "Not Set"}</h4></div>
-                            <div class="bus-box"><span>Driver</span><h4>${bus.driver || "N/A"}</h4></div>
-                            <div class="bus-box"><span>Driver Mobile</span><h4>${bus.driverMobile || "N/A"}</h4></div>
-                            <div class="bus-box"><span>Route</span><h4>${bus.route || "N/A"}</h4></div>
-                            <div class="bus-box"><span>Speed</span><h4>${Math.round(bus.speed || 0)} KM/H</h4></div>
-                            <div class="bus-box"><span>Current City</span><h4>${bus.currentCity || "—"}</h4></div>
-                            <div class="bus-box"><span>Next Stop</span><h4>${bus.nextCity || "—"}</h4></div>
-                            <div class="bus-box"><span>Today's Travelers</span><h4>${todayCount}</h4></div>
-                            <div class="bus-box"><span>Today KM</span><h4>${bus.todayKm || "0"} KM</h4></div>
-                            <div class="bus-box"><span>Campus Arrival</span><h4>${bus.collegeArrivalTime ? new Date(bus.collegeArrivalTime).toLocaleTimeString() : "Not Reached"}</h4></div>
-                            <div class="bus-box"><span>Last Update</span><h4>${bus.timestamp ? new Date(bus.timestamp).toLocaleTimeString() : "N/A"}</h4></div>
-                        </div>
+                        <div class="bus-grid">${busDetailsGridHtml(bus, busRecords[bus.busId], busRecordsError, { todayCount, arrivalLabel: 'Campus Arrival' })}</div>
                         <div style="margin-top:14px;text-align:right;display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap">
-                            <button class="btn-bus-edit" onclick="openBusEdit('${bus.busId}','${(bus.driver||"").replace(/'/g,"\\'")}','${(bus.driverMobile||"").replace(/'/g,"\\'")}','${(bus.route||"").replace(/'/g,"\\'")}')">
+                            <button class="btn-bus-edit" onclick="openBusEdit('${bus.busId}','${rawDriverField(bus.busId,"driverName")}','${rawDriverField(bus.busId,"driverMobile")}','${(bus.route||"").replace(/'/g,"\\'")}')">
                                 <i class="bi bi-pencil-square"></i> Edit Driver / Route
                             </button>
                             <button class="btn-bus-edit" style="background:#fef3c7;color:#92400e;" onclick="openRenameModal('${bus.busId}')">
@@ -482,25 +479,6 @@
             }
         }
 
-        // ── Activity Timeline ────────────────────────────────────────
-        function loadActivities() {
-            const wrap = document.getElementById("activityContainer");
-            wrap.innerHTML = "";
-            (dashboardData.activities || []).forEach(a => {
-                wrap.innerHTML += `
-                <div class="activity-item">
-                    <div class="activity-icon"><i class="bi bi-activity"></i></div>
-                    <div class="activity-text">
-                        <h5>${a.message}</h5>
-                        <p>${new Date(a.time).toLocaleString()}</p>
-                    </div>
-                </div>`;
-            });
-            if (!(dashboardData.activities || []).length) {
-                wrap.innerHTML = '<p class="text-muted small">No recent activity</p>';
-            }
-        }
-
         // ── Google Maps ──────────────────────────────────────────────
         // Default Google Maps marker icons — red (default) and blue (selected)
         function redIcon() { return "https://maps.google.com/mapfiles/ms/icons/red-dot.png"; }
@@ -573,12 +551,13 @@
                 updateBusTrail(bus.busId, bus.lat, bus.lng);
                 const infoHtml = `<div style="padding:10px;font-family:Poppins,sans-serif">
                     <h5 style="margin:0 0 6px">${getBusDisplayName(bus.busId)}</h5>
-                    <p style="margin:2px 0"><b>Driver:</b> ${bus.driver || "N/A"}</p>
+                    <p style="margin:2px 0"><b>Driver:</b> ${driverNameOf(bus.busId)}</p>
                     <p style="margin:2px 0"><b>Route:</b> ${bus.route || "N/A"}</p>
                     <p style="margin:2px 0"><b>Status:</b> ${bus.status || "N/A"}</p>
                     <p style="margin:2px 0"><b>Speed:</b> ${Math.round(bus.speed || 0)} km/h</p>
                     <p style="margin:2px 0"><b>Current City:</b> ${bus.currentCity || "—"}</p>
                     <p style="margin:2px 0"><b>Next Stop:</b> ${bus.nextCity || "—"}</p>
+                    <p style="margin:2px 0"><b>GPS Last Update:</b> ${gpsAgeSpan(bus.busId)}</p>
                 </div>`;
                 if (markerMap[bus.busId]) {
                     // Smooth animate marker to new position
@@ -626,20 +605,10 @@
                 options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, ticks: { precision: 0, stepSize: 1 } } } }
             });
         }
-        document.getElementById("usersBtn").addEventListener("click", () => {
-            renderChart("users");
-            document.getElementById("usersBtn").classList.add("active");
-            document.getElementById("attendanceBtn").classList.remove("active");
-        });
-        document.getElementById("attendanceBtn").addEventListener("click", () => {
-            renderChart("attendance");
-            document.getElementById("attendanceBtn").classList.add("active");
-            document.getElementById("usersBtn").classList.remove("active");
-        });
-
         // ── Bus Edit Modal ───────────────────────────────────────────
         let _editBusId = null;
         function openBusEdit(busId, driver, mobile, route) {
+            if (!driversLoaded) { alert("Driver details could not be loaded from the server. Please refresh the page and try again."); return; }
             _editBusId = busId;
             document.getElementById("editModalBusId").textContent = busId;
             document.getElementById("editRtoNumber").value = rtoMapping[busId] || "";
@@ -669,7 +638,7 @@
                     if (rtoNumber) rtoMapping[_editBusId] = rtoNumber;
                     else delete rtoMapping[_editBusId];
                     msg.style.color = "#16a34a"; msg.textContent = "✅ Saved successfully";
-                    setTimeout(() => { closeBusEdit(); loadBusCards(); }, 800);
+                    setTimeout(async () => { closeBusEdit(); await loadDrivers(); loadBusCards(); }, 800);
                 }
                 else { msg.style.color = "#dc2626"; msg.textContent = "❌ " + (data.error || "Save failed"); btn.disabled = false; }
             } catch (e) { msg.style.color = "#dc2626"; msg.textContent = "❌ Network error"; btn.disabled = false; }

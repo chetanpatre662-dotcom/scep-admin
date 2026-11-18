@@ -162,6 +162,7 @@
                     const buses = msg.data || [];
                     if (!buses.length) return;
                     liveBuses = buses;
+                    recordGpsFixes(buses);
                     updateConnectionStatus(true);
 
                     const active = buses.filter(b => b.tripActive).length;
@@ -251,7 +252,7 @@
             buses.forEach(bus => {
                 const pos = {lat:Number(bus.lat),lng:Number(bus.lng)};
                 const icon = (bus.busId === activeBusId) ? blueIcon() : redIcon();
-                const html = `<div style="padding:8px;font-family:Poppins"><strong>${getBusDisplayName(bus.busId)}</strong><br><small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small></div>`;
+                const html = `<div style="padding:8px;font-family:Poppins"><strong>${getBusDisplayName(bus.busId)}</strong><br><small>Driver: ${bus.driver||"N/A"}<br>Route: ${bus.route||"N/A"}<br>Speed: ${Math.round(bus.speed||0)} km/h<br>City: ${bus.currentCity||"—"}</small><div style="margin-top:6px;font-size:12px"><span style="color:#64748b">GPS Last Update</span><br>${gpsAgeSpan(bus.busId)}</div></div>`;
                 if (markerMap[bus.busId]) {
                     const old = markerMap[bus.busId].marker.getPosition();
                     if (old.lat() !== pos.lat || old.lng() !== pos.lng) animateMarker(markerMap[bus.busId].marker, old, pos, 1500);

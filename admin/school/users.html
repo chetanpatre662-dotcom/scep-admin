@@ -73,9 +73,9 @@
         <!-- Users Table -->
         <div class="section-box">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead class="table-light"><tr><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Actions</th></tr></thead>
-                    <tbody id="usersBody"><tr><td colspan="7" class="text-center text-muted py-4"><div class="skeleton-line mb-2"></div><div class="skeleton-line"></div></td></tr></tbody>
+                <table class="table table-hover align-middle mb-0 users-table">
+                    <thead class="table-light"><tr><th class="avatar-col">Photo</th><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr><td colspan="8" class="text-center text-muted py-4"><div class="skeleton-line mb-2"></div><div class="skeleton-line"></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -83,6 +83,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="../shared/admin-common.js"></script>
+    <script src="../shared/photo-refresh.js"></script>
     <script>
         if (!verifyInstitution("school")) throw "unauthorized";
 
@@ -146,12 +147,13 @@
             document.getElementById("countLabel").innerText = filtered.length;
 
             if (!filtered.length) {
-                document.getElementById("usersBody").innerHTML = '<tr><td colspan="7" class="text-center text-muted py-4">No users match filters</td></tr>';
+                document.getElementById("usersBody").innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No users match filters</td></tr>';
                 return;
             }
 
             document.getElementById("usersBody").innerHTML = filtered.map(u => `
                 <tr>
+                    <td class="avatar-col">${userAvatarHtml(u)}</td>
                     <td class="fw-semibold">${u.name||"-"}</td>
                     <td><span class="badge ${u.role==='faculty'?'bg-warning text-dark':'bg-info'}">${(u.role||"-").charAt(0).toUpperCase()+(u.role||"").slice(1)}</span></td>
                     <td class="small text-muted">${u.email||"N/A"}</td>

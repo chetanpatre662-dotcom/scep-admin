@@ -199,3 +199,127 @@ function showTableSkeleton(tableId, cols, rows = 5) {
   for (let i = 0; i < rows; i++) { html += "<tr>"; for (let j = 0; j < cols; j++) html += `<td><div class="skeleton-line"></div></td>`; html += "</tr>"; }
   tbody.innerHTML = html;
 }
+
+// -- GPS last-update helpers (shared by Dashboard marker card + Bus Monitoring) --
+// Elapsed time is measured from the REAL GPS fix time, never from page-open time.
+// The live feed (WebSocket / GET /admin/dashboard) carries, per bus:
+//   gpsAgeSeconds     server-computed age of the fix at send time (clock-skew safe)
+//   lastGpsUpdateUtc  ISO time of the fix (fallback)
+// Same resolution order as the Flutter app (lib/utils/gps_age.dart).
+const _gpsFixMs = {}; // busId -> epoch ms of last GPS fix (null = unknown)
+
+function recordGpsFixes(buses, receivedAtMs) {
+  const now = receivedAtMs || Date.now();
+  (buses || []).forEach(b => {
+    if (!b || !b.busId) return;
+    const key = b.busId;
+    let ms = null;
+    const age = b.gpsAgeSeconds;
+    if (age !== undefined && age !== null && age !== "") {
+      const n = Number(age);
+      ms = (Number.isFinite(n) && n >= 0) ? now - n * 1000 : null;
+    } else if (b.lastGpsUpdateUtc) {
+      const t = Date.parse(b.lastGpsUpdateUtc);
+      ms = (Number.isFinite(t) && t <= now + 5000) ? t : null;
+    } else if (Number(b.gpsTimeMs) > 0) {
+      ms = Number(b.gpsTimeMs) <= now + 5000 ? Number(b.gpsTimeMs) : null;
+    }
+    _gpsFixMs[key] = ms;
+  });
+}
+
+function gpsElapsedSeconds(busId) {
+  const ms = _gpsFixMs[busId];
+  if (ms === null || ms === undefined) return -1;
+  return Math.max(0, Math.floor((Date.now() - ms) / 1000));
+}
+
+function formatGpsAge(sec) {
+  if (sec < 0) return "Unavailable";
+  if (sec < 5) return "Just now";
+  if (sec < 60) return `${sec} sec ago`;
+  if (sec < 600) { const m = Math.floor(sec / 60), s = sec % 60; return s ? `${m} min ${s} sec ago` : `${m} min ago`; }
+  if (sec < 3600) return `${Math.floor(sec / 60)} min ago`;
+  if (sec < 86400) { const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60); return `${h} hour${h > 1 ? "s" : ""}${m ? ` ${m} min` : ""} ago`; }
+  const d = Math.floor(sec / 86400);
+  return `${d} day${d > 1 ? "s" : ""} ago`;
+}
+
+// HTML span that gpsTick() keeps current without re-rendering the surrounding card.
+function gpsAgeSpan(busId) {
+  const id = String(busId).replace(/[&<>"']/g, "");
+  const sec = gpsElapsedSeconds(busId);
+  const cls = sec < 0 ? "gps-unknown" : (sec > 300 ? "gps-stale" : "");
+  return `<span class="gps-age ${cls}" data-gps-bus="${id}">${formatGpsAge(sec)}</span>`;
+}
+
+function gpsTick() {
+  document.querySelectorAll("[data-gps-bus]").forEach(el => {
+    const sec = gpsElapsedSeconds(el.getAttribute("data-gps-bus"));
+    const text = formatGpsAge(sec);
+    if (el.textContent !== text) el.textContent = text;
+    el.classList.toggle("gps-unknown", sec < 0);
+    el.classList.toggle("gps-stale", sec > 300);
+  });
+}
+setInterval(gpsTick, 1000);
+
+// -- Authoritative bus records (Firestore buses/{busId}) via GET /admin/buses --
+// Same endpoint the Routes pages use for driverName / driverMobile.
+// Returns { map, error } - map is busId -> doc; error is a string when unavailable.
+async function loadBusRecords() {
+  try {
+    const res = await fetch(`${API}/admin/buses`, { headers: headers() });
+    const ct = res.headers.get("content-type") || "";
+    if (!res.ok || !ct.includes("application/json")) {
+      return { map: {}, error: res.status === 404 ? "Bus records API not available on the server (HTTP 404)" : `Bus records unavailable (HTTP ${res.status})` };
+    }
+    const data = await res.json();
+    const map = {};
+    (data.buses || []).forEach(b => { if (b && b.busId) map[b.busId] = b; });
+    return { map, error: data.success ? null : (data.error || "Bus records unavailable") };
+  } catch (e) {
+    return { map: {}, error: "Bus records unavailable (network error)" };
+  }
+}
+
+function escapeHtmlText(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, ch => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[ch]));
+}
+
+// -- Bus Details grid (shared by College + School Bus Monitoring) -------------
+// bus: live record (WebSocket / GET /admin/dashboard); rec: Firestore buses/{busId}
+// from loadBusRecords() (authoritative for driver + registration); recError: string
+// when the records API was unreachable (then the live payload is used as fallback).
+function busDetailsGridHtml(bus, rec, recError, opts) {
+  opts = opts || {};
+  const e = escapeHtmlText;
+  const live = v => (v && v !== "N/A") ? v : "";
+  const driverName = rec ? (rec.driverName || "") : (recError ? live(bus.driver) : "");
+  const driverMobile = rec ? (rec.driverMobile || "") : (recError ? live(bus.driverMobile) : "");
+  const route = live(bus.route) || (rec && rec.route) || "";
+  const rto = (rec && (rec.rtoNumber || rec.registrationNumber)) || (_globalRtoMapping && _globalRtoMapping[bus.busId]) || "";
+  const gps = bus.gpsState || (bus.status === "Offline" ? "OFFLINE" : "");
+  const gpsLabel = { LIVE: "Live", UPDATING: "Updating", OFFLINE: "Offline" }[gps] || (gps || "Unknown");
+  const gpsColor = { LIVE: "#16a34a", UPDATING: "#d97706", OFFLINE: "#dc2626" }[gps] || "#64748b";
+  const box = (label, value) => `<div class="bus-box"><span>${label}</span><h4>${value}</h4></div>`;
+  const na = (v, fallback) => v ? e(v) : `<span style="color:#94a3b8;font-weight:600">${fallback || "Not set"}</span>`;
+  const mobileHtml = driverMobile ? `<a href="tel:${encodeURIComponent(driverMobile)}" style="color:inherit;text-decoration:none">${e(driverMobile)}</a>` : na("", recError ? "Unavailable" : "Not set");
+  const arrival = bus.collegeArrivalTime ? new Date(bus.collegeArrivalTime).toLocaleTimeString() : "Not Reached";
+  return [
+    box("Bus ID", e(bus.busId)),
+    box("Registration No. (RTO)", na(rto)),
+    box("Driver Name", na(driverName, recError ? "Unavailable" : "Not set")),
+    box("Driver Mobile", mobileHtml),
+    box("Assigned Route", na(route, "N/A")),
+    box("GPS Status", `<span style="color:${gpsColor}">${e(gpsLabel)}</span>`),
+    box("GPS Last Update", gpsAgeSpan(bus.busId)),
+    box("Speed", `${Math.round(bus.speed || 0)} KM/H`),
+    box("Current City", e(bus.currentCity || "—")),
+    box("Next Stop", e(bus.nextCity || "—")),
+    box("Today's Travelers", e(opts.todayCount || 0)),
+    box("Today KM", `${e(bus.todayKm || "0")} KM`),
+    box(opts.arrivalLabel || "Campus Arrival", e(arrival)),
+    rec && rec.trackerVendor ? box("Tracker", e(rec.trackerVendor)) : "",
+  ].join("");
+}

@@ -102,6 +102,7 @@
 </div>
 <div class="toast-container" id="toasts"></div>
 
+<script src="../shared/photo-refresh.js"></script>
 <script>
 const API="https://bustracker.satpudaengineeringcollege.com/api";
 const token=localStorage.getItem("token");
@@ -188,7 +189,7 @@ function render(list){
         else if(s.status==="verified")actions=`<button class="btn-act btn-renew me-1" onclick="renew('${s.id}',this)"><i class="bi bi-arrow-repeat"></i>Renew</button><button class="btn-act btn-revoke" onclick="revoke('${s.id}',this)"><i class="bi bi-slash-circle"></i>Revoke</button>`;
         else actions=`<button class="btn-act btn-renew" onclick="renew('${s.id}',this)"><i class="bi bi-arrow-repeat"></i>Renew</button>`;
         const photoHtml = s.passPhotoUrl
-            ? `<img src="${s.passPhotoUrl}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:2px solid #e2e8f0;cursor:pointer;flex-shrink:0" onclick="openPhotoViewer('${s.passPhotoUrl.replace(/'/g,"\\'")}','${(s.name||'Student').replace(/'/g,"\\'")}')" onerror="this.outerHTML='<div style=\\'width:52px;height:52px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0\\'><i class=\\'bi bi-person-fill\\' style=\\'color:#94a3b8;font-size:20px\\'></i></div>'">`
+            ? `<img src="${passPhotoSrc(s.id, s.passPhotoUrl)}" data-photo-id="${s.id}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:2px solid #e2e8f0;cursor:pointer;flex-shrink:0" onclick="openPhotoViewer(this.src,'${(s.name||'Student').replace(/'/g,"\\'")}')" onerror="onPassPhotoError(this)">`
             : `<div style="width:52px;height:52px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-person-fill" style="color:#94a3b8;font-size:20px"></i></div>`;
         return `<tr><td><div style="display:flex;align-items:center;gap:12px">${photoHtml}<span class="name-cell">${s.name||"—"}</span></div></td><td><span class="roll-cell" style="cursor:pointer" title="Click to edit" onclick="editRollNumber('${s.id}','${(s.rollNumber||'').replace(/'/g,"\\'")}','${(s.name||'Student').replace(/'/g,"\\'")}')">${s.rollNumber||"—"} <i class="bi bi-pencil-fill" style="font-size:9px;opacity:.5;margin-left:3px"></i></span></td><td>${s.branch||"—"}</td><td>${(s.course||"—").toUpperCase()}</td><td>${s.year||"—"}</td><td><span class="bus-badge">${getBusDisplayName(s.busId||"—")}</span></td><td>${s.city||"—"}</td><td>${badge}</td><td>${actions}</td></tr>`;
     }).join("")||'<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--muted)">No students found</td></tr>';

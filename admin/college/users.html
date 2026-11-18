@@ -93,9 +93,9 @@
         <!-- Users Table -->
         <div class="section-box fade-up">
             <div class="table-responsive">
-                <table class="table table-hover align-middle mb-0">
-                    <thead><tr><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Course</th><th>Year</th><th>Actions</th></tr></thead>
-                    <tbody id="usersBody"><tr><td colspan="10" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
+                <table class="table table-hover align-middle mb-0 users-table">
+                    <thead><tr><th class="avatar-col">Photo</th><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Course</th><th>Year</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr><td colspan="11" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -105,6 +105,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
     <script src="../shared/admin-common.js"></script>
+    <script src="../shared/photo-refresh.js"></script>
     <script>
         if (!verifyInstitution("college")) throw "unauthorized";
 
@@ -171,7 +172,7 @@
             updateChips();
 
             if (!filtered.length) {
-                document.getElementById("usersBody").innerHTML = `<tr><td colspan="10"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
+                document.getElementById("usersBody").innerHTML = `<tr><td colspan="11"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
                 return;
             }
 
@@ -181,6 +182,7 @@
                     ? '<span class="badge" style="background:#fef3c7;color:#92400e">Faculty</span>'
                     : '<span class="badge" style="background:#dbeafe;color:#1e40af">Student</span>';
                 return `<tr>
+                    <td class="avatar-col">${userAvatarHtml(u)}</td>
                     <td class="fw-semibold">${u.name||"-"}</td>
                     <td>${roleBadge}</td>
                     <td class="small text-muted">${u.email||"N/A"}</td>
