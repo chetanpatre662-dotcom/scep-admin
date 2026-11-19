@@ -74,8 +74,8 @@
         <div class="section-box">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 users-table">
-                    <thead class="table-light"><tr><th class="avatar-col">Photo</th><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Actions</th></tr></thead>
-                    <tbody id="usersBody"><tr><td colspan="8" class="text-center text-muted py-4"><div class="skeleton-line mb-2"></div><div class="skeleton-line"></div></td></tr></tbody>
+                    <thead class="table-light"><tr><th class="avatar-col">Photo</th><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Created At</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr><td colspan="9" class="text-center text-muted py-4"><div class="skeleton-line mb-2"></div><div class="skeleton-line"></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -147,7 +147,7 @@
             document.getElementById("countLabel").innerText = filtered.length;
 
             if (!filtered.length) {
-                document.getElementById("usersBody").innerHTML = '<tr><td colspan="8" class="text-center text-muted py-4">No users match filters</td></tr>';
+                document.getElementById("usersBody").innerHTML = '<tr><td colspan="9" class="text-center text-muted py-4">No users match filters</td></tr>';
                 return;
             }
 
@@ -160,6 +160,7 @@
                     <td class="small">${u.mobile||"-"}</td>
                     <td><span class="badge bg-secondary">${getBusDisplayName(u.busId||"-")}</span></td>
                     <td class="small">${u.city||"-"}</td>
+                    <td class="small text-nowrap">${formatCreatedAt(u.accountCreatedAt || u.createdAt || u.created_at)}</td>
                     <td><button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.role||'parent'}','${u.id}','${(u.name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash"></i></button></td>
                 </tr>
             `).join("");

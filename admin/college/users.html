@@ -94,8 +94,8 @@
         <div class="section-box fade-up">
             <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0 users-table">
-                    <thead><tr><th class="avatar-col">Photo</th><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Course</th><th>Year</th><th>Actions</th></tr></thead>
-                    <tbody id="usersBody"><tr><td colspan="11" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
+                    <thead><tr><th class="avatar-col">Photo</th><th>Name</th><th>Role</th><th>Email</th><th>Mobile</th><th>Bus</th><th>City</th><th>Branch</th><th>Course</th><th>Year</th><th>Created At</th><th>Actions</th></tr></thead>
+                    <tbody id="usersBody"><tr><td colspan="12" class="text-center py-4"><div class="skeleton-line mb-2" style="width:60%;margin:0 auto"></div><div class="skeleton-line" style="width:40%;margin:0 auto"></div></td></tr></tbody>
                 </table>
             </div>
         </div>
@@ -172,7 +172,7 @@
             updateChips();
 
             if (!filtered.length) {
-                document.getElementById("usersBody").innerHTML = `<tr><td colspan="11"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
+                document.getElementById("usersBody").innerHTML = `<tr><td colspan="12"><div class="empty-state"><i class="bi bi-people"></i><p>No users match your filters</p></div></td></tr>`;
                 return;
             }
 
@@ -192,6 +192,7 @@
                     <td class="small">${u.branch||"-"}</td>
                     <td class="small">${(u.course||"-").toUpperCase()}</td>
                     <td class="small">${yearLabel}</td>
+                <td class="small text-nowrap">${formatCreatedAt(u.accountCreatedAt || u.createdAt || u.created_at)}</td>
                     <td><button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.role||'student'}','${u.id}','${(u.name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash3"></i></button></td>
                 </tr>`;
             }).join("");

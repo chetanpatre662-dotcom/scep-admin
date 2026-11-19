@@ -74,6 +74,20 @@ function requireAuth(expectedInstitution) {
 function verifyInstitution(expected) {
   return requireAuth(expected);
 }
+// Formats a creation timestamp as DD-MM-YYYY HH:mm (IST).
+// Accepts ISO strings, epoch millis, Date, Firestore Timestamp JSON
+// ({_seconds} / {seconds}). Missing or invalid -> "N/A" (never "now").
+function formatCreatedAt(v) {
+    if (v === null || v === undefined || v === "") return "N/A";
+    let d;
+    if (v instanceof Date) d = v;
+    else if (typeof v === "object" && (v._seconds != null || v.seconds != null)) d = new Date(Number(v._seconds ?? v.seconds) * 1000);
+    else d = new Date(v);
+    if (isNaN(d.getTime())) return "N/A";
+    const p = new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Kolkata", day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", hour12: false })
+        .formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
+    return p.day + "-" + p.month + "-" + p.year + " " + (p.hour === "24" ? "00" : p.hour) + ":" + p.minute;
+}
 function logout() { localStorage.removeItem("token"); localStorage.removeItem("institution"); window.location.href = "../index.html"; }
 
 // ── Sidebar ─────────────────────────────────────────────────────────────────
