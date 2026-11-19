@@ -88,6 +88,17 @@ function formatCreatedAt(v) {
         .formatToParts(d).reduce((a, x) => (a[x.type] = x.value, a), {});
     return p.day + "-" + p.month + "-" + p.year + " " + (p.hour === "24" ? "00" : p.hour) + ":" + p.minute;
 }
+// SCEP rule: user-entered personal text (name, e-mail, city, branch, class,
+// child names ...) is always DISPLAYED in UPPERCASE. Applied only to explicitly
+// chosen personal fields at render time; stored data and technical values
+// (IDs, bus IDs, phone numbers, URLs, tokens) are never passed through this.
+// null / undefined / blank -> fallback (default "").
+function upperText(v, fallback) {
+    if (v === null || v === undefined) return fallback === undefined ? "" : fallback;
+    const s = String(v);
+    if (!s.trim()) return fallback === undefined ? "" : fallback;
+    return s.toUpperCase();
+}
 function logout() { localStorage.removeItem("token"); localStorage.removeItem("institution"); window.location.href = "../index.html"; }
 
 // ── Sidebar ─────────────────────────────────────────────────────────────────

@@ -82,7 +82,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../shared/admin-common.js?v=20261119"></script>
+    <script src="../shared/admin-common.js?v=20261119u"></script>
     <script src="../shared/photo-refresh.js"></script>
     <script>
         if (!verifyInstitution("school")) throw "unauthorized";
@@ -119,7 +119,7 @@
 
             // City filter
             const cities = [...new Set(allUsers.map(u => u.city).filter(Boolean))].sort();
-            document.getElementById("cityFilter").innerHTML = '<option value="all">All Cities</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join("");
+            document.getElementById("cityFilter").innerHTML = '<option value="all">All Cities</option>' + cities.map(c => `<option value="${c}">${upperText(c)}</option>`).join("");
         }
 
         function clearFilters() {
@@ -154,12 +154,12 @@
             document.getElementById("usersBody").innerHTML = filtered.map(u => `
                 <tr>
                     <td class="avatar-col">${userAvatarHtml(u)}</td>
-                    <td class="fw-semibold">${u.name||"-"}</td>
+                    <td class="fw-semibold">${upperText(u.name,"-")}</td>
                     <td><span class="badge ${u.role==='faculty'?'bg-warning text-dark':'bg-info'}">${(u.role||"-").charAt(0).toUpperCase()+(u.role||"").slice(1)}</span></td>
-                    <td class="small text-muted">${u.email||"N/A"}</td>
+                    <td class="small text-muted">${upperText(u.email,"N/A")}</td>
                     <td class="small">${u.mobile||"-"}</td>
                     <td><span class="badge bg-secondary">${getBusDisplayName(u.busId||"-")}</span></td>
-                    <td class="small">${u.city||"-"}</td>
+                    <td class="small">${upperText(u.city,"-")}</td>
                     <td class="small text-nowrap">${formatCreatedAt(u.accountCreatedAt || u.createdAt || u.created_at)}</td>
                     <td><button class="btn btn-sm btn-outline-danger" onclick="deleteUser('${u.role||'parent'}','${u.id}','${(u.name||'').replace(/'/g,"\\'")}')"><i class="bi bi-trash"></i></button></td>
                 </tr>

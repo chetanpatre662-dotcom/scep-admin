@@ -141,7 +141,7 @@
     <!-- Toast Container -->
     <div id="toastContainer" style="position:fixed;top:16px;right:16px;z-index:9999;display:flex;flex-direction:column;gap:8px;max-width:340px;"></div>
 
-    <script src="../shared/admin-common.js"></script>
+    <script src="../shared/admin-common.js?v=20261119u"></script>
     <script src="../shared/photo-refresh.js"></script>
     <script>
     // ── Auth Gate ────────────────────────────────────────────────────────────
@@ -224,14 +224,14 @@
             return `<tr>
                 <td><div style="display:flex;align-items:center;gap:12px">
                     ${s.passPhotoUrl ? `<img src="${passPhotoSrc(s.id, s.passPhotoUrl)}" data-photo-id="${s.id}" style="width:52px;height:52px;border-radius:8px;object-fit:cover;border:2px solid #e5e7eb;flex-shrink:0;cursor:pointer" onclick="openPhotoViewer(this.src,'${(s.name||'Student').replace(/'/g,"\\'")}')" onerror="onPassPhotoError(this)">` : `<div style="width:52px;height:52px;border-radius:8px;background:#f1f5f9;display:flex;align-items:center;justify-content:center;flex-shrink:0"><i class="bi bi-person-fill" style="color:#94a3b8;font-size:20px"></i></div>`}
-                    <span style="font-weight:600">${s.name || "—"}</span>
+                    <span style="font-weight:600">${upperText(s.name, "—")}</span>
                 </div></td>
                 <td><span class="roll-cell" style="cursor:pointer" title="Click to edit" onclick="editRollNumber('${s.id}','${(s.rollNumber||'').replace(/'/g,"\\'")}','${(s.name||'Student').replace(/'/g,"\\'")}')">${s.rollNumber || "—"} <i class="bi bi-pencil-fill" style="font-size:9px;opacity:.5;margin-left:3px"></i></span></td>
-                <td>${s.branch || "—"}</td>
+                <td>${upperText(s.branch, "—")}</td>
                 <td>${(s.course || "—").toUpperCase()}</td>
                 <td>${s.year || "—"}</td>
                 <td><span class="bus-badge-cell">${getBusDisplayName(s.busId || "—")}</span></td>
-                <td>${s.city || "—"}</td>
+                <td>${upperText(s.city, "—")}</td>
                 <td>${badge}</td>
                 <td>${actions}</td>
             </tr>`;

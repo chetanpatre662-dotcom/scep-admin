@@ -356,7 +356,7 @@ function initSupport(institution) {
       const pColor = { low: "#94a3b8", medium: "#f59e0b", high: "#f97316", urgent: "#ef4444" }[t.priority] || "#94a3b8";
       const unreadHtml = t.unreadAdmin > 0 ? `<span class="unread-badge">${t.unreadAdmin}</span>` : "";
       return `<div class="ticket-item ${t.id === activeTicketId ? 'active' : ''}" onclick="supportCtrl.openTicket('${t.id}')">
-        <div class="top"><span class="name">${t.userName || "Unknown"}</span><span class="time">${time}</span></div>
+        <div class="top"><span class="name">${upperText(t.userName, "Unknown")}</span><span class="time">${time}</span></div>
         <div class="preview">${t.lastMessage || "No messages yet"}</div>
         <div class="meta"><span class="priority-dot" style="background:${pColor}"></span><span style="font-size:10px;color:var(--text-muted)">${t.ticketNumber || ""}</span>${unreadHtml}</div>
       </div>`;
@@ -386,7 +386,7 @@ function initSupport(institution) {
 
     dom.chatHeader.innerHTML = `
       <div class="avatar">${(ticket.userName || "?")[0].toUpperCase()}</div>
-      <div class="info"><h6>${ticket.userName || "Unknown"}</h6><span>${ticket.ticketNumber || ""} • ${ticket.userBusId || ""}</span></div>
+      <div class="info"><h6>${upperText(ticket.userName, "Unknown")}</h6><span>${ticket.ticketNumber || ""} • ${ticket.userBusId || ""}</span></div>
       <div class="actions"><select onchange="supportCtrl.changeStatus('${ticketId}',this.value)">
         <option value="open" ${ticket.status === "open" ? "selected" : ""}>Open</option>
         <option value="pending" ${ticket.status === "pending" ? "selected" : ""}>Pending</option>
@@ -396,8 +396,8 @@ function initSupport(institution) {
 
     dom.profileContent.innerHTML = `
       <h6>Student Details</h6>
-      <div class="profile-field"><div class="label">Name</div><div class="value">${ticket.userName || "—"}</div></div>
-      <div class="profile-field"><div class="label">Email</div><div class="value">${ticket.userEmail || "—"}</div></div>
+      <div class="profile-field"><div class="label">Name</div><div class="value">${upperText(ticket.userName, "—")}</div></div>
+      <div class="profile-field"><div class="label">Email</div><div class="value">${upperText(ticket.userEmail, "—")}</div></div>
       <div class="profile-field"><div class="label">Mobile</div><div class="value">${ticket.userMobile || "—"}</div></div>
       <div class="profile-field"><div class="label">Bus</div><div class="value">${ticket.userBusId || "—"}</div></div>
       <div class="profile-field"><div class="label">Course</div><div class="value">${(ticket.userCourse || "").toUpperCase()} ${ticket.userBranch || ""}</div></div>

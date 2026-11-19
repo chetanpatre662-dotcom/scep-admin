@@ -111,7 +111,7 @@
         </div>
     </div>
 
-    <script src="../shared/admin-common.js"></script>
+    <script src="../shared/admin-common.js?v=20261119u"></script>
     <script>
     // -- Auth -----------------------------------------------------------------
     const inst = localStorage.getItem("institution") || "college";
@@ -252,7 +252,7 @@
                     html += `<h6 style="font-size:13px;color:var(--text-secondary);margin:16px 0 8px;font-weight:600"><i class="bi bi-person-check me-1"></i>Boarding Details</h6>`;
                     html += `<div class="table-responsive-wrap"><table class="table"><thead><tr><th>Student</th><th>City</th><th>Boarding Time</th><th>Date</th><th>Type</th></tr></thead><tbody>`;
                     bus.boardings.forEach(b => {
-                        html += `<tr><td>${b.name}</td><td>${b.city}</td><td>${b.boardingTime || '-'}</td><td>${b.date}</td><td>${b.userType}</td></tr>`;
+                        html += `<tr><td>${upperText(b.name)}</td><td>${upperText(b.city)}</td><td>${b.boardingTime || '-'}</td><td>${b.date}</td><td>${b.userType}</td></tr>`;
                     });
                     html += `</tbody></table></div>`;
                 }
@@ -289,7 +289,7 @@
             if (yPos > 250) { doc.addPage(); yPos = 20; }
             doc.setFontSize(12);
             doc.setFont("helvetica", "bold");
-            doc.text(`${bus.busId} — Trips: ${bus.totalTrips} | Distance: ${bus.totalDistance} KM`, 14, yPos);
+            doc.text(`${bus.busId} ï¿½ Trips: ${bus.totalTrips} | Distance: ${bus.totalDistance} KM`, 14, yPos);
             yPos += 8;
 
             if (bus.trips.length > 0) {
@@ -312,7 +312,7 @@
 
             if (bus.boardings && bus.boardings.length > 0) {
                 if (yPos > 240) { doc.addPage(); yPos = 20; }
-                const boardRows = bus.boardings.map(b => [b.name, b.city, b.boardingTime||'-', b.date, b.userType]);
+                const boardRows = bus.boardings.map(b => [upperText(b.name), upperText(b.city), b.boardingTime||'-', b.date, b.userType]);
                 doc.autoTable({
                     startY: yPos,
                     head: [['Student', 'City', 'Boarding Time', 'Date', 'Type']],
@@ -380,8 +380,8 @@
 
             if (bus.boardings && bus.boardings.length > 0) {
                 const bRows = bus.boardings.map(b => ({
-                    "Student": b.name,
-                    "City": b.city,
+                    "Student": upperText(b.name),
+                    "City": upperText(b.city),
                     "Bus": b.busId,
                     "Boarding Time": b.boardingTime || "-",
                     "Date": b.date,

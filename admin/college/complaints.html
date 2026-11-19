@@ -61,7 +61,7 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="../shared/admin-common.js"></script>
+    <script src="../shared/admin-common.js?v=20261119u"></script>
     <script>
         if (!verifyInstitution("college")) throw "unauthorized";
 
@@ -112,7 +112,7 @@
                 return `<div class="complaint-card">
                     <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
                         <div>
-                            <div class="fw-bold">${c.name || "Unknown"}</div>
+                            <div class="fw-bold">${upperText(c.name, "Unknown")}</div>
                             <div class="text-muted small"><i class="bi bi-phone me-1"></i>${c.mobile || "N/A"} · <span class="badge bg-secondary">${(c.role || "—").charAt(0).toUpperCase() + (c.role || "").slice(1)}</span> · <i class="bi bi-bus-front-fill me-1"></i>${c.busId || "—"}</div>
                         </div>
                         <div class="d-flex align-items-center gap-2">

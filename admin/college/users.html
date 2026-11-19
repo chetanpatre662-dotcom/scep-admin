@@ -104,7 +104,7 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-    <script src="../shared/admin-common.js?v=20261119"></script>
+    <script src="../shared/admin-common.js?v=20261119u"></script>
     <script src="../shared/photo-refresh.js"></script>
     <script>
         if (!verifyInstitution("college")) throw "unauthorized";
@@ -134,10 +134,10 @@
             document.getElementById("busFilter").innerHTML = '<option value="all">All Buses</option>' + buses.map(b => `<option value="${b}">${getBusDisplayName(b)}</option>`).join("");
             // City
             const cities = [...new Set(allUsers.map(u => u.city).filter(Boolean))].sort();
-            document.getElementById("cityFilter").innerHTML = '<option value="all">All</option>' + cities.map(c => `<option value="${c}">${c}</option>`).join("");
+            document.getElementById("cityFilter").innerHTML = '<option value="all">All</option>' + cities.map(c => `<option value="${c}">${upperText(c)}</option>`).join("");
             // Branch
             const branches = [...new Set(allUsers.map(u => u.branch).filter(Boolean))].sort();
-            document.getElementById("branchFilter").innerHTML = '<option value="all">All Branches</option>' + branches.map(b => `<option value="${b}">${b}</option>`).join("");
+            document.getElementById("branchFilter").innerHTML = '<option value="all">All Branches</option>' + branches.map(b => `<option value="${b}">${upperText(b)}</option>`).join("");
         }
 
         function clearFilters() {
@@ -183,13 +183,13 @@
                     : '<span class="badge" style="background:#dbeafe;color:#1e40af">Student</span>';
                 return `<tr>
                     <td class="avatar-col">${userAvatarHtml(u)}</td>
-                    <td class="fw-semibold">${u.name||"-"}</td>
+                    <td class="fw-semibold">${upperText(u.name,"-")}</td>
                     <td>${roleBadge}</td>
-                    <td class="small text-muted">${u.email||"N/A"}</td>
+                    <td class="small text-muted">${upperText(u.email,"N/A")}</td>
                     <td class="small">${u.mobile||"-"}</td>
                     <td><span class="badge bg-secondary">${getBusDisplayName(u.busId||"-")}</span></td>
-                    <td class="small">${u.city||"-"}</td>
-                    <td class="small">${u.branch||"-"}</td>
+                    <td class="small">${upperText(u.city,"-")}</td>
+                    <td class="small">${upperText(u.branch,"-")}</td>
                     <td class="small">${(u.course||"-").toUpperCase()}</td>
                     <td class="small">${yearLabel}</td>
                 <td class="small text-nowrap">${formatCreatedAt(u.accountCreatedAt || u.createdAt || u.created_at)}</td>
@@ -246,13 +246,13 @@
 
             const rows = allUsers.map((u, i) => [
                 i + 1,
-                u.name || "-",
+                upperText(u.name, "-"),
                 (u.role || "-").charAt(0).toUpperCase() + (u.role || "").slice(1),
-                u.email || "N/A",
+                upperText(u.email, "N/A"),
                 u.mobile || "-",
                 u.busId || "-",
-                u.city || "-",
-                u.branch || "-",
+                upperText(u.city, "-"),
+                upperText(u.branch, "-"),
                 (u.course || "-").toUpperCase(),
                 YEAR_LABELS[u.year] || u.year || "-",
             ]);
