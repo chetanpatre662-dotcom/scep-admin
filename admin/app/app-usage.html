@@ -92,6 +92,9 @@
 
         <!-- Summary cards -->
         <div class="row g-3 mb-3" id="cards"></div>
+        <!-- Ad impression summary (same filters; totals of the user-wise table) -->
+        <h6 class="fw-bold mb-2 mt-1">Ad Impressions</h6>
+        <div class="row g-3 mb-3" id="adCards"></div>
 
         <!-- Filters -->
         <div class="filter-bar">
@@ -194,6 +197,7 @@
                             <th class="sortable" data-sort="name">User name <span class="sortIco"></span></th>
                             <th>Mobile</th><th>Institution</th><th>User type</th><th>Course</th><th>Academic year</th>
                             <th class="sortable text-end" data-sort="opens">App opens <span class="sortIco"></span></th>
+                            <th class="text-end">Banner <br>impressions</th><th class="text-end">Interstitial <br>impressions</th><th class="text-end">Rewarded <br>impressions</th><th class="text-end">Total ad <br>impressions</th>
                             <th>First opened</th><th>Last opened</th><th>Date</th>
                         </tr></thead>
                         <tbody id="tbody"></tbody>
@@ -391,7 +395,20 @@ function renderCards(s, c) {
         }
         return `<div class="col-xl-3 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:${bg};color:${fg}"><i class="bi ${icon}"></i></div><div class="stat-value" data-card="${k}">${value}</div><div class="stat-label">${label}</div><div class="au-card-sub">${sub}</div></div></div>`;
     }).join("");
+    const ads = s && s.ads;
+    $("adCards").innerHTML = AD_CARDS.map(([k, label, icon, bg, fg]) => {
+        const value = ads ? fmtN(ads[k]) : "-";
+        return `<div class="col-xl col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:${bg};color:${fg}"><i class="bi ${icon}"></i></div><div class="stat-value" data-adcard="${k}">${value}</div><div class="stat-label">${label}</div></div></div>`;
+    }).join("");
 }
+// Ad impression summary: totals of the user-wise table rows (selected filters + search, all pages)
+const AD_CARDS = [
+    ["total", "Total Ad Impressions", "bi-badge-ad", "#e0e7ff", "#4338ca"],
+    ["banner", "Banner Impressions", "bi-window", "#dbeafe", "#2563eb"],
+    ["interstitial", "Interstitial Impressions", "bi-fullscreen", "#fef3c7", "#d97706"],
+    ["rewarded", "Rewarded Impressions", "bi-gift", "#dcfce7", "#16a34a"],
+    ["usersWithImpressions", "Users with Ad Impressions", "bi-person-badge", "#fce7f3", "#db2777"],
+];
 
 function setOptions(sel, items, allLabel) {
     const keep = sel.value;
@@ -417,6 +434,10 @@ function renderRows(rows) {
             <td>${esc(r.courseLabel || "-")}</td>
             <td>${esc(r.yearLabel || "-")}</td>
             <td class="text-end"><span class="au-count">${Number(r.openCount).toLocaleString("en-IN")}</span>${r.activeDays > 1 ? `<div class="au-sub">${r.activeDays} days</div>` : ""}</td>
+            <td class="text-end" data-col="adBanner">${fmtN(r.adBanner)}</td>
+            <td class="text-end" data-col="adInterstitial">${fmtN(r.adInterstitial)}</td>
+            <td class="text-end" data-col="adRewarded">${fmtN(r.adRewarded)}</td>
+            <td class="text-end" data-col="adTotal"><span class="au-count">${fmtN(r.adTotal)}</span></td>
             <td>${esc(fmtTime(r.firstOpenedAt))}</td>
             <td>${esc(fmtTime(r.lastOpenedAt))}</td>
             <td class="text-nowrap">${esc(fmtDate(r.date))}</td>
