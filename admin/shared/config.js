@@ -94,7 +94,7 @@ const ADMIN_CONFIG = {
       notifications: true,
       complaints: true,
       reports: true,
-      appUsage: true,      // separate Appcount login on the page itself
+      appUsage: true,      // Appcount uses the same login page; super-admin may also view
     },
   },
 };

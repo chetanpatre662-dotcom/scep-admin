@@ -71,6 +71,14 @@ async function login() {
       body: JSON.stringify({ username, password })
     });
     const data = await res.json();
+    // Appcount (App Usage Analytics) signs in through this same form. The server answers with an
+    // HttpOnly session cookie (no token in the body), so there is nothing to store here.
+    if (data.success && data.appUsage === true) {
+      localStorage.removeItem("token"); localStorage.removeItem("institution"); localStorage.removeItem("role");
+      msg.style.color = "green"; msg.innerText = "Login successful...";
+      setTimeout(() => { window.location.href = "app/app-usage.html"; }, 400);
+      return;
+    }
     if (data.success) {
       // Clear any stale session data
       localStorage.removeItem("token");

@@ -11,7 +11,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="../shared/admin-styles.css?v=20261120">
     <style>
-        /* This page has its OWN login (Appcount); nothing from the main admin session is used. */
+        /* Sign-in happens on the shared admin login page (../index.html); this page only checks the session. */
         #authWrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
                     background: linear-gradient(135deg, #eef2ff, #f8fafc); }
         .auth-card { width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 28px;
@@ -38,22 +38,14 @@
 </head>
 <body>
 
-<!-- ═════════════════ AUTH (login / forced password change) ═════════════════ -->
+<!-- ═════════════════ AUTH (status / forced password change; sign-in happens on the shared admin login page) ═════════════════ -->
 <div id="authWrap">
     <div class="auth-card">
         <div class="text-center mb-3">
             <div style="font-size:34px;color:#4F46E5"><i class="bi bi-activity"></i></div>
             <h4 class="mb-0">App Usage Analytics</h4>
-            <small class="text-muted">Restricted area. Separate login required.</small>
+            <small class="text-muted">Restricted area</small>
         </div>
-
-        <form id="loginForm" autocomplete="off" novalidate>
-            <label class="form-label small fw-medium">Username</label>
-            <input id="lgUser" class="form-control mb-3" autocomplete="username" maxlength="64" required>
-            <label class="form-label small fw-medium">Password</label>
-            <input id="lgPass" type="password" class="form-control mb-3" autocomplete="current-password" maxlength="128" required>
-            <button id="lgBtn" class="btn btn-primary w-100" type="submit">Sign in</button>
-        </form>
 
         <form id="pwForm" style="display:none" autocomplete="off" novalidate>
             <div class="alert alert-warning py-2 small" id="pwNotice">You must set a new password before continuing.</div>
@@ -70,7 +62,8 @@
             </div>
         </form>
 
-        <div id="authMsg" class="text-center small mt-3" role="alert"></div>
+        <div id="authMsg" class="text-center small mt-3" role="alert">Checking session...</div>
+        <div class="text-center mt-2"><a href="../index.html" class="small">Back to login</a></div>
     </div>
 </div>
 
@@ -78,11 +71,11 @@
 <div id="appWrap">
     <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
     <div class="sidebar" id="sidebar">
-        <h4><i class="bi bi-shield-lock me-2"></i>Super Admin</h4>
-        <a href="dashboard.html"><div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div></a>
+        <h4><i class="bi bi-shield-lock me-2"></i><span id="sideTitle">App Usage</span></h4>
+        <a href="dashboard.html" id="navDashboard" style="display:none"><div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div></a>
         <a href="app-usage.html"><div class="nav-item active"><i class="bi bi-activity"></i>App Usage Analytics</div></a>
-        <div class="nav-item" onclick="showChangePassword()" style="cursor:pointer"><i class="bi bi-key"></i>Change Password</div>
-        <div class="nav-item mt-4" onclick="signOut()" style="color:#f87171;cursor:pointer"><i class="bi bi-box-arrow-left"></i>Sign out</div>
+        <div class="nav-item" id="navPw" onclick="showChangePassword()" style="cursor:pointer;display:none"><i class="bi bi-key"></i>Change Password</div>
+        <div class="nav-item mt-4" id="navSignout" onclick="signOut()" style="color:#f87171;cursor:pointer;display:none"><i class="bi bi-box-arrow-left"></i>Sign out</div>
     </div>
 
     <div class="main">
@@ -222,7 +215,6 @@ const PROD_API = "https://bustracker.satpudaengineeringcollege.com/api";
 // Local testing only: ?api=http://127.0.0.1:3100 is honoured ONLY when this page itself is served from localhost.
 const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
 const API_BASE = (LOCAL && new URLSearchParams(location.search).get("api")) || PROD_API;
-const TOKEN_KEY = "appUsageSession";           // sessionStorage: cleared when the tab closes. Never a password.
 const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 
 const $ = (id) => document.getElementById(id);
@@ -237,35 +229,38 @@ const fmtTime = (iso) => !iso ? "-" : new Intl.DateTimeFormat("en-IN", { timeZon
 const fmtDate = (s) => { const p = s.split(" to "); return p.map((k) => { const [y, m, d] = k.split("-"); return `${d} ${MONTHS[+m - 1].slice(0, 3)} ${y}`; }).join(" - "); };
 
 /* ───────────────────────── session ───────────────────────── */
-let token = sessionStorage.getItem(TOKEN_KEY) || "";
-let scopeMustChange = false;
+// Sign-in happens on the shared admin login page (/admin/). The server sets an HttpOnly, SameSite=Strict cookie for
+// Appcount, so there is no token in JavaScript or in any browser storage. A super-admin (main admin JWT already
+// in localStorage from the normal login) may also open this page; that mode sends the admin token as a header.
+const LOGIN_URL = "../index.html";
+let authed = false, scopeMustChange = false, mode = "cookie";
 
+function goToLogin() { authed = false; location.replace(LOGIN_URL); }
 function setMsg(text, ok) { const el = $("authMsg"); el.textContent = text || ""; el.style.color = ok ? "#16a34a" : "#dc2626"; }
 function show(view) {
     $("authWrap").style.display = view === "app" ? "none" : "flex";
     $("appWrap").style.display = view === "app" ? "block" : "none";
-    $("loginForm").style.display = view === "login" ? "block" : "none";
     $("pwForm").style.display = view === "pw" ? "block" : "none";
 }
-function endSession(message) {
-    token = ""; sessionStorage.removeItem(TOKEN_KEY);
-    $("lgPass").value = "";
-    show("login");
-    setMsg(message || "", false);
+function configureSidebar(role) {
+    const admin = role === "superadmin";
+    $("sideTitle").textContent = admin ? "Super Admin" : "App Usage";
+    $("navDashboard").style.display = admin ? "" : "none";   // Appcount has no admin dashboard access
+    $("navPw").style.display = admin ? "none" : "";
+    $("navSignout").style.display = admin ? "none" : "";
 }
 
-async function api(path, { method = "GET", body, auth = true } = {}) {
+async function api(path, { method = "GET", body } = {}) {
     const headers = { "Content-Type": "application/json" };
-    if (auth) headers.Authorization = "Bearer " + token;
-    let res;
-    try { res = await fetch(API_BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store" }); }
+    if (method !== "GET") headers["X-App-Usage"] = "1"; // CSRF guard checked by the server for cookie sessions
+    if (mode === "admin") headers.Authorization = localStorage.getItem("token") || "";
+    try { return await fetch(API_BASE + path, { method, headers, credentials: "same-origin", body: body ? JSON.stringify(body) : undefined, cache: "no-store" }); }
     catch (e) { const err = new Error("Server not reachable. Check your connection."); err.network = true; throw err; }
-    return res;
 }
 async function jsonOrThrow(res) {
     let data = null;
     try { data = await res.json(); } catch (_) {}
-    if (res.status === 401 && token) { endSession("Session expired. Please sign in again."); const e = new Error("Session expired"); e.handled = true; throw e; }
+    if (res.status === 401) { goToLogin(); const e = new Error("Session expired"); e.handled = true; throw e; }
     if (!res.ok || !data || data.success === false) {
         const e = new Error((data && data.error) || `Request failed (${res.status})`);
         e.status = res.status; e.retryAfter = res.headers.get("Retry-After"); throw e;
@@ -273,24 +268,7 @@ async function jsonOrThrow(res) {
     return data;
 }
 
-/* ───────────────────────── login / change password ───────────────────────── */
-$("loginForm").addEventListener("submit", async (ev) => {
-    ev.preventDefault();
-    const username = $("lgUser").value.trim(), password = $("lgPass").value;
-    if (!username || !password) return setMsg("Enter username and password", false);
-    $("lgBtn").disabled = true; setMsg("Signing in...", true);
-    try {
-        const data = await jsonOrThrow(await api("/app-usage/admin/login", { method: "POST", body: { username, password }, auth: false }));
-        $("lgPass").value = "";
-        token = data.token; sessionStorage.setItem(TOKEN_KEY, token);
-        setMsg("", true);
-        if (data.mustChangePassword) { scopeMustChange = true; openPasswordForm(true, "Your password is the temporary initial one. Set a new password to continue."); }
-        else { scopeMustChange = false; enterApp(); }
-    } catch (e) {
-        if (!e.handled) setMsg(e.status === 429 ? "Too many failed attempts. Try again later." : e.message, false);
-    } finally { $("lgBtn").disabled = false; }
-});
-
+/* ───────────────────────── change password ───────────────────────── */
 function openPasswordForm(forced, notice) {
     $("pwCur").value = $("pwNew").value = $("pwNew2").value = "";
     $("pwNotice").textContent = notice || "Choose a new password.";
@@ -309,8 +287,7 @@ $("pwForm").addEventListener("submit", async (ev) => {
     if (nw.length < 10 || !/[a-z]/.test(nw) || !/[A-Z]/.test(nw) || !/\d/.test(nw)) return setMsg("New password needs 10+ characters with upper-case, lower-case and a digit", false);
     $("pwBtn").disabled = true; setMsg("Saving...", true);
     try {
-        const data = await jsonOrThrow(await api("/app-usage/admin/change-password", { method: "POST", body: { currentPassword: cur, newPassword: nw } }));
-        token = data.token; sessionStorage.setItem(TOKEN_KEY, token);
+        await jsonOrThrow(await api("/app-usage/admin/change-password", { method: "POST", body: { currentPassword: cur, newPassword: nw } }));
         $("pwCur").value = $("pwNew").value = $("pwNew2").value = "";
         scopeMustChange = false; setMsg("", true); enterApp();
     } catch (e) { if (!e.handled) setMsg(e.message, false); }
@@ -318,8 +295,22 @@ $("pwForm").addEventListener("submit", async (ev) => {
 });
 
 async function signOut() {
-    try { if (token) await api("/app-usage/admin/logout", { method: "POST" }); } catch (_) {}
-    endSession("Signed out.");
+    try { await api("/app-usage/admin/logout", { method: "POST" }); } catch (_) {}
+    goToLogin();
+}
+
+async function bootstrapSession() {
+    try {
+        let res = await api("/app-usage/admin/session");
+        if (res.status === 401 && localStorage.getItem("token") && localStorage.getItem("role") === "superadmin") {
+            mode = "admin"; res = await api("/app-usage/admin/session");
+        }
+        if (!res.ok) return goToLogin();
+        const d = await res.json();
+        authed = true; configureSidebar(d.role);
+        if (d.mustChangePassword) { scopeMustChange = true; openPasswordForm(true, "You signed in with the initial password. Set a new password to continue."); }
+        else enterApp();
+    } catch (e) { show("msg"); setMsg(e.message, false); }
 }
 
 /* ───────────────────────── filters state ───────────────────────── */
@@ -453,7 +444,7 @@ function updateSortIcons() {
 
 /* ───────────────────────── loading ───────────────────────── */
 async function load() {
-    if (!token || scopeMustChange) return;
+    if (!authed || scopeMustChange) return;
     if (!validateRange()) { renderCards(null); renderRows([]); showState("error", '<i class="bi bi-calendar-x"></i>Fix the date range to continue.'); return; }
     const seq = ++state.reqSeq;
     $("tblWrap").classList.add("loading");
@@ -491,7 +482,7 @@ async function exportCsv() {
     const btn = $("btnExport"); btn.disabled = true;
     try {
         const res = await api("/app-usage/admin/export" + queryString());
-        if (res.status === 401) { endSession("Session expired. Please sign in again."); return; }
+        if (res.status === 401) { goToLogin(); return; }
         if (!res.ok) { let m = "Export failed"; try { m = (await res.json()).error || m; } catch (_) {} throw new Error(m); }
         const blob = await res.blob();
         const r = currentRange();
@@ -536,16 +527,7 @@ document.addEventListener("DOMContentLoaded", () => {
     $("btnRefresh").addEventListener("click", () => load());
     $("btnExport").addEventListener("click", exportCsv);
 
-    // Resume an existing tab session only if the server still accepts it; otherwise show login.
-    if (token) {
-        (async () => {
-            try { await jsonOrThrow(await api("/app-usage/admin/report?pageSize=5")); enterApp(); }
-            catch (e) {
-                if (e.status === 403) { scopeMustChange = true; openPasswordForm(true, "Set a new password to continue."); }
-                else if (!e.handled) endSession("");
-            }
-        })();
-    } else show("login");
+    bootstrapSession();
 });
 </script>
 </body>
