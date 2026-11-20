@@ -56,6 +56,7 @@ const ADMIN_CONFIG = {
     { id: "notifications", label: "Notifications", icon: "bi-bell",           href: "notifications.html", feature: "notifications" },
     { id: "complaints",    label: "Complaints",    icon: "bi-chat-dots",      href: "complaints.html",    feature: "complaints" },
     { id: "reports",       label: "Reports",       icon: "bi-bar-chart",      href: "reports.html",       feature: "reports" },
+    { id: "app-usage",     label: "App Usage Analytics", icon: "bi-activity", href: "app-usage.html",     feature: "appUsage" },
   ],
 
   // ── Feature Flags ──────────────────────────────────────────────────────────
@@ -93,6 +94,7 @@ const ADMIN_CONFIG = {
       notifications: true,
       complaints: true,
       reports: true,
+      appUsage: true,      // separate Appcount login on the page itself
     },
   },
 };

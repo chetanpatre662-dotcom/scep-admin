@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="robots" content="noindex,nofollow">
+    <title>SCEP Admin - App Usage Analytics</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="../shared/admin-styles.css?v=20261120">
+    <style>
+        /* This page has its OWN login (Appcount); nothing from the main admin session is used. */
+        #authWrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 16px;
+                    background: linear-gradient(135deg, #eef2ff, #f8fafc); }
+        .auth-card { width: 100%; max-width: 420px; background: #fff; border-radius: 20px; padding: 28px;
+                     box-shadow: 0 12px 40px rgba(0,0,0,.08); }
+        .auth-card h4 { font-weight: 700; }
+        #appWrap { display: none; }
+        .au-table th { white-space: nowrap; cursor: default; }
+        .au-table th.sortable { cursor: pointer; user-select: none; }
+        .au-table th.sortable:hover { color: var(--primary); }
+        .au-table td { vertical-align: middle; }
+        .au-name { font-weight: 600; }
+        .au-pill { font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; background: #eef2ff; color: #4338ca; text-transform: capitalize; }
+        .au-pill.school { background: #e0f2fe; color: #0369a1; }
+        .au-pill.college { background: #ede9fe; color: #6d28d9; }
+        .au-count { font-weight: 700; font-size: 15px; }
+        .au-sub { font-size: 12px; color: var(--text-muted); }
+        .filter-bar .form-label { margin-bottom: 2px; }
+        .au-state { padding: 48px 12px; text-align: center; color: var(--text-secondary); }
+        .au-state i { font-size: 34px; display: block; margin-bottom: 8px; opacity: .6; }
+        .stat-value { font-size: 26px; }
+        #tblWrap.loading { opacity: .55; pointer-events: none; transition: opacity .15s; }
+        .pw-hint { font-size: 12px; color: var(--text-secondary); }
+    </style>
+</head>
+<body>
+
+<!-- ═════════════════ AUTH (login / forced password change) ═════════════════ -->
+<div id="authWrap">
+    <div class="auth-card">
+        <div class="text-center mb-3">
+            <div style="font-size:34px;color:#4F46E5"><i class="bi bi-activity"></i></div>
+            <h4 class="mb-0">App Usage Analytics</h4>
+            <small class="text-muted">Restricted area. Separate login required.</small>
+        </div>
+
+        <form id="loginForm" autocomplete="off" novalidate>
+            <label class="form-label small fw-medium">Username</label>
+            <input id="lgUser" class="form-control mb-3" autocomplete="username" maxlength="64" required>
+            <label class="form-label small fw-medium">Password</label>
+            <input id="lgPass" type="password" class="form-control mb-3" autocomplete="current-password" maxlength="128" required>
+            <button id="lgBtn" class="btn btn-primary w-100" type="submit">Sign in</button>
+        </form>
+
+        <form id="pwForm" style="display:none" autocomplete="off" novalidate>
+            <div class="alert alert-warning py-2 small" id="pwNotice">You must set a new password before continuing.</div>
+            <label class="form-label small fw-medium">Current password</label>
+            <input id="pwCur" type="password" class="form-control mb-3" autocomplete="current-password" maxlength="128">
+            <label class="form-label small fw-medium">New password</label>
+            <input id="pwNew" type="password" class="form-control mb-1" autocomplete="new-password" maxlength="128">
+            <div class="pw-hint mb-3">At least 10 characters with upper-case, lower-case and a digit.</div>
+            <label class="form-label small fw-medium">Confirm new password</label>
+            <input id="pwNew2" type="password" class="form-control mb-3" autocomplete="new-password" maxlength="128">
+            <div class="d-flex gap-2">
+                <button id="pwBtn" class="btn btn-primary flex-fill" type="submit">Change password</button>
+                <button id="pwCancel" class="btn btn-outline-secondary" type="button" style="display:none">Cancel</button>
+            </div>
+        </form>
+
+        <div id="authMsg" class="text-center small mt-3" role="alert"></div>
+    </div>
+</div>
+
+<!-- ═════════════════ APP ═════════════════ -->
+<div id="appWrap">
+    <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+    <div class="sidebar" id="sidebar">
+        <h4><i class="bi bi-shield-lock me-2"></i>Super Admin</h4>
+        <a href="dashboard.html"><div class="nav-item"><i class="bi bi-grid"></i>Dashboard</div></a>
+        <a href="app-usage.html"><div class="nav-item active"><i class="bi bi-activity"></i>App Usage Analytics</div></a>
+        <div class="nav-item" onclick="showChangePassword()" style="cursor:pointer"><i class="bi bi-key"></i>Change Password</div>
+        <div class="nav-item mt-4" onclick="signOut()" style="color:#f87171;cursor:pointer"><i class="bi bi-box-arrow-left"></i>Sign out</div>
+    </div>
+
+    <div class="main">
+        <div class="topbar">
+            <div class="manu"><button class="menu-bar" onclick="toggleSidebar()"><i class="bi bi-list"></i></button></div>
+            <div><h5 class="fw-bold mb-0">App Usage Analytics</h5><small class="text-muted" id="subtitle">Daily app opens per user</small></div>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <button class="btn btn-outline-secondary btn-sm" id="btnRefresh" title="Reload"><i class="bi bi-arrow-clockwise me-1"></i>Refresh</button>
+                <button class="btn btn-primary btn-sm" id="btnExport"><i class="bi bi-filetype-csv me-1"></i>Export CSV</button>
+            </div>
+        </div>
+
+        <!-- Summary cards -->
+        <div class="row g-3 mb-3" id="cards"></div>
+
+        <!-- Filters -->
+        <div class="filter-bar">
+            <div class="row g-2 align-items-end">
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">Date</label>
+                    <select id="fPeriod" class="form-select form-select-sm">
+                        <option value="today">Today</option>
+                        <option value="yesterday">Yesterday</option>
+                        <option value="date">Custom date</option>
+                        <option value="range">Custom date range</option>
+                        <option value="month">Month</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6" id="boxDate" style="display:none">
+                    <label class="form-label small fw-medium">Select date</label>
+                    <input type="date" id="fDate" class="form-control form-control-sm">
+                </div>
+                <div class="col-lg-2 col-md-4 col-6" id="boxFrom" style="display:none">
+                    <label class="form-label small fw-medium">Start date</label>
+                    <input type="date" id="fFrom" class="form-control form-control-sm">
+                </div>
+                <div class="col-lg-2 col-md-4 col-6" id="boxTo" style="display:none">
+                    <label class="form-label small fw-medium">End date</label>
+                    <input type="date" id="fTo" class="form-control form-control-sm">
+                </div>
+                <div class="col-lg-2 col-md-4 col-6" id="boxMonth" style="display:none">
+                    <label class="form-label small fw-medium">Month</label>
+                    <select id="fMonth" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-lg-1 col-md-4 col-6" id="boxYear" style="display:none">
+                    <label class="form-label small fw-medium">Year</label>
+                    <select id="fMonthYear" class="form-select form-select-sm"></select>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">Day</label>
+                    <select id="fWeekday" class="form-select form-select-sm">
+                        <option value="all">All days</option>
+                        <option value="monday">Monday</option><option value="tuesday">Tuesday</option>
+                        <option value="wednesday">Wednesday</option><option value="thursday">Thursday</option>
+                        <option value="friday">Friday</option><option value="saturday">Saturday</option>
+                        <option value="sunday">Sunday</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">Institution</label>
+                    <select id="fInstitution" class="form-select form-select-sm">
+                        <option value="all">All</option><option value="college">College</option><option value="school">School</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">User type</label>
+                    <select id="fUserType" class="form-select form-select-sm">
+                        <option value="all">All</option><option value="student">Student</option>
+                        <option value="faculty">Faculty</option><option value="parent">Parent</option>
+                    </select>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">Course</label>
+                    <select id="fCourse" class="form-select form-select-sm"><option value="all">All courses</option></select>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">Academic year</label>
+                    <select id="fYear" class="form-select form-select-sm"><option value="all">All</option></select>
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">Search</label>
+                    <input type="search" id="fSearch" class="form-control form-control-sm" placeholder="Name or mobile" maxlength="60">
+                </div>
+                <div class="col-lg-2 col-md-4 col-6">
+                    <label class="form-label small fw-medium">Sort</label>
+                    <select id="fSort" class="form-select form-select-sm">
+                        <option value="opens_desc">Most opens</option><option value="opens_asc">Least opens</option>
+                        <option value="name_asc">Name A-Z</option><option value="name_desc">Name Z-A</option>
+                    </select>
+                </div>
+                <div class="col-lg-1 col-md-4 col-6">
+                    <button class="btn btn-outline-secondary btn-sm w-100" id="btnReset" title="Reset filters"><i class="bi bi-x-circle"></i></button>
+                </div>
+            </div>
+            <div class="small text-muted mt-2" id="rangeNote"></div>
+        </div>
+
+        <!-- Table -->
+        <div class="section-box fade-up">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                <h6 class="fw-bold mb-0">User-wise app opens <span class="badge bg-primary ms-1" id="countBadge">-</span></h6>
+                <div class="d-flex align-items-center gap-2">
+                    <label class="small text-muted mb-0" for="fPageSize">Rows</label>
+                    <select id="fPageSize" class="form-select form-select-sm" style="width:auto">
+                        <option>10</option><option selected>25</option><option>50</option><option>100</option>
+                    </select>
+                </div>
+            </div>
+            <div id="tblWrap">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 au-table">
+                        <thead><tr>
+                            <th>#</th>
+                            <th class="sortable" data-sort="name">User name <span class="sortIco"></span></th>
+                            <th>Mobile</th><th>Institution</th><th>User type</th><th>Course</th><th>Academic year</th>
+                            <th class="sortable text-end" data-sort="opens">App opens <span class="sortIco"></span></th>
+                            <th>First opened</th><th>Last opened</th><th>Date</th>
+                        </tr></thead>
+                        <tbody id="tbody"></tbody>
+                    </table>
+                </div>
+                <div id="tblState" class="au-state" style="display:none"></div>
+            </div>
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
+                <small class="text-muted" id="pageInfo"></small>
+                <nav><ul class="pagination pagination-sm mb-0" id="pager"></ul></nav>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+"use strict";
+/* ───────────────────────── config ───────────────────────── */
+const PROD_API = "https://bustracker.satpudaengineeringcollege.com/api";
+// Local testing only: ?api=http://127.0.0.1:3100 is honoured ONLY when this page itself is served from localhost.
+const LOCAL = ["localhost", "127.0.0.1"].includes(location.hostname);
+const API_BASE = (LOCAL && new URLSearchParams(location.search).get("api")) || PROD_API;
+const TOKEN_KEY = "appUsageSession";           // sessionStorage: cleared when the tab closes. Never a password.
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+/* ───────────────────────── IST helpers ───────────────────────── */
+const istKey = (d) => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata", year: "numeric", month: "2-digit", day: "2-digit" }).format(d);
+const addDays = (key, n) => { const [y, m, d] = key.split("-").map(Number); return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10); };
+const pad = (n) => String(n).padStart(2, "0");
+const lastDayOfMonth = (y, m) => new Date(Date.UTC(y, m, 0)).getUTCDate(); // m is 1-12
+const fmtTime = (iso) => !iso ? "-" : new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit", hour12: true }).format(new Date(iso));
+const fmtDate = (s) => { const p = s.split(" to "); return p.map((k) => { const [y, m, d] = k.split("-"); return `${d} ${MONTHS[+m - 1].slice(0, 3)} ${y}`; }).join(" - "); };
+
+/* ───────────────────────── session ───────────────────────── */
+let token = sessionStorage.getItem(TOKEN_KEY) || "";
+let scopeMustChange = false;
+
+function setMsg(text, ok) { const el = $("authMsg"); el.textContent = text || ""; el.style.color = ok ? "#16a34a" : "#dc2626"; }
+function show(view) {
+    $("authWrap").style.display = view === "app" ? "none" : "flex";
+    $("appWrap").style.display = view === "app" ? "block" : "none";
+    $("loginForm").style.display = view === "login" ? "block" : "none";
+    $("pwForm").style.display = view === "pw" ? "block" : "none";
+}
+function endSession(message) {
+    token = ""; sessionStorage.removeItem(TOKEN_KEY);
+    $("lgPass").value = "";
+    show("login");
+    setMsg(message || "", false);
+}
+
+async function api(path, { method = "GET", body, auth = true } = {}) {
+    const headers = { "Content-Type": "application/json" };
+    if (auth) headers.Authorization = "Bearer " + token;
+    let res;
+    try { res = await fetch(API_BASE + path, { method, headers, body: body ? JSON.stringify(body) : undefined, cache: "no-store" }); }
+    catch (e) { const err = new Error("Server not reachable. Check your connection."); err.network = true; throw err; }
+    return res;
+}
+async function jsonOrThrow(res) {
+    let data = null;
+    try { data = await res.json(); } catch (_) {}
+    if (res.status === 401 && token) { endSession("Session expired. Please sign in again."); const e = new Error("Session expired"); e.handled = true; throw e; }
+    if (!res.ok || !data || data.success === false) {
+        const e = new Error((data && data.error) || `Request failed (${res.status})`);
+        e.status = res.status; e.retryAfter = res.headers.get("Retry-After"); throw e;
+    }
+    return data;
+}
+
+/* ───────────────────────── login / change password ───────────────────────── */
+$("loginForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const username = $("lgUser").value.trim(), password = $("lgPass").value;
+    if (!username || !password) return setMsg("Enter username and password", false);
+    $("lgBtn").disabled = true; setMsg("Signing in...", true);
+    try {
+        const data = await jsonOrThrow(await api("/app-usage/admin/login", { method: "POST", body: { username, password }, auth: false }));
+        $("lgPass").value = "";
+        token = data.token; sessionStorage.setItem(TOKEN_KEY, token);
+        setMsg("", true);
+        if (data.mustChangePassword) { scopeMustChange = true; openPasswordForm(true, "Your password is the temporary initial one. Set a new password to continue."); }
+        else { scopeMustChange = false; enterApp(); }
+    } catch (e) {
+        if (!e.handled) setMsg(e.status === 429 ? "Too many failed attempts. Try again later." : e.message, false);
+    } finally { $("lgBtn").disabled = false; }
+});
+
+function openPasswordForm(forced, notice) {
+    $("pwCur").value = $("pwNew").value = $("pwNew2").value = "";
+    $("pwNotice").textContent = notice || "Choose a new password.";
+    $("pwNotice").style.display = notice ? "block" : "none";
+    $("pwCancel").style.display = forced ? "none" : "inline-block";
+    show("pw"); setMsg("", true);
+}
+function showChangePassword() { openPasswordForm(false, ""); }
+$("pwCancel").addEventListener("click", () => { show("app"); });
+
+$("pwForm").addEventListener("submit", async (ev) => {
+    ev.preventDefault();
+    const cur = $("pwCur").value, nw = $("pwNew").value, nw2 = $("pwNew2").value;
+    if (!cur) return setMsg("Enter your current password", false);
+    if (nw !== nw2) return setMsg("New passwords do not match", false);
+    if (nw.length < 10 || !/[a-z]/.test(nw) || !/[A-Z]/.test(nw) || !/\d/.test(nw)) return setMsg("New password needs 10+ characters with upper-case, lower-case and a digit", false);
+    $("pwBtn").disabled = true; setMsg("Saving...", true);
+    try {
+        const data = await jsonOrThrow(await api("/app-usage/admin/change-password", { method: "POST", body: { currentPassword: cur, newPassword: nw } }));
+        token = data.token; sessionStorage.setItem(TOKEN_KEY, token);
+        $("pwCur").value = $("pwNew").value = $("pwNew2").value = "";
+        scopeMustChange = false; setMsg("", true); enterApp();
+    } catch (e) { if (!e.handled) setMsg(e.message, false); }
+    finally { $("pwBtn").disabled = false; }
+});
+
+async function signOut() {
+    try { if (token) await api("/app-usage/admin/logout", { method: "POST" }); } catch (_) {}
+    endSession("Signed out.");
+}
+
+/* ───────────────────────── filters state ───────────────────────── */
+const state = { page: 1, sort: "opens_desc", reqSeq: 0, courses: null, years: null };
+
+function initFilterControls() {
+    $("fMonth").innerHTML = MONTHS.map((m, i) => `<option value="${i + 1}">${m}</option>`).join("");
+    const nowKey = istKey(new Date()); const y = +nowKey.slice(0, 4), m = +nowKey.slice(5, 7);
+    $("fMonth").value = String(m);
+    $("fMonthYear").innerHTML = [y, y - 1, y - 2].map((v) => `<option value="${v}">${v}</option>`).join("");
+    $("fDate").value = nowKey; $("fDate").max = nowKey;
+    $("fFrom").value = addDays(nowKey, -6); $("fTo").value = nowKey;
+    $("fFrom").max = $("fTo").max = nowKey;
+}
+
+function currentRange() {
+    const today = istKey(new Date());
+    switch ($("fPeriod").value) {
+        case "yesterday": { const y = addDays(today, -1); return { from: y, to: y }; }
+        case "date": { const d = $("fDate").value || today; return { from: d, to: d }; }
+        case "range": return { from: $("fFrom").value || today, to: $("fTo").value || today };
+        case "month": { const y = +$("fMonthYear").value, m = +$("fMonth").value; return { from: `${y}-${pad(m)}-01`, to: `${y}-${pad(m)}-${pad(lastDayOfMonth(y, m))}` }; }
+        default: return { from: today, to: today };
+    }
+}
+
+function queryString(extra = {}) {
+    const r = currentRange();
+    const p = new URLSearchParams({
+        from: r.from, to: r.to,
+        institution: $("fInstitution").value, userType: $("fUserType").value,
+        course: $("fCourse").value, year: $("fYear").value, weekday: $("fWeekday").value,
+        search: $("fSearch").value.trim(), sort: state.sort, ...extra,
+    });
+    return "?" + p.toString();
+}
+
+function syncPeriodBoxes() {
+    const p = $("fPeriod").value;
+    $("boxDate").style.display = p === "date" ? "" : "none";
+    $("boxFrom").style.display = $("boxTo").style.display = p === "range" ? "" : "none";
+    $("boxMonth").style.display = $("boxYear").style.display = p === "month" ? "" : "none";
+}
+
+function validateRange() {
+    const r = currentRange();
+    if (r.from > r.to) { $("rangeNote").innerHTML = '<span class="text-danger">Start date must not be after end date.</span>'; return false; }
+    const days = (Date.parse(r.to) - Date.parse(r.from)) / 86400000 + 1;
+    if (days > 366) { $("rangeNote").innerHTML = '<span class="text-danger">Date range too large (max 366 days).</span>'; return false; }
+    $("rangeNote").textContent = `Showing ${r.from === r.to ? fmtDate(r.from) : fmtDate(r.from) + " to " + fmtDate(r.to)} (IST)` +
+        ($("fWeekday").value !== "all" ? `, ${$("fWeekday").selectedOptions[0].text}s only` : "");
+    return true;
+}
+
+/* ───────────────────────── rendering ───────────────────────── */
+const CARDS = [
+    ["totalOpens", "Total App Opens", "bi-box-arrow-in-up-right", "#dbeafe", "#2563eb"],
+    ["uniqueUsers", "Unique Active Users", "bi-people-fill", "#dcfce7", "#16a34a"],
+    ["avgOpensPerUser", "Avg Opens / User", "bi-speedometer2", "#fef3c7", "#d97706"],
+    ["collegeUsers", "College Active Users", "bi-mortarboard", "#ede9fe", "#6d28d9"],
+    ["schoolUsers", "School Active Users", "bi-book", "#e0f2fe", "#0369a1"],
+    ["studentUsers", "Student Active Users", "bi-person-check", "#ccfbf1", "#0d9488"],
+    ["facultyUsers", "Faculty Active Users", "bi-person-workspace", "#ffedd5", "#ea580c"],
+    ["parentUsers", "Parent Active Users", "bi-person-heart", "#fce7f3", "#db2777"],
+];
+function renderCards(s) {
+    $("cards").innerHTML = CARDS.map(([k, label, icon, bg, fg]) => {
+        const v = s ? (k === "avgOpensPerUser" ? Number(s[k]).toFixed(2) : Number(s[k]).toLocaleString("en-IN")) : "-";
+        return `<div class="col-xl-3 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:${bg};color:${fg}"><i class="bi ${icon}"></i></div><div class="stat-value">${v}</div><div class="stat-label">${label}</div></div></div>`;
+    }).join("");
+}
+
+function setOptions(sel, items, allLabel) {
+    const keep = sel.value;
+    sel.innerHTML = `<option value="all">${allLabel}</option>` + items.map((o) => `<option value="${esc(o.value)}">${esc(o.label)}</option>`).join("");
+    if ([...sel.options].some((o) => o.value === keep)) sel.value = keep;
+    else if (keep !== "all") { sel.insertAdjacentHTML("beforeend", `<option value="${esc(keep)}">${esc(keep)}</option>`); sel.value = keep; }
+}
+
+function showState(kind, html) {
+    const el = $("tblState");
+    if (!kind) { el.style.display = "none"; return; }
+    el.style.display = "block"; el.innerHTML = html;
+}
+
+function renderRows(rows) {
+    $("tbody").innerHTML = rows.map((r) => `
+        <tr>
+            <td>${r.serial}</td>
+            <td><div class="au-name">${esc((r.userName || "-").toUpperCase())}</div></td>
+            <td>${esc(r.mobile || "-")}</td>
+            <td><span class="au-pill ${esc(r.institution)}">${esc(r.institution)}</span></td>
+            <td><span class="au-pill">${esc(r.userType)}</span></td>
+            <td>${esc(r.courseLabel || "-")}</td>
+            <td>${esc(r.yearLabel || "-")}</td>
+            <td class="text-end"><span class="au-count">${Number(r.openCount).toLocaleString("en-IN")}</span>${r.activeDays > 1 ? `<div class="au-sub">${r.activeDays} days</div>` : ""}</td>
+            <td>${esc(fmtTime(r.firstOpenedAt))}</td>
+            <td>${esc(fmtTime(r.lastOpenedAt))}</td>
+            <td class="text-nowrap">${esc(fmtDate(r.date))}</td>
+        </tr>`).join("");
+}
+
+function renderPager(page, totalPages) {
+    const items = [];
+    const add = (label, p, { disabled, active } = {}) => items.push(`<li class="page-item${disabled ? " disabled" : ""}${active ? " active" : ""}"><a class="page-link" href="#" data-page="${p}">${label}</a></li>`);
+    add("&laquo;", page - 1, { disabled: page <= 1 });
+    const win = new Set([1, totalPages, page - 1, page, page + 1]);
+    let prev = 0;
+    for (const p of [...win].filter((p) => p >= 1 && p <= totalPages).sort((a, b) => a - b)) {
+        if (p - prev > 1) items.push('<li class="page-item disabled"><span class="page-link">&hellip;</span></li>');
+        add(p, p, { active: p === page }); prev = p;
+    }
+    add("&raquo;", page + 1, { disabled: page >= totalPages });
+    $("pager").innerHTML = totalPages > 1 ? items.join("") : "";
+}
+$("pager").addEventListener("click", (e) => {
+    const a = e.target.closest("a[data-page]"); if (!a) return;
+    e.preventDefault();
+    const li = a.parentElement; if (li.classList.contains("disabled") || li.classList.contains("active")) return;
+    state.page = +a.dataset.page; load();
+});
+
+function updateSortIcons() {
+    document.querySelectorAll("th.sortable").forEach((th) => {
+        const k = th.dataset.sort; const s = state.sort;
+        const on = (k === "opens" && s.startsWith("opens")) || (k === "name" && s.startsWith("name"));
+        th.querySelector(".sortIco").textContent = on ? (s.endsWith("_asc") ? "\u25B2" : "\u25BC") : "";
+    });
+    $("fSort").value = state.sort;
+}
+
+/* ───────────────────────── loading ───────────────────────── */
+async function load() {
+    if (!token || scopeMustChange) return;
+    if (!validateRange()) { renderCards(null); renderRows([]); showState("error", '<i class="bi bi-calendar-x"></i>Fix the date range to continue.'); return; }
+    const seq = ++state.reqSeq;
+    $("tblWrap").classList.add("loading");
+    try {
+        const data = await jsonOrThrow(await api("/app-usage/admin/report" + queryString({ page: state.page, pageSize: $("fPageSize").value })));
+        if (seq !== state.reqSeq) return; // a newer request superseded this one
+        state.page = data.page;
+        renderCards(data.summary);
+        setOptions($("fCourse"), data.options.courses, "All courses");
+        setOptions($("fYear"), data.options.years, "All");
+        renderRows(data.rows);
+        renderPager(data.page, data.totalPages);
+        $("countBadge").textContent = data.total.toLocaleString("en-IN");
+        const from = data.total ? (data.page - 1) * data.pageSize + 1 : 0;
+        $("pageInfo").textContent = data.total ? `Showing ${from}-${from + data.rows.length - 1} of ${data.total.toLocaleString("en-IN")}` : "";
+        $("subtitle").textContent = "Updated " + new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "2-digit", minute: "2-digit", hour12: true }).format(new Date(data.generatedAt)) + " IST" + (data.cached ? " (cached)" : "");
+        showState(data.total ? null : "empty", '<i class="bi bi-inbox"></i>No app opens match the selected filters.');
+    } catch (e) {
+        if (seq !== state.reqSeq || e.handled) return;
+        renderCards(null); renderRows([]); renderPager(1, 1); $("countBadge").textContent = "-"; $("pageInfo").textContent = "";
+        const wait = e.status === 429 && e.retryAfter ? ` Try again in ${esc(e.retryAfter)}s.` : "";
+        showState("error", `<i class="bi bi-exclamation-triangle text-danger"></i>${esc(e.message)}${wait}<div class="mt-2"><button class="btn btn-sm btn-outline-secondary" onclick="load()">Retry</button></div>`);
+    } finally { if (seq === state.reqSeq) $("tblWrap").classList.remove("loading"); }
+}
+
+let filterTimer = null;
+function filtersChanged(resetPage = true, delay = 200) {
+    if (resetPage) state.page = 1;
+    clearTimeout(filterTimer);
+    filterTimer = setTimeout(load, delay);
+}
+
+async function exportCsv() {
+    if (!validateRange()) return;
+    const btn = $("btnExport"); btn.disabled = true;
+    try {
+        const res = await api("/app-usage/admin/export" + queryString());
+        if (res.status === 401) { endSession("Session expired. Please sign in again."); return; }
+        if (!res.ok) { let m = "Export failed"; try { m = (await res.json()).error || m; } catch (_) {} throw new Error(m); }
+        const blob = await res.blob();
+        const r = currentRange();
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob); a.download = `app-usage_${r.from}_${r.to}.csv`;
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(a.href), 5000);
+    } catch (e) { alert(e.message); }
+    finally { btn.disabled = false; }
+}
+
+function resetFilters() {
+    $("fPeriod").value = "today"; syncPeriodBoxes();
+    ["fInstitution", "fUserType", "fCourse", "fYear", "fWeekday"].forEach((id) => { $(id).value = "all"; });
+    $("fSearch").value = ""; state.sort = "opens_desc"; updateSortIcons();
+    initFilterControls(); filtersChanged(true, 0);
+}
+
+/* ───────────────────────── wiring ───────────────────────── */
+function toggleSidebar() {
+    $("sidebar").classList.toggle("active"); $("sidebarBackdrop").classList.toggle("active");
+}
+function enterApp() {
+    show("app"); renderCards(null);
+    $("fPeriod").value = "today"; syncPeriodBoxes(); // default: TODAY
+    load();
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    initFilterControls(); updateSortIcons();
+    $("fPeriod").addEventListener("change", () => { syncPeriodBoxes(); filtersChanged(); });
+    ["fDate", "fFrom", "fTo", "fMonth", "fMonthYear", "fWeekday", "fInstitution", "fUserType", "fCourse", "fYear"].forEach((id) => $(id).addEventListener("change", () => filtersChanged()));
+    $("fSearch").addEventListener("input", () => filtersChanged(true, 350));
+    $("fSort").addEventListener("change", () => { state.sort = $("fSort").value; updateSortIcons(); filtersChanged(); });
+    $("fPageSize").addEventListener("change", () => filtersChanged());
+    document.querySelectorAll("th.sortable").forEach((th) => th.addEventListener("click", () => {
+        const k = th.dataset.sort, s = state.sort;
+        state.sort = k === "opens" ? (s === "opens_desc" ? "opens_asc" : "opens_desc") : (s === "name_asc" ? "name_desc" : "name_asc");
+        updateSortIcons(); filtersChanged();
+    }));
+    $("btnReset").addEventListener("click", resetFilters);
+    $("btnRefresh").addEventListener("click", () => load());
+    $("btnExport").addEventListener("click", exportCsv);
+
+    // Resume an existing tab session only if the server still accepts it; otherwise show login.
+    if (token) {
+        (async () => {
+            try { await jsonOrThrow(await api("/app-usage/admin/report?pageSize=5")); enterApp(); }
+            catch (e) {
+                if (e.status === 403) { scopeMustChange = true; openPasswordForm(true, "Set a new password to continue."); }
+                else if (!e.handled) endSession("");
+            }
+        })();
+    } else show("login");
+});
+</script>
+</body>
+</html>
