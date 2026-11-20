@@ -31,7 +31,9 @@
         .filter-bar .form-label { margin-bottom: 2px; }
         .au-state { padding: 48px 12px; text-align: center; color: var(--text-secondary); }
         .au-state i { font-size: 34px; display: block; margin-bottom: 8px; opacity: .6; }
-        .stat-value { font-size: 26px; }
+        .stat-value { font-size: 26px; white-space: nowrap; }
+        .stat-value .au-total { font-size: .62em; font-weight: 700; color: var(--text-secondary); letter-spacing: 0; }
+        .au-card-sub { font-size: 11.5px; color: var(--text-muted); margin-top: 2px; line-height: 1.35; overflow-wrap: anywhere; }
         #tblWrap.loading { opacity: .55; pointer-events: none; transition: opacity .15s; }
         .pw-hint { font-size: 12px; color: var(--text-secondary); }
     </style>
@@ -366,20 +368,28 @@ function validateRange() {
 }
 
 /* ───────────────────────── rendering ───────────────────────── */
+// [kind, key, label, icon, bg, fg]   kind: "opens" | "avg" | "ratio" (active / registered)
 const CARDS = [
-    ["totalOpens", "Total App Opens", "bi-box-arrow-in-up-right", "#dbeafe", "#2563eb"],
-    ["uniqueUsers", "Unique Active Users", "bi-people-fill", "#dcfce7", "#16a34a"],
-    ["avgOpensPerUser", "Avg Opens / User", "bi-speedometer2", "#fef3c7", "#d97706"],
-    ["collegeUsers", "College Active Users", "bi-mortarboard", "#ede9fe", "#6d28d9"],
-    ["schoolUsers", "School Active Users", "bi-book", "#e0f2fe", "#0369a1"],
-    ["studentUsers", "Student Active Users", "bi-person-check", "#ccfbf1", "#0d9488"],
-    ["facultyUsers", "Faculty Active Users", "bi-person-workspace", "#ffedd5", "#ea580c"],
-    ["parentUsers", "Parent Active Users", "bi-person-heart", "#fce7f3", "#db2777"],
+    ["opens", "totalOpens", "Total App Opens", "bi-box-arrow-in-up-right", "#dbeafe", "#2563eb"],
+    ["ratio", "users", "App Users", "bi-people-fill", "#dcfce7", "#16a34a"],
+    ["avg", "avg", "Avg Opens / User", "bi-speedometer2", "#fef3c7", "#d97706"],
+    ["ratio", "college", "College Users", "bi-mortarboard", "#ede9fe", "#6d28d9"],
+    ["ratio", "school", "School Users", "bi-book", "#e0f2fe", "#0369a1"],
+    ["ratio", "student", "Student Users", "bi-person-check", "#ccfbf1", "#0d9488"],
+    ["ratio", "faculty", "Faculty Users", "bi-person-workspace", "#ffedd5", "#ea580c"],
+    ["ratio", "parent", "Parent Users", "bi-person-heart", "#fce7f3", "#db2777"],
 ];
-function renderCards(s) {
-    $("cards").innerHTML = CARDS.map(([k, label, icon, bg, fg]) => {
-        const v = s ? (k === "avgOpensPerUser" ? Number(s[k]).toFixed(2) : Number(s[k]).toLocaleString("en-IN")) : "-";
-        return `<div class="col-xl-3 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:${bg};color:${fg}"><i class="bi ${icon}"></i></div><div class="stat-value">${v}</div><div class="stat-label">${label}</div></div></div>`;
+const fmtN = (n) => Number(n || 0).toLocaleString("en-IN");
+function renderCards(s, c) {
+    $("cards").innerHTML = CARDS.map(([kind, k, label, icon, bg, fg]) => {
+        let value = "-", sub = "&nbsp;";
+        if (s && kind === "opens") { value = fmtN(s.totalOpens); sub = "In selected period"; }
+        else if (s && c && kind === "avg") { value = Number(c.avgOpensPerRegisteredUser).toFixed(2); sub = `${fmtN(s.totalOpens)} opens · ${fmtN(c.registered.users)} registered`; }
+        else if (c && kind === "ratio") {
+            value = `${fmtN(c.active[k])}<span class="au-total"> / ${fmtN(c.registered[k])}</span>`;
+            sub = `${fmtN(c.active[k])} Active · ${fmtN(c.registered[k])} Registered`;
+        }
+        return `<div class="col-xl-3 col-md-4 col-6"><div class="stat-card"><div class="stat-icon" style="background:${bg};color:${fg}"><i class="bi ${icon}"></i></div><div class="stat-value" data-card="${k}">${value}</div><div class="stat-label">${label}</div><div class="au-card-sub">${sub}</div></div></div>`;
     }).join("");
 }
 
@@ -452,7 +462,7 @@ async function load() {
         const data = await jsonOrThrow(await api("/app-usage/admin/report" + queryString({ page: state.page, pageSize: $("fPageSize").value })));
         if (seq !== state.reqSeq) return; // a newer request superseded this one
         state.page = data.page;
-        renderCards(data.summary);
+        renderCards(data.summary, data.cards);
         setOptions($("fCourse"), data.options.courses, "All courses");
         setOptions($("fYear"), data.options.years, "All");
         renderRows(data.rows);
